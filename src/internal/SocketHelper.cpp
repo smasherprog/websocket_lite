@@ -1,5 +1,7 @@
 #include "Protocols.h"
 #include <sstream>
+#include "internal/SHA.h"
+#include "internal/Base64.h"
 
 namespace SL {
 	namespace WS_LITE {
@@ -41,7 +43,7 @@ namespace SL {
 			}
 			return out;
 		}
-		std::unordered_map<std::string, std::string> Parse(std::string defaultheaderversion, std::istream& stream)
+		std::unordered_map<std::string, std::string> Parse_Handshake(std::string defaultheaderversion, std::istream& stream)
 		{
 			std::unordered_map<std::string, std::string> header;
 			std::string line;
@@ -73,6 +75,20 @@ namespace SL {
 				}
 			}
 			return header;
+		}	
+		const std::string ws_magic_string = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
+		bool Generate_Handshake(std::unordered_map<std::string, std::string>& header, std::ostream & stream)
+		{
+			auto header_it = header.find(HTTP_SECWEBSOCKETKEY);
+			if (header_it == header.end())
+				return false;
+
+			auto sha1 = SHA1(header_it->second + ws_magic_string);
+			stream << "HTTP/1.1 101 Web Socket Protocol Handshake" << HTTP_ENDLINE;
+			stream << "Upgrade: websocket" << HTTP_ENDLINE;
+			stream << "Connection: Upgrade" << HTTP_ENDLINE;
+			stream << HTTP_SECWEBSOCKETACCEPT << HTTP_KEYVALUEDELIM << Base64Encode(sha1) << HTTP_ENDLINE << HTTP_ENDLINE;
+			return true;
 		}
 	}
 }

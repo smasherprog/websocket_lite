@@ -15,21 +15,21 @@ namespace SL {
 			PING = 9,
 			PONG = 10
 		};
-		const auto HTTP_METHOD = "Method";
-		const auto HTTP_PATH = "Path";
-		const auto HTTP_VERSION = "Http_Version";
-		const auto HTTP_STATUSCODE = "Http_StatusCode";
-		const auto HTTP_CONTENTLENGTH = "Content-Length";
-		const auto HTTP_CONTENTTYPE = "Content-Type";
-		const auto HTTP_CACHECONTROL = "Cache-Control";
-		const auto HTTP_LASTMODIFIED = "Last-Modified";
-		const auto HTTP_SECWEBSOCKETKEY = "Sec-WebSocket-Key";
-		const auto HTTP_SECWEBSOCKETACCEPT = "Sec-WebSocket-Accept";
+		struct SocketStats {
+			//total bytes that the Socket layer received from the upper layer. This is not the actual amount of data send across the network due to compressoin, encryption, etc
+			long long TotalBytesSent;
+			//total bytes that the Socket layer seent to the network layer
+			long long NetworkBytesSent;
+			//total number of messages sent
+			long long TotalMessagesSent;
+			//total bytes that the upper layer received from the socket layer after decompression, decryption, etc
+			long long TotalBytesReceived;
+			//total bytes that the Socket layer received from the network layer
+			long long NetworkBytesReceived;
+			//total number of messages received
+			long long TotalMessageReceived;
 
-		const auto HTTP_ENDLINE = "\r\n";
-		const auto HTTP_KEYVALUEDELIM = ": ";
-
-		std::unordered_map<std::string, std::string> Parse(std::string defaultheaderversion, std::istream& stream);
+		};
 
 	}
 }
