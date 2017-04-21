@@ -31,18 +31,15 @@ else()
 endif()
 
 set(WEBSOCKET_LITE_COMMON_SRC 
-	${CMAKE_CURRENT_SOURCE_DIR}/../include/WebSocket.h
 	${CMAKE_CURRENT_SOURCE_DIR}/../src/WebSocket.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/../include/internal/WebSocketImpl.h
 	${CMAKE_CURRENT_SOURCE_DIR}/../include/internal/SocketHelper.h
 	${CMAKE_CURRENT_SOURCE_DIR}/../src/internal/SocketHelper.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/../include/internal/SHA.h
 	${CMAKE_CURRENT_SOURCE_DIR}/../include/internal/Base64.h
-	${CMAKE_CURRENT_SOURCE_DIR}/../include/internal/HubImpl.h
 	${CMAKE_CURRENT_SOURCE_DIR}/../include/Logging.h
-	${CMAKE_CURRENT_SOURCE_DIR}/../include/Hub.h
-	${CMAKE_CURRENT_SOURCE_DIR}/../src/Hub.cpp
-	${CMAKE_CURRENT_SOURCE_DIR}/../include/Protocols.h
+	${CMAKE_CURRENT_SOURCE_DIR}/../include/WS_Lite.h
+	${CMAKE_CURRENT_SOURCE_DIR}/../src/internal/ListenerImpl.cpp
 )
 
 find_package(Boost REQUIRED)
