@@ -38,7 +38,7 @@ namespace SL {
 			boost::asio::ssl::context sslcontext;
 			std::string Password;
 		};
-		template<class T> class Listener{};
+		template<class T> class Listener {};
 
 		template<>class Listener<WSS> : std::enable_shared_from_this<Listener<WSS>> {
 		public:
@@ -67,8 +67,8 @@ namespace SL {
 			~Listener() { }
 			void Listen() {
 				auto self = shared_from_this();
-				auto new_session = std::make_shared<WebSocket>(WebSocket_Type.io_service, WebSocket_Type.sslcontext, true);
-				WebSocket_Type.acceptor.async_accept(new_session->Socket_.lowest_layer(), [self, new_session](const boost::system::error_code& ec)
+				auto new_session = std::make_shared<Socket<WSSocket>>(WebSocket_Type.io_service, WebSocket_Type.sslcontext, true);
+				WebSocket_Type.acceptor.async_accept(new_session->.lowest_layer(), [self, new_session](const boost::system::error_code& ec)
 				{
 					if (!ec)
 					{
@@ -100,16 +100,12 @@ namespace SL {
 			~Listener() { }
 			void Listen() {
 				auto self = shared_from_this();
-				auto new_session = std::make_shared<WebSocket>(WebSocket_Type.io_service, WebSocket_Type.sslcontext, true);
-				WebSocket_Type.acceptor.async_accept(new_session->Socket_.lowest_layer(), [self, new_session](const boost::system::error_code& ec)
+				auto new_session = std::make_shared<Socket<WSocket>>(WebSocket_Type.io_service, true);
+				WebSocket_Type.acceptor.async_accept(new_session->WSocket_, [self, new_session](const boost::system::error_code& ec)
 				{
 					if (!ec)
 					{
-						new_session->Socket_.async_handshake(boost::asio::ssl::stream_base::server, [self, new_session](const boost::system::error_code& ec) {
-							if (!ec) {
-								new_session->receivehandshake();
-							}
-						});
+						new_session->receivehandshake();
 					}
 					self->Listen();
 				});

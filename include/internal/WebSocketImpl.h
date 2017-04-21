@@ -18,6 +18,9 @@ namespace SL {
 
 		template<class T>class CommonWSocket {
 		public:
+			CommonWSocket() {
+				memset(&SocketStats_, 0, sizeof(SocketStats_));
+			}
 			std::vector<char> IncomingBuffer;
 			std::unordered_map<std::string, std::string> Header_;
 			SocketEvents<T>& SocketEvents_;
@@ -33,20 +36,25 @@ namespace SL {
 		};
 		class WSocket: public CommonWSocket<WSocket>{
 		public:
+			WSocket(boost::asio::io_service& io_service, SocketTypes server, SocketEvents<WSocket>& h) :Socket_(io_service)
+			{}
 			boost::asio::ip::tcp::socket Socket_;
 		};
 		class WSSocket :  public CommonWSocket<WSSocket> {
 		public:
+			WSSocket(boost::asio::io_service& io_service, boost::asio::ssl::context& context, SocketTypes server, SocketEvents<WSocket>& h): Socket_(io_service, context){
+
+			}
 			boost::asio::ssl::stream<boost::asio::ip::tcp::socket> Socket_;
 		};
 
 		template<>class Socket<WSocket> :public std::enable_shared_from_this<Socket<WSocket>>
 		{
 		public:
-			WSocket WSocket_;
+			WSocket Socket_;
 
-			Socket(boost::asio::io_service& io_service, SocketTypes server, SocketEvents& h) : Socket_(io_service, context), Server(server), HubImpl_(h) {
-				memset(&SocketStats_, 0, sizeof(SocketStats_));
+			Socket(boost::asio::io_service& io_service, SocketTypes server, SocketEvents<WSocket>& h) : Socket_(io_service, server, h) {
+				
 			}
 			~Socket() {
 				//put disconnect here  
@@ -257,10 +265,10 @@ namespace SL {
 			}
 		};
 
-		template<>class Socket<WSocket> :public std::enable_shared_from_this<Socket<WSocket>>
+		template<>class Socket<WSSocket> :public std::enable_shared_from_this<Socket<WSSocket>>
 		{
 		public:
-			WSocket WSocket_;
+			WSSocket Socket_;
 
 			Socket(boost::asio::io_service& io_service, boost::asio::ssl::context& context, SocketTypes server, SocketEvents& h) : Socket_(io_service, context), Server(server), HubImpl_(h) {
 				memset(&SocketStats_, 0, sizeof(SocketStats_));
