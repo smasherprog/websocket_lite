@@ -14,89 +14,32 @@ namespace SL {
 	namespace WS_LITE {
 
 		const auto  MASKSIZE = 4;
-		template<class T> class Socket {};
 
-		template<class T>class CommonWSocket {
+		template<class T>class CommonSocket {
 		public:
-			CommonWSocket() {
+			CommonSocket() {
 				memset(&SocketStats_, 0, sizeof(SocketStats_));
 			}
 			std::vector<char> IncomingBuffer;
-			std::unordered_map<std::string, std::string> Header_;
 			SocketEvents<T>& SocketEvents_;
 			SocketTypes Server;
-			SocketStats SocketStats_;
-			int ReadTimeout = 5;
-			int WriteTimeout = 5;
 			size_t ReadLen = 0;
 			unsigned char _recv_fin_rsv_opcode = 0;
 			unsigned char _readheaderbuffer[8];
 			unsigned char _writeheaderbuffer[sizeof(char)/*type*/ + sizeof(char)/*extra*/ + sizeof(unsigned long long)/*largest size*/ + MASKSIZE/*mask*/];
 			unsigned short PingBuffer = 0x001A;
 		};
-		class WSocket: public CommonWSocket<WSocket>{
-		public:
-			WSocket(boost::asio::io_service& io_service, SocketTypes server, SocketEvents<WSocket>& h) :Socket_(io_service)
-			{}
-			boost::asio::ip::tcp::socket Socket_;
-		};
-		class WSSocket :  public CommonWSocket<WSSocket> {
-		public:
-			WSSocket(boost::asio::io_service& io_service, boost::asio::ssl::context& context, SocketTypes server, SocketEvents<WSocket>& h): Socket_(io_service, context){
-
-			}
-			boost::asio::ssl::stream<boost::asio::ip::tcp::socket> Socket_;
-		};
-
-		template<>class Socket<WSocket> :public std::enable_shared_from_this<Socket<WSocket>>
+		class WSocket :public std::enable_shared_from_this<WSocket>
 		{
 		public:
-			WSocket Socket_;
+			
+			boost::asio::ip::tcp::socket Socket_;
 
-			Socket(boost::asio::io_service& io_service, SocketTypes server, SocketEvents<WSocket>& h) : Socket_(io_service, server, h) {
+			WSocket(boost::asio::io_service& io_service, SocketTypes server, SocketEvents<WSocket>& h) : Socket_(io_service) {
 				
 			}
-			~Socket() {
+			~WSocket() {
 				//put disconnect here  
-			}
-			void receivehandshake()
-			{
-				auto self(shared_from_this());
-				readexpire_from_now(self, ReadTimeout);
-				auto read_buffer(std::make_shared<boost::asio::streambuf>());
-
-				boost::asio::async_read_until(Socket_, *read_buffer, "\r\n\r\n", [self, read_buffer](const boost::system::error_code& ec, size_t bytes_transferred) {
-					if (!ec) {
-						SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "Read Handshake bytes " << bytes_transferred);
-
-						std::istream stream(read_buffer.get());
-						self->Header_ = Parse_Handshake("1.1", stream);
-
-						auto write_buffer(std::make_shared<boost::asio::streambuf>());
-						std::ostream handshake(write_buffer.get());
-						if (Generate_Handshake(self->Header_, handshake)) {
-							if (self->HubImpl_.OnHttpUpgrade) {
-								self->HubImpl_.OnHttpUpgrade(self);
-							}
-							boost::asio::async_write(self->Socket_, *write_buffer, [self, write_buffer](const boost::system::error_code& ec, size_t bytes_transferred) {
-								if (!ec) {
-									SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "Sent Handshake bytes " << bytes_transferred);
-									self->HubImpl_.OnConnectionHandler(self);
-									self->readheader();
-								}
-								else {
-									SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "WebSocket receivehandshake failed " << ec.message());
-								}
-							});
-						}
-						else {
-							SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "WebSocket Generate_Handshake failed " );
-						}
-					}
-					else {
-						SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "Read Handshake failed " << ec.message());
-					}
-				});
 			}
 			void sendHandshake()
 			{
@@ -265,55 +208,17 @@ namespace SL {
 			}
 		};
 
-		template<>class Socket<WSSocket> :public std::enable_shared_from_this<Socket<WSSocket>>
+		class WSSocket :public std::enable_shared_from_this<WSSocket>
 		{
 		public:
-			WSSocket Socket_;
 
-			Socket(boost::asio::io_service& io_service, boost::asio::ssl::context& context, SocketTypes server, SocketEvents& h) : Socket_(io_service, context), Server(server), HubImpl_(h) {
-				memset(&SocketStats_, 0, sizeof(SocketStats_));
+			boost::asio::ssl::stream<boost::asio::ip::tcp::socket> Socket_;
+
+			WSSocket(boost::asio::io_service& io_service, boost::asio::ssl::context& context, SocketTypes server) : Socket_(io_service, context) {
+				
 			}
-			~Socket() {
+			~WSSocket() {
 				//put disconnect here  
-			}
-			void receivehandshake()
-			{
-				auto self(shared_from_this());
-				readexpire_from_now(self, ReadTimeout);
-				auto read_buffer(std::make_shared<boost::asio::streambuf>());
-
-				boost::asio::async_read_until(Socket_, *read_buffer, "\r\n\r\n", [self, read_buffer](const boost::system::error_code& ec, size_t bytes_transferred) {
-					if (!ec) {
-						SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "Read Handshake bytes " << bytes_transferred);
-
-						std::istream stream(read_buffer.get());
-						self->Header_ = Parse_Handshake("1.1", stream);
-
-						auto write_buffer(std::make_shared<boost::asio::streambuf>());
-						std::ostream handshake(write_buffer.get());
-						if (Generate_Handshake(self->Header_, handshake)) {
-							if (self->HubImpl_.OnHttpUpgrade) {
-								self->HubImpl_.OnHttpUpgrade(self);
-							}
-							boost::asio::async_write(self->Socket_, *write_buffer, [self, write_buffer](const boost::system::error_code& ec, size_t bytes_transferred) {
-								if (!ec) {
-									SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "Sent Handshake bytes " << bytes_transferred);
-									self->HubImpl_.OnConnectionHandler(self);
-									self->readheader();
-								}
-								else {
-									SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "WebSocket receivehandshake failed " << ec.message());
-								}
-							});
-						}
-						else {
-							SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "WebSocket Generate_Handshake failed ");
-						}
-					}
-					else {
-						SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "Read Handshake failed " << ec.message());
-					}
-				});
 			}
 			void sendHandshake()
 			{

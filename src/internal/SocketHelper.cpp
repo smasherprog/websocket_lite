@@ -1,4 +1,4 @@
-#include "Protocols.h"
+#include "WS_Lite.h"
 #include <sstream>
 #include "internal/SHA.h"
 #include "internal/Base64.h"

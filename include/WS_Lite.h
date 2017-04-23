@@ -7,20 +7,8 @@
 namespace SL {
 	namespace WS_LITE {
 		//forward declares
-		class WSocket;
-		class WSSocket;
-		template<class WSocket>
-		class Socket<WSocket>;
-		template<class WSSocket>
-		class Socket<WSSocket>;
-
-		class WS;
-		class WSS;
-		template <class WS>
-		class Listener<WS>;
-		template <class WSS>
-		class Listener<WSS>;
-
+		struct WSocket;
+		class WSListener;
 
 		enum SocketTypes {
 			SERVER,
@@ -33,29 +21,23 @@ namespace SL {
 			PING = 9,
 			PONG = 10
 		};
-		struct SocketStats {
-			//total bytes that the Socket layer received from the upper layer. This is not the actual amount of data send across the network due to compressoin
-			long long TotalBytesSent;
-			//total bytes that the Socket layer seent to the network layer
-			long long NetworkBytesSent;
-			//total number of messages sent
-			long long TotalMessagesSent;
-			//total bytes that the upper layer received from the socket layer after decompression
-			long long TotalBytesReceived;
-			//total bytes that the Socket layer received from the network layer
-			long long NetworkBytesReceived;
-			//total number of messages received
-			long long TotalMessageReceived;
-
+		//this is the message after being uncompressed
+		struct UnpackedMessage {
+			char* data;
+			size_t len;
+			OpCode code;
 		};
-	
-		template<class T>struct SocketEvents {
-			std::function<void(std::weak_ptr<Socket<T>>)> onConnection;
-			std::function<void(std::weak_ptr<Socket<T>>, char *, size_t, OpCode)> onMessage;
-			std::function<void(std::weak_ptr<Socket<T>>, int code, char *message, size_t length)> onDisconnection;
-			std::function<void(std::weak_ptr<Socket<T>>, char *, size_t)> onPing;
-			std::function<void(std::weak_ptr<Socket<T>>, char *, size_t)> onPong;
-			std::function<void(std::weak_ptr<Socket<T>>)> onHttpUpgrade;
+		//this contains information about the compressed message size
+		struct PackgedMessageInfo {
+			size_t len;
+		};
+		struct SocketEvents {
+			std::function<void(WSocket, std::unordered_map<std::string, std::string>&)> onConnection;
+			std::function<void(WSocket, UnpackedMessage&, PackgedMessageInfo&)> onMessage;
+			std::function<void(WSocket, int code, char *message, size_t length)> onDisconnection;
+			std::function<void(WSocket, char *, size_t)> onPing;
+			std::function<void(WSocket, char *, size_t)> onPong;
+			std::function<void(WSocket)> onHttpUpgrade;
 
 		};
 		struct WS_Config {
@@ -68,47 +50,47 @@ namespace SL {
 			std::string dh_File;
 		};
 	
-		std::shared_ptr<Listener<WS>> CreateListener(const WS_Config& c, SocketEvents<WSocket>& se);
-		void StartListening(std::shared_ptr<Listener<WS>>& l);
+		std::shared_ptr<WSListener> CreateListener(const WS_Config& c, SocketEvents<WSocket>& se);
+		void StartListening(std::shared_ptr<WSListener>& l);
 
-		std::shared_ptr<Listener<WSS>> CreateListener(const WSS_Config& c, SocketEvents<WSSocket>& se);
-		void StartListening(std::shared_ptr<Listener<WSS>>& l);
+		std::shared_ptr<WSSListener> CreateListener(const WSS_Config& c, SocketEvents<WSSocket>& se);
+		void StartListening(std::shared_ptr<WSSListener>& l);
 
-		void send(Socket<WSocket>& s, char *, size_t);
-		void send(Socket<WSSocket>& s, char *, size_t);
+		void set_ReadTimeout(WSListener& s,unsigned int seconds);
+		void set_ReadTimeout(WSSListener& s, unsigned int seconds);
 
-		void close(Socket<WSocket>& s, int code, std::string reason);
-		void close(Socket<WSSocket>& s, int code, std::string reason);
+		void get_ReadTimeout(WSListener& s);
+		void get_ReadTimeout(WSSListener& s);
+	
+		void set_WriteTimeout(WSListener& s, unsigned int seconds);
+		void set_WriteTimeout(WSSListener& s, unsigned int seconds);
 
-		bool closed(Socket<WSocket>& s);
-		bool closed(Socket<WSSocket>& s);
+		void get_WriteTimeout(WSListener& s);
+		void get_WriteTimeout(WSSListener& s);
 
-		SocketStats get_SocketStats(Socket<WSocket>& s);
-		SocketStats get_SocketStats(Socket<WSSocket>& s);
+		void send(WSocket& s, char *, size_t);
+		void send(WSSocket& s, char *, size_t);
 
-		void set_ReadTimeout(Socket<WSocket>& s, int seconds);
-		void set_ReadTimeout(Socket<WSSocket>& s, int seconds);
+		void close(WSocket& s, int code, std::string reason);
+		void close(WSSocket& s, int code, std::string reason);
 
-		void set_WriteTimeout(Socket<WSocket>& s, int seconds);
-		void set_WriteTimeout(Socket<WSSocket>& s, int seconds);
+		bool closed(WSocket& s);
+		bool closed(WSSocket& s);
 
-		const std::unordered_map<std::string, std::string>& get_headers(Socket<WSocket>& s);
-		const std::unordered_map<std::string, std::string>& get_headers(Socket<WSSocket>& s);
+		std::string get_address(WSocket& s);
+		std::string get_address(WSSocket& s);
 
-		std::string get_address(Socket<WSocket>& s);
-		std::string get_address(Socket<WSSocket>& s);
+		unsigned short get_port(WSocket& s);
+		unsigned short get_port(WSSocket& s);
 
-		unsigned short get_port(Socket<WSocket>& s);
-		unsigned short get_port(Socket<WSSocket>& s);
+		bool is_v4(WSocket& s);
+		bool is_v4(WSSocket& s);
 
-		bool is_v4(Socket<WSocket>& s);
-		bool is_v4(Socket<WSSocket>& s);
+		bool is_v6(WSocket& s);
+		bool is_v6(WSSocket& s);
 
-		bool is_v6(Socket<WSocket>& s);
-		bool is_v6(Socket<WSSocket>& s);
-
-		bool is_loopback(Socket<WSocket>& s);
-		bool is_loopback(Socket<WSSocket>& s);
+		bool is_loopback(WSocket& s);
+		bool is_loopback(WSSocket& s);
 	}
 }
 
