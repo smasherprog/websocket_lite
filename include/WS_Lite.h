@@ -59,41 +59,60 @@ namespace SL {
 
 		void onConnection(std::shared_ptr<WSListener> l, std::function<void(std::weak_ptr<WSocket>, const std::unordered_map<std::string, std::string>&)>& handle);
 		void onConnection(std::shared_ptr<WSListener> l, const std::function<void(std::weak_ptr<WSocket>, const std::unordered_map<std::string, std::string>&)>& handle);
+		void onConnection(std::shared_ptr<WSClient> l, std::function<void(std::weak_ptr<WSocket>, const std::unordered_map<std::string, std::string>&)>& handle);
+		void onConnection(std::shared_ptr<WSClient> l, const std::function<void(std::weak_ptr<WSocket>, const std::unordered_map<std::string, std::string>&)>& handle);
 
 		void onMessage(std::shared_ptr<WSListener> l, std::function<void(std::weak_ptr<WSocket>, UnpackedMessage&, PackgedMessageInfo&)>& handle);
 		void onMessage(std::shared_ptr<WSListener> l, const std::function<void(std::weak_ptr<WSocket>, UnpackedMessage&, PackgedMessageInfo&)>& handle);
+		void onMessage(std::shared_ptr<WSClient> l, std::function<void(std::weak_ptr<WSocket>, UnpackedMessage&, PackgedMessageInfo&)>& handle);
+		void onMessage(std::shared_ptr<WSClient> l, const std::function<void(std::weak_ptr<WSocket>, UnpackedMessage&, PackgedMessageInfo&)>& handle);
 
 		void onDisconnection(std::shared_ptr<WSListener> l, std::function<void(std::weak_ptr<WSocket>, int code, char *message, size_t length)>& handle);
 		void onDisconnection(std::shared_ptr<WSListener> l, const std::function<void(std::weak_ptr<WSocket>, int code, char *message, size_t length)>& handle);
+		void onDisconnection(std::shared_ptr<WSClient> l, std::function<void(std::weak_ptr<WSocket>, int code, char *message, size_t length)>& handle);
+		void onDisconnection(std::shared_ptr<WSClient> l, const std::function<void(std::weak_ptr<WSocket>, int code, char *message, size_t length)>& handle);
 
 		void onPing(std::shared_ptr<WSListener> l, std::function<void(std::weak_ptr<WSocket>, char *, size_t)>& handle);
 		void onPing(std::shared_ptr<WSListener> l, const std::function<void(std::weak_ptr<WSocket>, char *, size_t)>& handle);
+		void onPing(std::shared_ptr<WSClient> l, std::function<void(std::weak_ptr<WSocket>, char *, size_t)>& handle);
+		void onPing(std::shared_ptr<WSClient> l, const std::function<void(std::weak_ptr<WSocket>, char *, size_t)>& handle);
 
 		void onPong(std::shared_ptr<WSListener> l, std::function<void(std::weak_ptr<WSocket>, char *, size_t)>& handle);
 		void onPong(std::shared_ptr<WSListener> l, const std::function<void(std::weak_ptr<WSocket>, char *, size_t)>& handle);
+		void onPong(std::shared_ptr<WSClient> l, std::function<void(std::weak_ptr<WSocket>, char *, size_t)>& handle);
+		void onPong(std::shared_ptr<WSClient> l, const std::function<void(std::weak_ptr<WSocket>, char *, size_t)>& handle);
 
 		void onHttpUpgrade(std::shared_ptr<WSListener> l, std::function<void(std::weak_ptr<WSocket>)>& handle);
 		void onHttpUpgrade(std::shared_ptr<WSListener> l, const std::function<void(std::weak_ptr<WSocket>)>& handle);
+		void onHttpUpgrade(std::shared_ptr<WSClient> l, std::function<void(std::weak_ptr<WSocket>)>& handle);
+		void onHttpUpgrade(std::shared_ptr<WSClient> l, const std::function<void(std::weak_ptr<WSocket>)>& handle);
 
 		std::shared_ptr<WSClient> CreateClient(std::string Publiccertificate_File);
 		std::shared_ptr<WSClient> CreateClient();
 		void Connect(std::shared_ptr<WSClient> client, const char* host, unsigned short port);
 
 		void set_MaxPayload(WSListener& s, unsigned long long int bytes);
-		void get_MaxPayload(WSListener& s);
+		unsigned long long int get_MaxPayload(WSListener& s);
+		void set_MaxPayload(WSClient& s, unsigned long long int bytes);
+		unsigned long long int get_MaxPayload(WSClient& s);
 
 		void set_ReadTimeout(WSListener& s,unsigned int seconds);
 		unsigned int  get_ReadTimeout(WSListener& s);
+		void set_ReadTimeout(WSClient& s, unsigned int seconds);
+		unsigned int  get_ReadTimeout(WSClient& s);
+
 		void set_WriteTimeout(WSListener& s, unsigned int seconds);
 		unsigned int  get_WriteTimeout(WSListener& s);
+		void set_WriteTimeout(WSClient& s, unsigned int seconds);
+		unsigned int  get_WriteTimeout(WSClient& s);
 
-		void send(const std::shared_ptr<WSocket>& s, const UnpackedMessage& msg);
-		bool closed(std::shared_ptr<WSocket>& s);
-		std::string get_address(std::shared_ptr<WSocket>& s);
-		unsigned short get_port(std::shared_ptr<WSocket>& s);
-		bool is_v4(std::shared_ptr<WSocket>& s);
-		bool is_v6(std::shared_ptr<WSocket>& s);
-		bool is_loopback(std::shared_ptr<WSocket>& s);
+		void send(const WSocket& s, const UnpackedMessage& msg);
+		bool is_open(WSocket& s);
+		std::string get_address(WSocket& s);
+		unsigned short get_port(WSocket& s);
+		bool is_v4(WSocket& s);
+		bool is_v6(WSocket& s);
+		bool is_loopback(WSocket& s);
 	}
 }
 

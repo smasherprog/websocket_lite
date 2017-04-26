@@ -80,7 +80,7 @@ namespace SL {
 								listener->onPing(websocket, buffer.get() + 4, static_cast<size_t>(size - 4));
 							}
 							auto unpacked = UnpackedMessage{ buffer.get() + 4, size - 4, OpCode::PONG };
-							send(websocket, unpacked);
+							send(*websocket, unpacked);
 						}
 						else if (header->Opcode == OpCode::PONG) {
 							if (listener->onPong) {
@@ -351,9 +351,15 @@ namespace SL {
 			s.WriteTimeout = seconds;
 		}
 
-		unsigned int  get_WriteTimeout(WSListener& s) {
+		unsigned int get_WriteTimeout(WSListener& s) {
 			return s.WriteTimeout;
 		}
 
+		void set_MaxPayload(WSListener& s, unsigned long long int bytes) {
+			s.MaxPayload = bytes;
+		}
+		unsigned long long int get_MaxPayload(WSListener& s) {
+			return s.MaxPayload;
+		}
 	}
 }

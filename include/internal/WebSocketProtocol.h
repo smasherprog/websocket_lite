@@ -30,7 +30,7 @@ namespace SL {
 			boost::system::error_code ec;
 			auto rt(_socket.lowest_layer().remote_endpoint(ec));
 			if (!ec) return rt.port();
-			else return -1;
+			else return static_cast<unsigned short>(-1);
 		}
 		template<class T> bool is_v4(T& _socket)
 		{

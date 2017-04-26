@@ -130,5 +130,143 @@ namespace SL {
 
 			}
 		}
+
+		void onConnection(std::shared_ptr<WSClient> l, std::function<void(std::weak_ptr<WSocket>, const std::unordered_map<std::string, std::string>&)>& handle) {
+			if (l) {
+				l->onConnection = handle;
+			}
+		}
+		void onConnection(std::shared_ptr<WSClient> l, const std::function<void(std::weak_ptr<WSocket>, const std::unordered_map<std::string, std::string>&)>& handle) {
+			if (l) {
+				l->onConnection = handle;
+			}
+		}
+		void onMessage(std::shared_ptr<WSClient> l, std::function<void(std::weak_ptr<WSocket>, UnpackedMessage&, PackgedMessageInfo&)>& handle) {
+			if (l) {
+				l->onMessage = handle;
+			}
+		}
+		void onMessage(std::shared_ptr<WSClient> l, const std::function<void(std::weak_ptr<WSocket>, UnpackedMessage&, PackgedMessageInfo&)>& handle) {
+			if (l) {
+				l->onMessage = handle;
+			}
+		}
+
+		void onDisconnection(std::shared_ptr<WSClient> l, std::function<void(std::weak_ptr<WSocket>, int code, char *message, size_t length)>& handle) {
+			if (l) {
+				l->onDisconnection = handle;
+			}
+		}
+		void onDisconnection(std::shared_ptr<WSClient> l, const std::function<void(std::weak_ptr<WSocket>, int code, char *message, size_t length)>& handle) {
+			if (l) {
+				l->onDisconnection = handle;
+			}
+		}
+
+		void onPing(std::shared_ptr<WSClient> l, std::function<void(std::weak_ptr<WSocket>, char *, size_t)>& handle) {
+			if (l) {
+				l->onPing = handle;
+			}
+		}
+		void onPing(std::shared_ptr<WSClient> l, const std::function<void(std::weak_ptr<WSocket>, char *, size_t)>& handle) {
+			if (l) {
+				l->onPing = handle;
+			}
+		}
+
+		void onPong(std::shared_ptr<WSClient> l, std::function<void(std::weak_ptr<WSocket>, char *, size_t)>& handle) {
+			if (l) {
+				l->onPong = handle;
+			}
+		}
+		void onPong(std::shared_ptr<WSClient> l, const std::function<void(std::weak_ptr<WSocket>, char *, size_t)>& handle) {
+			if (l) {
+				l->onPong = handle;
+			}
+		}
+
+		void onHttpUpgrade(std::shared_ptr<WSClient> l, std::function<void(std::weak_ptr<WSocket>)>& handle) {
+			if (l) {
+				l->onHttpUpgrade = handle;
+			}
+		}
+		void onHttpUpgrade(std::shared_ptr<WSClient> l, const std::function<void(std::weak_ptr<WSocket>)>& handle) {
+			if (l) {
+				l->onHttpUpgrade = handle;
+			}
+		}
+
+		void set_ReadTimeout(WSClient& s, unsigned int seconds) {
+			s.ReadTimeout = seconds;
+		}
+
+		unsigned int get_ReadTimeout(WSClient& s) {
+			return s.ReadTimeout;
+		}
+
+		void set_WriteTimeout(WSClient& s, unsigned int seconds) {
+			s.WriteTimeout = seconds;
+		}
+
+		unsigned int get_WriteTimeout(WSClient& s) {
+			return s.WriteTimeout;
+		}
+		void set_MaxPayload(WSClient& s, unsigned long long int bytes) {
+			s.MaxPayload = bytes;
+		}
+		unsigned long long int get_MaxPayload(WSClient& s) {
+			return s.MaxPayload;
+		}
+		void send(WSocket& s, const UnpackedMessage& msg) {
+
+		}
+		bool is_open(WSocket& s) {
+			if (s.Socket) {
+				return s.Socket->is_open();
+			}
+			else {
+				return s.TLSSocket->lowest_layer().is_open();
+			}
+		}
+		std::string get_address(WSocket& s) {
+			if (s.Socket) {
+				return get_address(*s.Socket);
+			}
+			else {
+				return get_address(*s.TLSSocket);
+			}
+		}
+		unsigned short get_port(WSocket& s) {
+			if (s.Socket) {
+				return get_port(*s.Socket);
+			}
+			else {
+				return get_port(*s.TLSSocket);
+			}
+		}
+		bool is_v4(WSocket& s) {
+			if (s.Socket) {
+				return is_v4(*s.Socket);
+			}
+			else {
+				return is_v4(*s.TLSSocket);
+			}
+		}
+		bool is_v6(WSocket& s) {
+			if (s.Socket) {
+				return is_v6(*s.Socket);
+			}
+			else {
+				return is_v6(*s.TLSSocket);
+			}
+		}
+		bool is_loopback(WSocket& s) {
+			if (s.Socket) {
+				return is_loopback(*s.Socket);
+			}
+			else {
+				return is_loopback(*s.TLSSocket);
+			}
+		}
 	}
 }
