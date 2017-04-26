@@ -1,5 +1,8 @@
 #pragma once
+#include <openssl/evp.h>
 #include <openssl/buffer.h>
+#include <openssl/sha.h>
+#include <openssl/md5.h>
 
 namespace SL {
 	namespace WS_LITE {
@@ -35,7 +38,7 @@ namespace SL {
 		template<class type>
 		type Base64Encode(const type& ascii) {
 			type base64;
-			encode(ascii, base64);
+			Base64Encode(ascii, base64);
 			return base64;
 		}
 
@@ -58,7 +61,7 @@ namespace SL {
 		template<class type>
 		type Base64Decode(const type& base64) {
 			type ascii;
-			decode(base64, ascii);
+			Base64Decode(base64, ascii);
 			return ascii;
 		}
 

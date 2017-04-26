@@ -2,169 +2,44 @@
 #include "Logging.h"
 #include "internal/WebSocketProtocol.h"
 
-#include <unordered_map>
-#include <memory>
-#include <thread>
-#include <boost/asio.hpp>
-#include <boost/asio/ssl.hpp>
-#include <boost/asio/deadline_timer.hpp>
 
 namespace SL {
 	namespace WS_LITE {
 
-		template<class T>std::string get_address(T& _socket)
-		{
-			boost::system::error_code ec;
-			auto rt(_socket.lowest_layer().remote_endpoint(ec));
-			if (!ec) return rt.address().to_string();
-			else return "";
-		}
-		template<class T> unsigned short get_port(T& _socket)
-		{
-			boost::system::error_code ec;
-			auto rt(_socket.lowest_layer().remote_endpoint(ec));
-			if (!ec) return rt.port();
-			else return -1;
-		}
-		template<class T> bool is_v4(T& _socket)
-		{
-			boost::system::error_code ec;
-			auto rt(_socket.lowest_layer().remote_endpoint(ec));
-			if (!ec) return rt.address().is_v4();
-			else return true;
-		}
-		template<class T> bool is_v6(T& _socket)
-		{
-			boost::system::error_code ec;
-			auto rt(_socket.lowest_layer().remote_endpoint(ec));
-			if (!ec) return rt.address().is_v6();
-			else return true;
-		}
-		template<class T> bool is_loopback(T& _socket)
-		{
-			boost::system::error_code ec;
-			auto rt(_socket.lowest_layer().remote_endpoint(ec));
-			if (!ec) return rt.address().is_loopback();
-			else return true;
-		}
 
-		template<class T> void readexpire_from_now(T& self, int seconds)
-		{
-			boost::system::error_code ec;
-			if (seconds <= 0) self->read_deadline.expires_at(boost::posix_time::pos_infin, ec);
-			else  self->read_deadline.expires_from_now(boost::posix_time::seconds(seconds), ec);
-			if (ec) {
-				SL_RAT_LOG(Utilities::Logging_Levels::ERROR_log_level, ec.message());
-			}
-			else if (seconds >= 0) {
-				self->read_deadline.async_wait([self, seconds](const boost::system::error_code& ec) {
-					if (ec != boost::asio::error::operation_aborted) {
-						self->close("read timer expired. Time waited: ");
-					}
-				});
-			}
-		}
-		template<class T> void writeexpire_from_now(T& self, int seconds)
-		{
-			boost::system::error_code ec;
-			if (seconds <= 0) self->write_deadline.expires_at(boost::posix_time::pos_infin, ec);
-			else self->write_deadline.expires_from_now(boost::posix_time::seconds(seconds), ec);
-			if (ec) {
-				SL_RAT_LOG(Utilities::Logging_Levels::ERROR_log_level, ec.message());
-			}
-			else if (seconds >= 0) {
-				self->write_deadline.async_wait([self, seconds](const boost::system::error_code& ec) {
-					if (ec != boost::asio::error::operation_aborted) {
-						//close("write timer expired. Time waited: " + std::to_string(seconds));
-						self->close("write timer expired. Time waited: ");
-					}
-				});
-			}
-		}
-
-		struct WSocket
-		{
-			WSocket(boost::asio::io_service& s) :read_deadline(s), write_deadline(s) {}
-			~WSocket() {
-				read_deadline.cancel();
-				write_deadline.cancel();
-			}
-			boost::asio::deadline_timer read_deadline;
-			boost::asio::deadline_timer write_deadline;
-			std::shared_ptr<boost::asio::ip::tcp::socket> Socket;
-			std::shared_ptr<boost::asio::ssl::stream<boost::asio::ip::tcp::socket>> TLSSocket;
-
-		};
-
-
-		class WSListener : std::enable_shared_from_this<WSListener> {
+		class WSListener : public WSContext, std::enable_shared_from_this<WSListener> {
 		public:
 
-			unsigned int ReadTimeout = 5;
-			unsigned int WriteTimeout = 5;
-			unsigned long long int MaxPayload = 1024 * 1024 * 100;//100 MBs
-
 			boost::asio::ip::tcp::acceptor acceptor;
-			boost::asio::io_service io_service;
-			std::thread io_servicethread;
-			std::unique_ptr<boost::asio::io_service::work> work;
-			boost::asio::ssl::context sslcontext;
-
-			std::function<void(std::weak_ptr<WSocket>, const std::unordered_map<std::string, std::string>&)> onConnection;
-			std::function<void(std::weak_ptr<WSocket>, UnpackedMessage&, PackgedMessageInfo&)> onMessage;
-			std::function<void(std::weak_ptr<WSocket>, int code, char *message, size_t length)> onDisconnection;
-			std::function<void(std::weak_ptr<WSocket>, char *, size_t)> onPing;
-			std::function<void(std::weak_ptr<WSocket>, char *, size_t)> onPong;
-			std::function<void(std::weak_ptr<WSocket>)> onHttpUpgrade;
-
-			std::shared_ptr<WSS_Config> WSS_Config_;
-
-			WSListener(unsigned short port, std::shared_ptr<WSS_Config> config) :acceptor(io_service, boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), port)),
-				work(std::make_unique<boost::asio::io_service::work>(io_service)),
-				sslcontext(boost::asio::ssl::context::tlsv11),
-				WSS_Config_(config)
+			
+			WSListener(unsigned short port,
+				std::string Password,
+				std::string Privatekey_File,
+				std::string Publiccertificate_File,
+				std::string dh_File) :
+				WSListener(port)
 			{
-
-				sslcontext.set_options(
+				sslcontext = std::make_unique<boost::asio::ssl::context>(boost::asio::ssl::context::tlsv11);
+				sslcontext->set_options(
 					boost::asio::ssl::context::default_workarounds
 					| boost::asio::ssl::context::no_sslv2 | boost::asio::ssl::context::no_sslv3
 					| boost::asio::ssl::context::single_dh_use);
 				boost::system::error_code ec;
-				sslcontext.set_password_callback([config](std::size_t size, boost::asio::ssl::context::password_purpose) { return config->Password; }, ec);
-				sslcontext.use_tmp_dh_file(WSS_Config_->dh_File, ec);
-				sslcontext.use_certificate_chain_file(WSS_Config_->Publiccertificate_File, ec);
-				sslcontext.set_default_verify_paths(ec);
-				sslcontext.use_private_key_file(WSS_Config_->Privatekey_File, boost::asio::ssl::context::pem, ec);
-				io_servicethread = std::thread([&]() {
-					boost::system::error_code ec;
-					io_service.run(ec);
-				});
+				sslcontext->set_password_callback([Password](std::size_t, boost::asio::ssl::context::password_purpose) { return Password; }, ec);
+				sslcontext->use_tmp_dh_file(dh_File, ec);
+				sslcontext->use_certificate_chain_file(Publiccertificate_File, ec);
+				sslcontext->set_default_verify_paths(ec);
+				sslcontext->use_private_key_file(Privatekey_File, boost::asio::ssl::context::pem, ec);
+
 			}
 
-			WSListener(unsigned short port) :acceptor(io_service, boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), port)),
-				work(std::make_unique<boost::asio::io_service::work>(io_service)),
-				sslcontext(boost::asio::ssl::context::tlsv11)
-			{
-				io_servicethread = std::thread([&]() {
-					boost::system::error_code ec;
-					io_service.run(ec);
-				});
-			}
+			WSListener(unsigned short port) :acceptor(io_service, boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), port)) { }
 
 			~WSListener() {
-
 				boost::system::error_code ec;
 				acceptor.close(ec);
-				work.reset();
-				io_service.stop();
-				while (!io_service.stopped()) {
-					std::this_thread::sleep_for(std::chrono::milliseconds(5));
-				}
-				if (io_servicethread.joinable()) io_servicethread.join();
-
-
 			}
-			void ReadBody(std::shared_ptr<WSListener> listener, std::shared_ptr<WSocket> websocket, std::shared_ptr<boost::asio::ssl::stream<boost::asio::ip::tcp::socket>> socket, std::shared_ptr<WSHeader> header) {
+			template <class SOCKETTYPE>void ReadBody(std::shared_ptr<WSListener> listener, std::shared_ptr<WSocket> websocket, SOCKETTYPE socket, std::shared_ptr<WSHeader> header) {
 
 				readexpire_from_now(websocket, ReadTimeout);
 				unsigned long long int size = 0;
@@ -183,7 +58,7 @@ namespace SL {
 					return;
 				}
 
-				auto buffer = std::make_shared<char>(new char[size], [](char * p) { delete[] p; });
+				auto buffer = std::shared_ptr<char>(new char[static_cast<size_t>(size)], [](char * p) { delete[] p; });
 				if ((header->Opcode == OpCode::PING || header->Opcode == OpCode::PONG || header->Opcode == OpCode::CLOSE) && size > 125) {
 					SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "Payload exceeded for control frames. Size requested " << size);
 					return;
@@ -194,7 +69,7 @@ namespace SL {
 					return;
 				}
 
-				boost::asio::async_read(*socket, boost::asio::buffer(buffer.get(), size), [listener, websocket, socket, header, buffer, size](const boost::system::error_code& ec, size_t bytes_transferred) {
+				boost::asio::async_read(*socket, boost::asio::buffer(buffer.get(), static_cast<size_t>(size)), [listener, websocket, socket, header, buffer, size](const boost::system::error_code& ec, size_t bytes_transferred) {
 					if (!ec) {
 						if (size != bytes_transferred) {
 							SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "size != bytes_transferred");
@@ -202,34 +77,38 @@ namespace SL {
 						}
 						else if (header->Opcode == OpCode::PING) {
 							if (listener->onPing) {
-								listener->onPing(websocket, buffer.get() + 4, size - 4);
+								listener->onPing(websocket, buffer.get() + 4, static_cast<size_t>(size - 4));
 							}
-							send(websocket, UnpackedMessage{ buffer.get() + 4, size - 4, OpCode::PONG });
+							auto unpacked = UnpackedMessage{ buffer.get() + 4, size - 4, OpCode::PONG };
+							send(websocket, unpacked);
 						}
 						else if (header->Opcode == OpCode::PONG) {
 							if (listener->onPong) {
-								listener->onPong(websocket, buffer.get() + 4, size - 4);
+								listener->onPong(websocket, buffer.get() + 4, static_cast<size_t>(size - 4));
 							}
 						}
-						else {
+						else if (listener->onMessage) {
 							unsigned char mask[4];
 							memcpy(mask, buffer.get(), 4);
 							auto p = buffer.get() + 4;
 							for (decltype(size) c = 0; c < size - 4; c++) {
 								p[c] = p[c] ^ mask[c % 4];
 							}
-
+							auto unpacked = UnpackedMessage{ p, size - 4, header->Opcode };
+							auto packed = PackgedMessageInfo{ size - 4 };
+							listener->onMessage(websocket, unpacked, packed);
 						}
+						listener->ReadHeader(listener, websocket, socket);
 					}
 					else {
 						SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "ReadBody " << ec.message());
 					}
 				});
 			}
-			void ReadHeader(std::shared_ptr<WSListener> listener, std::shared_ptr<WSocket> websocket, std::shared_ptr<boost::asio::ssl::stream<boost::asio::ip::tcp::socket>> socket) {
+			template <class SOCKETTYPE>void ReadHeader(std::shared_ptr<WSListener> listener, std::shared_ptr<WSocket> websocket, SOCKETTYPE socket) {
 				readexpire_from_now(websocket, 0);
 				auto buff = std::make_shared<WSHeader>();
-				boost::asio::async_read(*socket, boost::asio::const_buffer(buff.get(), 2), [listener, websocket, socket, buff](const boost::system::error_code& ec, size_t bytes_transferred) {
+				boost::asio::async_read(*socket, boost::asio::buffer(buff.get(), 2), [listener, websocket, socket, buff](const boost::system::error_code& ec, size_t bytes_transferred) {
 					if (!ec) {
 						assert(bytes_transferred == 2);
 						if (!buff->Mask) {//Close connection if unmasked message from client (protocol error)
@@ -238,7 +117,7 @@ namespace SL {
 						else {
 							auto readbytes = GetPayloadBytes(buff.get());
 							if (readbytes > 1) {
-								boost::asio::async_read(*socket, boost::asio::const_buffer(&buff->ExtendedPayloadlen, readbytes), [listener, websocket, socket, buff, readbytes](const boost::system::error_code& ec, size_t bytes_transferred) {
+								boost::asio::async_read(*socket, boost::asio::buffer(&buff->ExtendedPayloadlen, readbytes), [listener, websocket, socket, buff, readbytes](const boost::system::error_code& ec, size_t bytes_transferred) {
 									if (readbytes != bytes_transferred) {
 										SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "readbytes != bytes_transferred ");
 									}
@@ -263,8 +142,7 @@ namespace SL {
 
 			void TLSListen() {
 				auto listener = shared_from_this();
-
-				auto socket = std::make_shared<boost::asio::ssl::stream<boost::asio::ip::tcp::socket>>(io_service, sslcontext);
+				auto socket = std::make_shared<boost::asio::ssl::stream<boost::asio::ip::tcp::socket>>(io_service, *sslcontext);
 				acceptor.async_accept(socket->lowest_layer(), [listener, socket](const boost::system::error_code& ec)
 				{
 					if (!ec)
@@ -288,7 +166,7 @@ namespace SL {
 												listener->onHttpUpgrade(websocket);
 											}
 
-											boost::asio::async_write(websocket->TLSSocket, *write_buffer, [listener, websocket, socket, header, write_buffer](const boost::system::error_code& ec, size_t bytes_transferred) {
+											boost::asio::async_write(*socket, *write_buffer, [listener, websocket, socket, header, write_buffer](const boost::system::error_code& ec, size_t bytes_transferred) {
 												if (!ec) {
 													SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "Sent Handshake bytes " << bytes_transferred);
 													if (listener->onConnection) {
@@ -342,13 +220,13 @@ namespace SL {
 										listener->onHttpUpgrade(websocket);
 									}
 									//taking a copy of the header, will fix later
-									boost::asio::async_write(websocket->Socket, *write_buffer, [listener, websocket, header, write_buffer](const boost::system::error_code& ec, size_t bytes_transferred) {
+									boost::asio::async_write(*socket, *write_buffer, [listener, websocket, socket, header, write_buffer](const boost::system::error_code& ec, size_t bytes_transferred) {
 										if (!ec) {
 											SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "Sent Handshake bytes " << bytes_transferred);
 											if (listener->onConnection) {
 												listener->onConnection(websocket, header);
 											}
-											//self->readheader();
+											listener->ReadHeader(listener, websocket, socket);
 										}
 										else {
 											SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "WebSocket receivehandshake failed " << ec.message());
@@ -375,16 +253,19 @@ namespace SL {
 			return std::make_shared<WSListener>(port);
 		}
 
-		std::shared_ptr<WSListener> CreateListener(unsigned short port, const WSS_Config& c)
+		std::shared_ptr<WSListener> CreateListener(
+			unsigned short port,
+			std::string Password,
+			std::string Privatekey_File,
+			std::string Publiccertificate_File,
+			std::string dh_File)
 		{
-			auto config = std::make_shared<WSS_Config>();
-			*config = c;
-			return std::make_shared<WSListener>(port, config);
+			return std::make_shared<WSListener>(port, Password, Privatekey_File, Publiccertificate_File, dh_File);
 		}
 		void StartListening(std::shared_ptr<WSListener>& l)
 		{
 			if (l) {
-				if (l->WSS_Config_) {
+				if (l->sslcontext) {
 					l->TLSListen();
 				}
 				else
@@ -459,19 +340,19 @@ namespace SL {
 		}
 
 		void set_ReadTimeout(WSListener& s, unsigned int seconds) {
-
+			s.ReadTimeout = seconds;
 		}
 
-		void get_ReadTimeout(WSListener& s) {
-
+		unsigned int get_ReadTimeout(WSListener& s) {
+			return s.ReadTimeout;
 		}
 
 		void set_WriteTimeout(WSListener& s, unsigned int seconds) {
-
+			s.WriteTimeout = seconds;
 		}
 
-		void get_WriteTimeout(WSListener& s) {
-
+		unsigned int  get_WriteTimeout(WSListener& s) {
+			return s.WriteTimeout;
 		}
 
 	}

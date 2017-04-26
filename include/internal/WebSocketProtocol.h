@@ -6,23 +6,136 @@
 #include <unordered_map>
 #include <sstream>
 #include <string>
+#include <unordered_map>
+#include <memory>
+#include <thread>
+
+#include <boost/asio.hpp>
+#include <boost/asio/ssl.hpp>
+#include <boost/asio/deadline_timer.hpp>
 
 namespace SL {
 	namespace WS_LITE {
 
-		const auto HTTP_METHOD = "Method";
-		const auto HTTP_PATH = "Path";
-		const auto HTTP_VERSION = "Http_Version";
-		const auto HTTP_STATUSCODE = "Http_StatusCode";
-		const auto HTTP_CONTENTLENGTH = "Content-Length";
-		const auto HTTP_CONTENTTYPE = "Content-Type";
-		const auto HTTP_CACHECONTROL = "Cache-Control";
-		const auto HTTP_LASTMODIFIED = "Last-Modified";
-		const auto HTTP_SECWEBSOCKETKEY = "Sec-WebSocket-Key";
-		const auto HTTP_SECWEBSOCKETACCEPT = "Sec-WebSocket-Accept";
 
-		const auto HTTP_ENDLINE = "\r\n";
-		const auto HTTP_KEYVALUEDELIM = ": ";
+		template<class T>std::string get_address(T& _socket)
+		{
+			boost::system::error_code ec;
+			auto rt(_socket.lowest_layer().remote_endpoint(ec));
+			if (!ec) return rt.address().to_string();
+			else return "";
+		}
+		template<class T> unsigned short get_port(T& _socket)
+		{
+			boost::system::error_code ec;
+			auto rt(_socket.lowest_layer().remote_endpoint(ec));
+			if (!ec) return rt.port();
+			else return -1;
+		}
+		template<class T> bool is_v4(T& _socket)
+		{
+			boost::system::error_code ec;
+			auto rt(_socket.lowest_layer().remote_endpoint(ec));
+			if (!ec) return rt.address().is_v4();
+			else return true;
+		}
+		template<class T> bool is_v6(T& _socket)
+		{
+			boost::system::error_code ec;
+			auto rt(_socket.lowest_layer().remote_endpoint(ec));
+			if (!ec) return rt.address().is_v6();
+			else return true;
+		}
+		template<class T> bool is_loopback(T& _socket)
+		{
+			boost::system::error_code ec;
+			auto rt(_socket.lowest_layer().remote_endpoint(ec));
+			if (!ec) return rt.address().is_loopback();
+			else return true;
+		}
+
+		template<class T> void readexpire_from_now(T& self, int seconds)
+		{
+			boost::system::error_code ec;
+			if (seconds <= 0) self->read_deadline.expires_at(boost::posix_time::pos_infin, ec);
+			else  self->read_deadline.expires_from_now(boost::posix_time::seconds(seconds), ec);
+			if (ec) {
+				SL_WS_LITE_LOG(Logging_Levels::ERROR_log_level, ec.message());
+			}
+			else if (seconds >= 0) {
+				self->read_deadline.async_wait([self, seconds](const boost::system::error_code& ec) {
+					if (ec != boost::asio::error::operation_aborted) {
+						//self->close("read timer expired. Time waited: ");
+					}
+				});
+			}
+		}
+		template<class T> void writeexpire_from_now(T& self, int seconds)
+		{
+			boost::system::error_code ec;
+			if (seconds <= 0) self->write_deadline.expires_at(boost::posix_time::pos_infin, ec);
+			else self->write_deadline.expires_from_now(boost::posix_time::seconds(seconds), ec);
+			if (ec) {
+				SL_WS_LITE_LOG(Logging_Levels::ERROR_log_level, ec.message());
+			}
+			else if (seconds >= 0) {
+				self->write_deadline.async_wait([self, seconds](const boost::system::error_code& ec) {
+					if (ec != boost::asio::error::operation_aborted) {
+						//close("write timer expired. Time waited: " + std::to_string(seconds));
+						//self->close("write timer expired. Time waited: ");
+					}
+				});
+			}
+		}
+
+		struct WSocket
+		{
+			WSocket(boost::asio::io_service& s) :read_deadline(s), write_deadline(s) {}
+			~WSocket() {
+				read_deadline.cancel();
+				write_deadline.cancel();
+			}
+			boost::asio::deadline_timer read_deadline;
+			boost::asio::deadline_timer write_deadline;
+			std::shared_ptr<boost::asio::ip::tcp::socket> Socket;
+			std::shared_ptr<boost::asio::ssl::stream<boost::asio::ip::tcp::socket>> TLSSocket;
+
+		};
+
+		struct WSContext{
+			WSContext() : 
+				work(std::make_unique<boost::asio::io_service::work>(io_service)) {
+				io_servicethread = std::thread([&]() {
+					boost::system::error_code ec;
+					io_service.run(ec);
+				});
+			
+			}
+			~WSContext() {
+				work.reset();
+				io_service.stop();
+				while (!io_service.stopped()) {
+					std::this_thread::sleep_for(std::chrono::milliseconds(5));
+				}
+				if (io_servicethread.joinable()) io_servicethread.join();
+			}
+			unsigned int ReadTimeout = 5;
+			unsigned int WriteTimeout = 5;
+			unsigned long long int MaxPayload = 1024 * 1024 * 100;//100 MBs
+
+			boost::asio::io_service io_service;
+			std::thread io_servicethread;
+			std::unique_ptr<boost::asio::io_service::work> work;
+			std::unique_ptr<boost::asio::ssl::context> sslcontext;
+
+			std::function<void(std::weak_ptr<WSocket>, const std::unordered_map<std::string, std::string>&)> onConnection;
+			std::function<void(std::weak_ptr<WSocket>, UnpackedMessage&, PackgedMessageInfo&)> onMessage;
+			std::function<void(std::weak_ptr<WSocket>, int code, char *message, size_t length)> onDisconnection;
+			std::function<void(std::weak_ptr<WSocket>, char *, size_t)> onPing;
+			std::function<void(std::weak_ptr<WSocket>, char *, size_t)> onPong;
+			std::function<void(std::weak_ptr<WSocket>)> onHttpUpgrade;
+
+		};
 		/*
 		0                   1                   2                   3
 		 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
@@ -59,7 +172,7 @@ namespace SL {
 				unsigned long long int ExtendedPayloadlen;
 			};
 		};
-		auto inline GetPayloadBytes(WSHeader* buff) { return (buff->Payloadlen & 127) == 126 ? 2 : ((buff->Payloadlen & 127) == 127 ? 8 : 1); }
+		size_t inline GetPayloadBytes(WSHeader* buff) { return (buff->Payloadlen & 127) == 126 ? 2 : ((buff->Payloadlen & 127) == 127 ? 8 : 1); }
 		template <typename T>
 		T swap_endian(T u)
 		{
@@ -75,7 +188,7 @@ namespace SL {
 
 			return dest.u;
 		}
-		std::string url_decode(const std::string& in)
+		inline std::string url_decode(const std::string& in)
 		{
 			std::string out;
 			out.reserve(in.size());
@@ -114,7 +227,7 @@ namespace SL {
 			return out;
 		}
 
-		std::unordered_map<std::string, std::string> Parse_Handshake(std::string defaultheaderversion, std::istream& stream)
+		inline std::unordered_map<std::string, std::string> Parse_Handshake(std::string defaultheaderversion, std::istream& stream)
 		{
 			std::unordered_map<std::string, std::string> header;
 			std::string line;
@@ -149,7 +262,7 @@ namespace SL {
 		}
 
 		const std::string ws_magic_string = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
-		bool Generate_Handshake(std::unordered_map<std::string, std::string>& header, std::ostream & stream)
+		inline bool Generate_Handshake(std::unordered_map<std::string, std::string>& header, std::ostream & stream)
 		{
 			auto header_it = header.find(HTTP_SECWEBSOCKETKEY);
 			if (header_it == header.end())

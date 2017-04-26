@@ -37,6 +37,7 @@ set(WEBSOCKET_LITE_COMMON_SRC
 	${CMAKE_CURRENT_SOURCE_DIR}/../include/Logging.h
 	${CMAKE_CURRENT_SOURCE_DIR}/../include/WS_Lite.h
 	${CMAKE_CURRENT_SOURCE_DIR}/../src/internal/ListenerImpl.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/../src/internal/ClientImpl.cpp
 )
 
 find_package(Boost REQUIRED)

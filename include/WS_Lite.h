@@ -6,9 +6,25 @@
 
 namespace SL {
 	namespace WS_LITE {
+
+		const auto HTTP_METHOD = "Method";
+		const auto HTTP_PATH = "Path";
+		const auto HTTP_VERSION = "Http_Version";
+		const auto HTTP_STATUSCODE = "Http_StatusCode";
+		const auto HTTP_CONTENTLENGTH = "Content-Length";
+		const auto HTTP_CONTENTTYPE = "Content-Type";
+		const auto HTTP_CACHECONTROL = "Cache-Control";
+		const auto HTTP_LASTMODIFIED = "Last-Modified";
+		const auto HTTP_SECWEBSOCKETKEY = "Sec-WebSocket-Key";
+		const auto HTTP_SECWEBSOCKETACCEPT = "Sec-WebSocket-Accept";
+
+		const auto HTTP_ENDLINE = "\r\n";
+		const auto HTTP_KEYVALUEDELIM = ": ";
+
 		//forward declares
 		struct WSocket;
 		class WSListener;
+		class WSClient;
 
 		enum OpCode : unsigned char {
 			CONTINUATION=0,
@@ -21,28 +37,26 @@ namespace SL {
 		//this is the message after being uncompressed
 		struct UnpackedMessage {
 			char* data;
-			size_t len;
+			unsigned long long int  len;
 			OpCode code;
 		};
 
 		//this contains information about the compressed message size
 		struct PackgedMessageInfo {
-			size_t len;
+			unsigned long long int  len;
 		};
 
-		struct WSS_Config{
-			std::string Password;
-			std::string Privatekey_File;
-			std::string Publiccertificate_File;
-			std::string dh_File;
-		};
-	
+
 		std::shared_ptr<WSListener> CreateListener(unsigned short port);
+		std::shared_ptr<WSListener> CreateListener(
+			unsigned short port, 
+			std::string Password,
+			std::string Privatekey_File,
+			std::string Publiccertificate_File,
+			std::string dh_File);
+
 		void StartListening(std::shared_ptr<WSListener>& l);
 
-		std::shared_ptr<WSListener> CreateListener(unsigned short port, const WSS_Config& c);
-		void StartListening(std::shared_ptr<WSListener>& l);
-		
 		void onConnection(std::shared_ptr<WSListener> l, std::function<void(std::weak_ptr<WSocket>, const std::unordered_map<std::string, std::string>&)>& handle);
 		void onConnection(std::shared_ptr<WSListener> l, const std::function<void(std::weak_ptr<WSocket>, const std::unordered_map<std::string, std::string>&)>& handle);
 
@@ -61,13 +75,17 @@ namespace SL {
 		void onHttpUpgrade(std::shared_ptr<WSListener> l, std::function<void(std::weak_ptr<WSocket>)>& handle);
 		void onHttpUpgrade(std::shared_ptr<WSListener> l, const std::function<void(std::weak_ptr<WSocket>)>& handle);
 
+		std::shared_ptr<WSClient> CreateClient(std::string Publiccertificate_File);
+		std::shared_ptr<WSClient> CreateClient();
+		void Connect(std::shared_ptr<WSClient> client, const char* host, unsigned short port);
+
 		void set_MaxPayload(WSListener& s, unsigned long long int bytes);
 		void get_MaxPayload(WSListener& s);
 
 		void set_ReadTimeout(WSListener& s,unsigned int seconds);
-		void get_ReadTimeout(WSListener& s);
+		unsigned int  get_ReadTimeout(WSListener& s);
 		void set_WriteTimeout(WSListener& s, unsigned int seconds);
-		void get_WriteTimeout(WSListener& s);
+		unsigned int  get_WriteTimeout(WSListener& s);
 
 		void send(const std::shared_ptr<WSocket>& s, const UnpackedMessage& msg);
 		bool closed(std::shared_ptr<WSocket>& s);
