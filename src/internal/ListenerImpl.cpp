@@ -215,7 +215,7 @@ namespace SL {
 								std::ostream handshake(write_buffer.get());
 								if (Generate_Handshake(header, handshake)) {
 									auto websocket = std::make_shared<WSocket>(listener->io_service);
-
+									websocket->Socket = socket;
 									if (listener->onHttpUpgrade) {
 										listener->onHttpUpgrade(websocket);
 									}

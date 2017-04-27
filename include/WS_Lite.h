@@ -72,15 +72,15 @@ namespace SL {
 		void onDisconnection(std::shared_ptr<WSClient> l, std::function<void(std::weak_ptr<WSocket>, int code, char *message, size_t length)>& handle);
 		void onDisconnection(std::shared_ptr<WSClient> l, const std::function<void(std::weak_ptr<WSocket>, int code, char *message, size_t length)>& handle);
 
-		void onPing(std::shared_ptr<WSListener> l, std::function<void(std::weak_ptr<WSocket>, char *, size_t)>& handle);
-		void onPing(std::shared_ptr<WSListener> l, const std::function<void(std::weak_ptr<WSocket>, char *, size_t)>& handle);
-		void onPing(std::shared_ptr<WSClient> l, std::function<void(std::weak_ptr<WSocket>, char *, size_t)>& handle);
-		void onPing(std::shared_ptr<WSClient> l, const std::function<void(std::weak_ptr<WSocket>, char *, size_t)>& handle);
+		void onPing(std::shared_ptr<WSListener> l, std::function<void(std::weak_ptr<WSocket>, const char *, size_t)>& handle);
+		void onPing(std::shared_ptr<WSListener> l, const std::function<void(std::weak_ptr<WSocket>, const char *, size_t)>& handle);
+		void onPing(std::shared_ptr<WSClient> l, std::function<void(std::weak_ptr<WSocket>, const char *, size_t)>& handle);
+		void onPing(std::shared_ptr<WSClient> l, const std::function<void(std::weak_ptr<WSocket>, const char *, size_t)>& handle);
 
-		void onPong(std::shared_ptr<WSListener> l, std::function<void(std::weak_ptr<WSocket>, char *, size_t)>& handle);
-		void onPong(std::shared_ptr<WSListener> l, const std::function<void(std::weak_ptr<WSocket>, char *, size_t)>& handle);
-		void onPong(std::shared_ptr<WSClient> l, std::function<void(std::weak_ptr<WSocket>, char *, size_t)>& handle);
-		void onPong(std::shared_ptr<WSClient> l, const std::function<void(std::weak_ptr<WSocket>, char *, size_t)>& handle);
+		void onPong(std::shared_ptr<WSListener> l, std::function<void(std::weak_ptr<WSocket>, const char *, size_t)>& handle);
+		void onPong(std::shared_ptr<WSListener> l, const std::function<void(std::weak_ptr<WSocket>, const char *, size_t)>& handle);
+		void onPong(std::shared_ptr<WSClient> l, std::function<void(std::weak_ptr<WSocket>, const char *, size_t)>& handle);
+		void onPong(std::shared_ptr<WSClient> l, const std::function<void(std::weak_ptr<WSocket>, const char *, size_t)>& handle);
 
 		void onHttpUpgrade(std::shared_ptr<WSListener> l, std::function<void(std::weak_ptr<WSocket>)>& handle);
 		void onHttpUpgrade(std::shared_ptr<WSListener> l, const std::function<void(std::weak_ptr<WSocket>)>& handle);

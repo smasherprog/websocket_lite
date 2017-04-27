@@ -9,6 +9,7 @@
 #include <unordered_map>
 #include <memory>
 #include <thread>
+#include <random>
 
 #include <boost/asio.hpp>
 #include <boost/asio/ssl.hpp>
@@ -102,14 +103,14 @@ namespace SL {
 
 		};
 
-		struct WSContext{
-			WSContext() : 
+		struct WSContext {
+			WSContext() :
 				work(std::make_unique<boost::asio::io_service::work>(io_service)) {
 				io_servicethread = std::thread([&]() {
 					boost::system::error_code ec;
 					io_service.run(ec);
 				});
-			
+
 			}
 			~WSContext() {
 				work.reset();
@@ -130,7 +131,7 @@ namespace SL {
 
 			std::function<void(std::weak_ptr<WSocket>, const std::unordered_map<std::string, std::string>&)> onConnection;
 			std::function<void(std::weak_ptr<WSocket>, UnpackedMessage&, PackgedMessageInfo&)> onMessage;
-			std::function<void(std::weak_ptr<WSocket>, int code, char *message, size_t length)> onDisconnection;
+			std::function<void(std::weak_ptr<WSocket>, int code, const char *message, size_t length)> onDisconnection;
 			std::function<void(std::weak_ptr<WSocket>, char *, size_t)> onPing;
 			std::function<void(std::weak_ptr<WSocket>, char *, size_t)> onPong;
 			std::function<void(std::weak_ptr<WSocket>)> onHttpUpgrade;
@@ -158,7 +159,7 @@ namespace SL {
 
 
 		*/
-		
+
 		struct WSHeader {
 			bool FIN : 1;
 			bool RSV1 : 1;
@@ -275,6 +276,26 @@ namespace SL {
 			stream << HTTP_SECWEBSOCKETACCEPT << HTTP_KEYVALUEDELIM << Base64Encode(sha1) << HTTP_ENDLINE << HTTP_ENDLINE;
 			return true;
 		}
+		inline std::string Generate_Handshake(const std::string& host_addr, std::ostream & request) {
 
+			request << "GET /rdpenpoint/ HTTP/1.1" << HTTP_ENDLINE;
+			request << "Host: " << host_addr << HTTP_ENDLINE;
+			request << "Upgrade: websocket" << HTTP_ENDLINE;
+			request << "Connection: Upgrade" << HTTP_ENDLINE;
+
+			//Make random 16-byte nonce
+			std::string nonce;
+			nonce.resize(16);
+			std::uniform_int_distribution<unsigned short> dist(0, 255);
+			std::random_device rd;
+			for (int c = 0; c < 16; c++)
+				nonce[c] = static_cast<unsigned char>(dist(rd));
+
+			auto nonce_base64 = Base64Encode(nonce);
+			request << HTTP_SECWEBSOCKETKEY << HTTP_KEYVALUEDELIM << Base64Encode(nonce) << HTTP_ENDLINE;
+			request << "Sec-WebSocket-Version: 13" << HTTP_ENDLINE << HTTP_ENDLINE;
+
+			return SHA1(nonce_base64 + ws_magic_string);
+		}
 	}
 }
