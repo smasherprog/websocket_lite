@@ -295,34 +295,34 @@ namespace SL {
 			}
 		}
 
-		void onDisconnection(std::shared_ptr<WSListener> l, std::function<void(std::weak_ptr<WSocket>, int code, char *message, size_t length)>& handle) {
+		void onDisconnection(std::shared_ptr<WSListener> l, std::function<void(std::weak_ptr<WSocket>, int code, const char *message, size_t length)>& handle) {
 			if (l) {
 				l->onDisconnection = handle;
 			}
 		}
-		void onDisconnection(std::shared_ptr<WSListener> l, const std::function<void(std::weak_ptr<WSocket>, int code, char *message, size_t length)>& handle) {
+		void onDisconnection(std::shared_ptr<WSListener> l, const std::function<void(std::weak_ptr<WSocket>, int code, const char *message, size_t length)>& handle) {
 			if (l) {
 				l->onDisconnection = handle;
 			}
 		}
 
-		void onPing(std::shared_ptr<WSListener> l, std::function<void(std::weak_ptr<WSocket>, char *, size_t)>& handle) {
+		void onPing(std::shared_ptr<WSListener> l, std::function<void(std::weak_ptr<WSocket>, const char *, size_t)>& handle) {
 			if (l) {
 				l->onPing = handle;
 			}
 		}
-		void onPing(std::shared_ptr<WSListener> l, const std::function<void(std::weak_ptr<WSocket>, char *, size_t)>& handle) {
+		void onPing(std::shared_ptr<WSListener> l, const std::function<void(std::weak_ptr<WSocket>, const char *, size_t)>& handle) {
 			if (l) {
 				l->onPing = handle;
 			}
 		}
 
-		void onPong(std::shared_ptr<WSListener> l, std::function<void(std::weak_ptr<WSocket>, char *, size_t)>& handle) {
+		void onPong(std::shared_ptr<WSListener> l, std::function<void(std::weak_ptr<WSocket>, const char *, size_t)>& handle) {
 			if (l) {
 				l->onPong = handle;
 			}
 		}
-		void onPong(std::shared_ptr<WSListener> l, const std::function<void(std::weak_ptr<WSocket>, char *, size_t)>& handle) {
+		void onPong(std::shared_ptr<WSListener> l, const std::function<void(std::weak_ptr<WSocket>, const char *, size_t)>& handle) {
 			if (l) {
 				l->onPong = handle;
 			}
@@ -338,7 +338,9 @@ namespace SL {
 				l->onHttpUpgrade = handle;
 			}
 		}
+		void send(const WSocket& s, const UnpackedMessage& msg) {
 
+		}
 		void set_ReadTimeout(WSListener& s, unsigned int seconds) {
 			s.ReadTimeout = seconds;
 		}
