@@ -40,7 +40,7 @@ set(WEBSOCKET_LITE_COMMON_SRC
 	${CMAKE_CURRENT_SOURCE_DIR}/../src/internal/ClientImpl.cpp
 )
 
-find_package(Boost REQUIRED)
+find_package(Boost COMPONENTS system date_time REQUIRED)
 find_package(OpenSSL REQUIRED)
 
 set(WEBSOCKET_LITE_INCLUDE_DIRS 
