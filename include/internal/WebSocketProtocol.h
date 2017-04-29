@@ -1,6 +1,6 @@
 #pragma once
 #include "WS_Lite.h"
-#include "internal/Base64.h"
+#include "cppcodec/base64_rfc4648.hpp"
 #include "internal/SHA.h"
 
 #include <unordered_map>
@@ -281,7 +281,8 @@ namespace SL {
             stream << "HTTP/1.1 101 Web Socket Protocol Handshake" << HTTP_ENDLINE;
             stream << "Upgrade: websocket" << HTTP_ENDLINE;
             stream << "Connection: Upgrade" << HTTP_ENDLINE;
-            stream << HTTP_SECWEBSOCKETACCEPT << HTTP_KEYVALUEDELIM << Base64Encode(sha1) << HTTP_ENDLINE << HTTP_ENDLINE;
+            
+            stream << HTTP_SECWEBSOCKETACCEPT << HTTP_KEYVALUEDELIM << cppcodec::base64_rfc4648::encode(sha1) << HTTP_ENDLINE << HTTP_ENDLINE;
             return true;
         }
         inline std::string Generate_Handshake(const std::string& host_addr, std::ostream & request) {
@@ -298,11 +299,10 @@ namespace SL {
             std::random_device rd;
             for (int c = 0; c < 16; c++)
                 nonce[c] = static_cast<unsigned char>(dist(rd));
-
-            auto nonce_base64 = Base64Encode(nonce);
-            request << HTTP_SECWEBSOCKETKEY << HTTP_KEYVALUEDELIM << Base64Encode(nonce) << HTTP_ENDLINE;
+            
+            auto nonce_base64 = cppcodec::base64_rfc4648::encode<std::string>(nonce);
+            request << HTTP_SECWEBSOCKETKEY << HTTP_KEYVALUEDELIM << nonce_base64 << HTTP_ENDLINE;
             request << "Sec-WebSocket-Version: 13" << HTTP_ENDLINE << HTTP_ENDLINE;
-
             return SHA1(nonce_base64 + ws_magic_string);
         }
     }

@@ -33,7 +33,6 @@ endif()
 set(WEBSOCKET_LITE_COMMON_SRC 
 	${CMAKE_CURRENT_SOURCE_DIR}/../include/internal/WebSocketProtocol.h
 	${CMAKE_CURRENT_SOURCE_DIR}/../include/internal/SHA.h
-	${CMAKE_CURRENT_SOURCE_DIR}/../include/internal/Base64.h
 	${CMAKE_CURRENT_SOURCE_DIR}/../include/Logging.h
 	${CMAKE_CURRENT_SOURCE_DIR}/../include/WS_Lite.h
 	${CMAKE_CURRENT_SOURCE_DIR}/../src/internal/ListenerImpl.cpp
@@ -47,6 +46,7 @@ set(WEBSOCKET_LITE_INCLUDE_DIRS
 	${OPENSSL_INCLUDE_DIR}
 	${Boost_INCLUDE_DIRS}
 	${CMAKE_CURRENT_SOURCE_DIR}/../include
+	${CMAKE_CURRENT_SOURCE_DIR}/../libcppcodec
 	${CMAKE_CURRENT_SOURCE_DIR}/../src
 	${WEBSOCKET_LITE_PLATFORM_INC}
 	CACHE INTERNAL "${PROJECT_NAME}: Include Directories" FORCE

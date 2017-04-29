@@ -164,7 +164,7 @@ namespace SL {
                             SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "Read Handshake bytes " << bytes_transferred);
                             std::istream stream(read_buffer.get());
                             auto header = Parse_Handshake("1.1", stream);
-                            if (Base64Decode(header[HTTP_SECWEBSOCKETACCEPT]) == accept_sha1) {
+                            if (cppcodec::base64_rfc4648::decode<std::string>(header[HTTP_SECWEBSOCKETACCEPT]) == accept_sha1) {
                                 SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "Connected ");
                                 auto websocket = std::make_shared<WSocket>(self->io_service);
                                 set_Socket(websocket, socket);
