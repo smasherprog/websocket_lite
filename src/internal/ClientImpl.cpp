@@ -139,80 +139,6 @@ namespace SL {
 				}
 			});
 		}
-		void ConnectNonTLS(std::shared_ptr<WSClient> self, const char* host, unsigned short port) {
-			auto socket = std::make_shared<boost::asio::ip::tcp::socket>(self->io_service);
-
-			boost::asio::ip::tcp::resolver resolver(self->io_service);
-			auto portstr = std::to_string(port);
-			boost::asio::ip::tcp::resolver::query query(host, portstr.c_str());
-			boost::system::error_code ec;
-			auto endpoint = resolver.resolve(query, ec);
-			if (ec) {
-				SL_WS_LITE_LOG(Logging_Levels::ERROR_log_level, "resolve " << ec.message());
-			}
-			else {
-				boost::asio::async_connect(*socket, endpoint, [socket, self](const boost::system::error_code& ec, boost::asio::ip::tcp::resolver::iterator)
-				{
-					if (!ec)
-					{
-						auto write_buffer(std::make_shared<boost::asio::streambuf>());
-						std::ostream request(write_buffer.get());
-						auto accept_sha1 = Generate_Handshake(get_address(*socket), request);
-
-						boost::asio::async_write(*socket, *write_buffer, [write_buffer, accept_sha1, socket, self](const boost::system::error_code& ec, size_t bytes_transferred) {
-							if (!ec) {
-								SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "Sent Handshake bytes " << bytes_transferred);
-								auto read_buffer(std::make_shared<boost::asio::streambuf>());
-								boost::asio::async_read_until(*socket, *read_buffer, "\r\n\r\n", [read_buffer, accept_sha1, socket, self](const boost::system::error_code& ec, size_t bytes_transferred) {
-									if (!ec) {
-										SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "Read Handshake bytes " << bytes_transferred);
-										std::istream stream(read_buffer.get());
-										auto header = Parse_Handshake("1.1", stream);
-										if (Base64Decode(header[HTTP_SECWEBSOCKETACCEPT]) == accept_sha1) {
-											SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "Connected ");
-											auto websocket = std::make_shared<WSocket>(self->io_service);
-											websocket->Socket = socket;
-											if (self->onHttpUpgrade) {
-												self->onHttpUpgrade(websocket);
-											}
-											if (self->onConnection) {
-												self->onConnection(websocket, header);
-											}
-											ReadHeader(self, websocket, socket);
-										}
-										else {
-											auto msg = "WebSocket handshake failed " + ec.message();
-											SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, msg);
-											if (self->onDisconnection) {
-												std::weak_ptr<WSocket> ptr;
-												self->onDisconnection(ptr, 0, msg.c_str(), msg.size());
-											}
-										}
-									}
-								});
-							}
-							else {
-								auto msg = "Failed sending handshake " + ec.message();
-								SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, msg);
-								if (self->onDisconnection) {
-									std::weak_ptr<WSocket> ptr;
-									self->onDisconnection(ptr, 0, msg.c_str(), msg.size());
-								}
-							}
-						});
-					}
-					else {
-						auto msg = "Failed async_connect " + ec.message();
-						SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, msg);
-						if (self->onDisconnection) {
-							std::weak_ptr<WSocket> ptr;
-							self->onDisconnection(ptr, 0, msg.c_str(), msg.size());
-						}
-					}
-				});
-			}
-
-		}
 		bool verify_certificate(bool preverified, boost::asio::ssl::verify_context& ctx)
 		{
 			char subject_name[256];
@@ -222,9 +148,60 @@ namespace SL {
 
 			return preverified;
 		}
-		void ConnectTLS(std::shared_ptr<WSClient> self, const char* host, unsigned short port) {
+		template<class SOCKETTYPE>ConnectHandshake(std::shared_ptr<WSClient> self, SOCKETTYPE& socket) {
 
-			auto socket = std::make_shared<boost::asio::ssl::stream<boost::asio::ip::tcp::socket>>(self->io_service, *self->sslcontext);
+
+			auto write_buffer(std::make_shared<boost::asio::streambuf>());
+			std::ostream request(write_buffer.get());
+			auto accept_sha1 = Generate_Handshake(get_address(*socket), request);
+
+			boost::asio::async_write(*socket, *write_buffer, [write_buffer, accept_sha1, socket, self](const boost::system::error_code& ec, size_t bytes_transferred) {
+				if (!ec) {
+					SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "Sent Handshake bytes " << bytes_transferred);
+					auto read_buffer(std::make_shared<boost::asio::streambuf>());
+					boost::asio::async_read_until(*socket, *read_buffer, "\r\n\r\n", [read_buffer, accept_sha1, socket, self](const boost::system::error_code& ec, size_t bytes_transferred) {
+						if (!ec) {
+							SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "Read Handshake bytes " << bytes_transferred);
+							std::istream stream(read_buffer.get());
+							auto header = Parse_Handshake("1.1", stream);
+							if (Base64Decode(header[HTTP_SECWEBSOCKETACCEPT]) == accept_sha1) {
+								SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "Connected ");
+								auto websocket = std::make_shared<WSocket>(self->io_service);
+								websocket->TLSSocket = socket;
+								if (self->onHttpUpgrade) {
+									self->onHttpUpgrade(websocket);
+								}
+								if (self->onConnection) {
+									self->onConnection(websocket, header);
+								}
+								ReadHeader(self, websocket, socket);
+							}
+							else {
+								auto msg = "WebSocket handshake failed " + ec.message();
+								SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, msg);
+								if (self->onDisconnection) {
+									std::weak_ptr<WSocket> ptr;
+									self->onDisconnection(ptr, 0, msg.c_str(), msg.size());
+								}
+							}
+						}
+					});
+				}
+				else {
+					auto msg = "Failed sending handshake " + ec.message();
+					SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, msg);
+					if (self->onDisconnection) {
+						std::weak_ptr<WSocket> ptr;
+						self->onDisconnection(ptr, 0, msg.c_str(), msg.size());
+					}
+				}
+			});
+
+		}
+
+		template<typename SOCKETCREATOR, typename TLSENABLED>void Connect(std::shared_ptr<WSClient> self, const char* host, unsigned short port, SOCKETCREATOR socketcreator, TLSENABLED en) {
+
+			auto socket = socketcreator(self);
 			boost::asio::ip::tcp::resolver resolver(self->io_service);
 			auto portstr = std::to_string(port);
 			boost::asio::ip::tcp::resolver::query query(host, portstr.c_str());
@@ -235,70 +212,34 @@ namespace SL {
 				SL_WS_LITE_LOG(Logging_Levels::ERROR_log_level, "resolve " << ec.message());
 			}
 			else {
-				socket->set_verify_mode(boost::asio::ssl::verify_peer);
-				socket->set_verify_callback(std::bind(&verify_certificate, std::placeholders::_1, std::placeholders::_2));
+				if (en) {
+					socket->set_verify_mode(boost::asio::ssl::verify_peer);
+					socket->set_verify_callback(std::bind(&verify_certificate, std::placeholders::_1, std::placeholders::_2));
+				}
+
 				boost::asio::async_connect(socket->lowest_layer(), endpoint, [socket, self](const boost::system::error_code& ec, boost::asio::ip::tcp::resolver::iterator)
 				{
 					if (!ec)
 					{
-						socket->async_handshake(boost::asio::ssl::stream_base::client, [socket, self](const boost::system::error_code& ec) {
-							if (!ec)
-							{
-								auto write_buffer(std::make_shared<boost::asio::streambuf>());
-								std::ostream request(write_buffer.get());
-								auto accept_sha1 = Generate_Handshake(get_address(*socket), request);
-
-								boost::asio::async_write(*socket, *write_buffer, [write_buffer, accept_sha1, socket, self](const boost::system::error_code& ec, size_t bytes_transferred) {
-									if (!ec) {
-										SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "Sent Handshake bytes " << bytes_transferred);
-										auto read_buffer(std::make_shared<boost::asio::streambuf>());
-										boost::asio::async_read_until(*socket, *read_buffer, "\r\n\r\n", [read_buffer, accept_sha1, socket, self](const boost::system::error_code& ec, size_t bytes_transferred) {
-											if (!ec) {
-												SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "Read Handshake bytes " << bytes_transferred);
-												std::istream stream(read_buffer.get());
-												auto header = Parse_Handshake("1.1", stream);
-												if (Base64Decode(header[HTTP_SECWEBSOCKETACCEPT]) == accept_sha1) {
-													SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "Connected ");
-													auto websocket = std::make_shared<WSocket>(self->io_service);
-													websocket->TLSSocket = socket;
-													if (self->onHttpUpgrade) {
-														self->onHttpUpgrade(websocket);
-													}
-													if (self->onConnection) {
-														self->onConnection(websocket, header);
-													}
-													ReadHeader(self, websocket, socket);
-												}
-												else {
-													auto msg = "WebSocket handshake failed " + ec.message();
-													SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, msg);
-													if (self->onDisconnection) {
-														std::weak_ptr<WSocket> ptr;
-														self->onDisconnection(ptr, 0, msg.c_str(), msg.size());
-													}
-												}
-											}
-										});
-									}
-									else {
-										auto msg = "Failed sending handshake " + ec.message();
-										SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, msg);
-										if (self->onDisconnection) {
-											std::weak_ptr<WSocket> ptr;
-											self->onDisconnection(ptr, 0, msg.c_str(), msg.size());
-										}
-									}
-								});
-							}
-							else {
-								auto msg = "Failed async_handshake " + ec.message();
-								SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, msg);
-								if (self->onDisconnection) {
-									std::weak_ptr<WSocket> ptr;
-									self->onDisconnection(ptr, 0, msg.c_str(), msg.size());
+						if (en) {
+							socket->async_handshake(boost::asio::ssl::stream_base::client, [socket, self](const boost::system::error_code& ec) {
+								if (!ec)
+								{
+									ConnectHandshake(self, socket);
 								}
-							}
-						});
+								else {
+									auto msg = "Failed async_handshake " + ec.message();
+									SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, msg);
+									if (self->onDisconnection) {
+										std::weak_ptr<WSocket> ptr;
+										self->onDisconnection(ptr, 0, msg.c_str(), msg.size());
+									}
+								}
+							});
+						}
+						else {
+							ConnectHandshake(self, socket);
+						}
 					}
 					else {
 						auto msg = "Failed async_connect " + ec.message();
@@ -323,10 +264,16 @@ namespace SL {
 		void Connect(std::shared_ptr<WSClient> client, const char* host, unsigned short port) {
 			if (client) {
 				if (client->sslcontext) {
-					ConnectTLS(client, host, port);
+					auto createsocket = [](std::shared_ptr<WSClient> c) {
+						return std::make_shared<boost::asio::ssl::stream<boost::asio::ip::tcp::socket>>(c->io_service, *c->sslcontext);
+					};
+					Connect(client, host, port, createsocket, true);
 				}
 				else {
-					ConnectNonTLS(client, host, port);
+					auto createsocket = [](std::shared_ptr<WSClient> c) {
+						return std::make_shared<boost::asio::ip::tcp::socket>(c->io_service);
+					};
+					Connect(client, host, port, createsocket, false);
 				}
 
 			}

@@ -103,6 +103,13 @@ namespace SL {
 
 		};
 
+		template<class WS>void set_Socket(WS& ws, std::shared_ptr<boost::asio::ssl::stream<boost::asio::ip::tcp::socket>> s) {
+			ws.TLSSocket = s;
+		}
+		template<class WS>void set_Socket(WS& ws, std::shared_ptr<boost::asio::ip::tcp::socket>  s) {
+			ws.Socket = s;
+		}
+
 		struct WSContext {
 			WSContext() :
 				work(std::make_unique<boost::asio::io_service::work>(io_service)) {
@@ -120,6 +127,7 @@ namespace SL {
 				}
 				if (io_servicethread.joinable()) io_servicethread.join();
 			}
+
 			unsigned int ReadTimeout = 5;
 			unsigned int WriteTimeout = 5;
 			unsigned long long int MaxPayload = 1024 * 1024 * 100;//100 MBs
