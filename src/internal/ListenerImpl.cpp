@@ -6,17 +6,17 @@ namespace SL {
     namespace WS_LITE {
 
 
-        class WSListener : public WSContext {
+        class WSListenerImpl : public WSContext {
         public:
 
             boost::asio::ip::tcp::acceptor acceptor;
 
-            WSListener(unsigned short port,
+            WSListenerImpl(unsigned short port,
                 std::string Password,
                 std::string Privatekey_File,
                 std::string Publiccertificate_File,
                 std::string dh_File) :
-                WSListener(port)
+                WSListenerImpl(port)
             {
                 sslcontext = std::make_unique<boost::asio::ssl::context>(boost::asio::ssl::context::tlsv11);
                 sslcontext->set_options(
@@ -52,17 +52,52 @@ namespace SL {
 
             }
 
-            WSListener(unsigned short port) :acceptor(io_service, boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), port)) { }
+            WSListenerImpl(unsigned short port) :acceptor(io_service, boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), port)) { }
 
-            ~WSListener() {
+            ~WSListenerImpl() {
                 boost::system::error_code ec;
                 acceptor.close(ec);
             }
         };
 
-        template <class SOCKETTYPE>void ReadBody(std::shared_ptr<WSListener> listener, std::shared_ptr<WSocket> websocket, SOCKETTYPE socket, std::shared_ptr<WSHeader> header) {
+        template<class SOCKETTYPE>void send(const std::shared_ptr<WSListenerImpl>& l, WSocket w, SOCKETTYPE& socket, WSSendMessage& msg) {
 
-            readexpire_from_now(websocket, listener->ReadTimeout);
+            WSHeader header;
+            header.FIN = true;
+            header.Mask = false;
+            header.Opcode = msg.code;
+            header.RSV1 = header.RSV2 = header.RSV3 = false;
+            if (msg.len <= 125) {
+                header.Payloadlen = static_cast<unsigned char>(msg.len);
+            }
+            else if (msg.len > USHRT_MAX) {
+                header.ExtendedPayloadlen = msg.len;
+                header.Payloadlen = 127;
+            }
+            else {
+                header.Payloadlen = 126;
+                header.ShortPayloadlen = static_cast<unsigned short>(msg.len);
+            }
+            assert(msg.len < UINT32_MAX);
+            writeexpire_from_now(w.WSocketImpl_, l->WriteTimeout);
+            boost::system::error_code ec;
+            auto bytes_written = boost::asio::write(*socket, boost::asio::buffer(&header, sizeof(header)), ec);
+            assert(bytes_written == sizeof(header));
+            if (!ec)
+            {
+                ec.clear();
+                bytes_written = boost::asio::write(*socket, boost::asio::buffer(msg.data, static_cast<size_t>(msg.len)), ec);
+                if (ec) {
+                    SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "write body failed " << ec.message());
+                }
+            }
+            else {
+                SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "write header failed " << ec.message());
+            }
+        }
+        template <class SOCKETTYPE>void ReadBody(std::shared_ptr<WSListenerImpl> listener, WSocket websocket, SOCKETTYPE socket, std::shared_ptr<WSHeader> header) {
+
+            readexpire_from_now(websocket.WSocketImpl_, listener->ReadTimeout);
             unsigned long long int size = 0;
             switch (GetPayloadBytes(header.get())) {
             case 1:
@@ -100,8 +135,8 @@ namespace SL {
                         if (listener->onPing) {
                             listener->onPing(websocket, buffer.get() + 4, static_cast<size_t>(size - 4));
                         }
-                        auto unpacked = UnpackedMessage{ buffer.get() + 4, size - 4, OpCode::PONG };
-                        send(*websocket, unpacked);
+                        auto unpacked = WSSendMessage{ buffer.get() + 4, size - 4, OpCode::PONG };
+                        send(listener,websocket, socket,unpacked);
                     }
                     else if (header->Opcode == OpCode::PONG) {
                         if (listener->onPong) {
@@ -115,9 +150,8 @@ namespace SL {
                         for (decltype(size) c = 0; c < size - 4; c++) {
                             p[c] = p[c] ^ mask[c % 4];
                         }
-                        auto unpacked = UnpackedMessage{ p, size - 4, header->Opcode };
-                        auto packed = PackgedMessageInfo{ size - 4 };
-                        listener->onMessage(websocket, unpacked, packed);
+                        auto unpacked = WSReceiveMessage{ p, size - 4, header->Opcode };
+                        listener->onMessage(websocket, unpacked);
                     }
                     ReadHeader(listener, websocket, socket);
                 }
@@ -126,8 +160,8 @@ namespace SL {
                 }
             });
         }
-        template <class SOCKETTYPE>void ReadHeader(std::shared_ptr<WSListener> listener, std::shared_ptr<WSocket> websocket, SOCKETTYPE socket) {
-            readexpire_from_now(websocket, 0);
+        template <class SOCKETTYPE>void ReadHeader(std::shared_ptr<WSListenerImpl> listener, WSocket websocket, SOCKETTYPE socket) {
+            readexpire_from_now(websocket.WSocketImpl_, 0);
             auto buff = std::make_shared<WSHeader>();
             boost::asio::async_read(*socket, boost::asio::buffer(buff.get(), 2), [listener, websocket, socket, buff](const boost::system::error_code& ec, size_t bytes_transferred) {
                 if (!ec) {
@@ -160,7 +194,7 @@ namespace SL {
                 }
             });
         }
-        template<class SOCKETTYPE>void read_handshake(std::shared_ptr<WSListener> listener, SOCKETTYPE& socket) {
+        template<class SOCKETTYPE>void read_handshake(std::shared_ptr<WSListenerImpl> listener, SOCKETTYPE& socket) {
             auto read_buffer(std::make_shared<boost::asio::streambuf>());
             boost::asio::async_read_until(*socket, *read_buffer, "\r\n\r\n", [listener, socket, read_buffer](const boost::system::error_code& ec, size_t bytes_transferred) {
                 if (!ec) {
@@ -172,7 +206,8 @@ namespace SL {
                     auto write_buffer(std::make_shared<boost::asio::streambuf>());
                     std::ostream handshake(write_buffer.get());
                     if (Generate_Handshake(header, handshake)) {
-                        auto websocket = std::make_shared<WSocket>(listener->io_service);
+                        WSocket websocket;
+                        websocket.WSocketImpl_ = std::make_shared<WSocketImpl>(listener->io_service);
                         set_Socket(websocket, socket);
                         if (listener->onHttpUpgrade) {
                             listener->onHttpUpgrade(websocket);
@@ -201,10 +236,10 @@ namespace SL {
             });
 
         }
-        void async_handshake(std::shared_ptr<WSListener> listener, std::shared_ptr<boost::asio::ip::tcp::socket> socket) {
+        void async_handshake(std::shared_ptr<WSListenerImpl> listener, std::shared_ptr<boost::asio::ip::tcp::socket> socket) {
             read_handshake(listener, socket);
         }
-        void async_handshake(std::shared_ptr<WSListener> listener, std::shared_ptr<boost::asio::ssl::stream<boost::asio::ip::tcp::socket>> socket) {
+        void async_handshake(std::shared_ptr<WSListenerImpl> listener, std::shared_ptr<boost::asio::ssl::stream<boost::asio::ip::tcp::socket>> socket) {
 
             socket->async_handshake(boost::asio::ssl::stream_base::server, [listener, socket](const boost::system::error_code& ec) {
 
@@ -218,7 +253,7 @@ namespace SL {
 
         }
 
-        template<typename SOCKETCREATOR>void Listen(std::shared_ptr<WSListener> listener, SOCKETCREATOR&& socketcreator) {
+        template<typename SOCKETCREATOR>void Listen(std::shared_ptr<WSListenerImpl> listener, SOCKETCREATOR&& socketcreator) {
 
             auto socket = socketcreator(listener);
             listener->acceptor.async_accept(socket->lowest_layer(), [listener, socket, socketcreator](const boost::system::error_code& ec)
@@ -230,125 +265,102 @@ namespace SL {
                 Listen(listener, socketcreator);
             });
         }
-        std::shared_ptr<WSListener> CreateListener(unsigned short port)
+        WSListener CreateListener(unsigned short port)
         {
-            return std::make_shared<WSListener>(port);
+            WSListener tmp;
+            tmp.WSListenerImpl_ = std::make_shared<WSListenerImpl>(port);
+            return tmp;
         }
 
-        std::shared_ptr<WSListener> CreateListener(
+        WSListener CreateListener(
             unsigned short port,
             std::string Password,
             std::string Privatekey_File,
             std::string Publiccertificate_File,
             std::string dh_File)
         {
-            return std::make_shared<WSListener>(port, Password, Privatekey_File, Publiccertificate_File, dh_File);
+
+            WSListener tmp;
+            tmp.WSListenerImpl_ = std::make_shared<WSListenerImpl>(port, Password, Privatekey_File, Publiccertificate_File, dh_File);
+            return tmp;
         }
-        void StartListening(std::shared_ptr<WSListener>& l)
+        void WSListener::startlistening()
         {
-            if (l) {
-                if (l->sslcontext) {
-                    auto createsocket = [](auto c) {
-                        return std::make_shared<boost::asio::ssl::stream<boost::asio::ip::tcp::socket>>(c->io_service, *c->sslcontext);
-                    };
-                    Listen(l, createsocket);
-                }
-                else {
-                    auto createsocket = [](auto c) {
-                        return std::make_shared<boost::asio::ip::tcp::socket>(c->io_service);
-                    };
-                    Listen(l, createsocket);
-                }
+            if (WSListenerImpl_->sslcontext) {
+                auto createsocket = [](auto c) {
+                    return std::make_shared<boost::asio::ssl::stream<boost::asio::ip::tcp::socket>>(c->io_service, *c->sslcontext);
+                };
+                Listen(WSListenerImpl_, createsocket);
+            }
+            else {
+                auto createsocket = [](auto c) {
+                    return std::make_shared<boost::asio::ip::tcp::socket>(c->io_service);
+                };
+                Listen(WSListenerImpl_, createsocket);
             }
         }
-        void onConnection(std::shared_ptr<WSListener> l, std::function<void(std::weak_ptr<WSocket>, const std::unordered_map<std::string, std::string>&)>& handle) {
-            if (l) {
-                l->onConnection = handle;
-            }
+        void WSListener::onConnection(std::function<void(WSocket, const std::unordered_map<std::string, std::string>&)>& handle) {
+            WSListenerImpl_->onConnection = handle;
         }
-        void onConnection(std::shared_ptr<WSListener> l, const std::function<void(std::weak_ptr<WSocket>, const std::unordered_map<std::string, std::string>&)>& handle) {
-            if (l) {
-                l->onConnection = handle;
-            }
+        void WSListener::onConnection(const std::function<void(WSocket, const std::unordered_map<std::string, std::string>&)>& handle) {
+            WSListenerImpl_->onConnection = handle;
         }
-        void onMessage(std::shared_ptr<WSListener> l, std::function<void(std::weak_ptr<WSocket>, UnpackedMessage&, PackgedMessageInfo&)>& handle) {
-            if (l) {
-                l->onMessage = handle;
-            }
+        void WSListener::onMessage(std::function<void(WSocket, WSReceiveMessage&)>& handle) {
+            WSListenerImpl_->onMessage = handle;
         }
-        void onMessage(std::shared_ptr<WSListener> l, const std::function<void(std::weak_ptr<WSocket>, UnpackedMessage&, PackgedMessageInfo&)>& handle) {
-            if (l) {
-                l->onMessage = handle;
-            }
+        void WSListener::onMessage(const std::function<void(WSocket, WSReceiveMessage&)>& handle) {
+            WSListenerImpl_->onMessage = handle;
+        }
+        void WSListener::onDisconnection(std::function<void(WSocket, WSReceiveMessage&)>& handle) {
+            WSListenerImpl_->onDisconnection = handle;
+        }
+        void WSListener::onDisconnection(const std::function<void(WSocket, WSReceiveMessage&)>& handle) {
+            WSListenerImpl_->onDisconnection = handle;
+        }
+        void WSListener::onPing(std::function<void(WSocket, const char *, size_t)>& handle) {
+            WSListenerImpl_->onPing = handle;
+        }
+        void WSListener::onPing(const std::function<void(WSocket, const char *, size_t)>& handle) {
+            WSListenerImpl_->onPing = handle;
+        }
+        void WSListener::onPong(std::function<void(WSocket, const char *, size_t)>& handle) {
+            WSListenerImpl_->onPong = handle;
+        }
+        void WSListener::onPong(const std::function<void(WSocket, const char *, size_t)>& handle) {
+            WSListenerImpl_->onPong = handle;
+        }
+        void WSListener::onHttpUpgrade(std::function<void(WSocket)>& handle) {
+            WSListenerImpl_->onHttpUpgrade = handle;
+        }
+        void WSListener::onHttpUpgrade(const std::function<void(WSocket)>& handle) {
+            WSListenerImpl_->onHttpUpgrade = handle;
+        }
+        void WSListener::set_ReadTimeout(unsigned int seconds) {
+            WSListenerImpl_->ReadTimeout = seconds;
+        }
+        unsigned int WSListener::get_ReadTimeout() {
+            return  WSListenerImpl_->ReadTimeout;
+        }
+        void WSListener::set_WriteTimeout(unsigned int seconds) {
+            WSListenerImpl_->WriteTimeout = seconds;
+        }
+        unsigned int WSListener::get_WriteTimeout() {
+            return  WSListenerImpl_->WriteTimeout;
+        }
+        void WSListener::set_MaxPayload(unsigned long long int bytes) {
+            WSListenerImpl_->MaxPayload = bytes;
+        }
+        unsigned long long int WSListener::get_MaxPayload() {
+            return  WSListenerImpl_->MaxPayload;
         }
 
-        void onDisconnection(std::shared_ptr<WSListener> l, std::function<void(std::weak_ptr<WSocket>, int code, const char *message, size_t length)>& handle) {
-            if (l) {
-                l->onDisconnection = handle;
+        void WSListener::send(WSocket& s, WSSendMessage& msg) {
+            if (s.WSocketImpl_->Socket) {
+                SL::WS_LITE::send(WSListenerImpl_, s, s.WSocketImpl_->Socket, msg);
             }
-        }
-        void onDisconnection(std::shared_ptr<WSListener> l, const std::function<void(std::weak_ptr<WSocket>, int code, const char *message, size_t length)>& handle) {
-            if (l) {
-                l->onDisconnection = handle;
+            else {
+                SL::WS_LITE::send(WSListenerImpl_, s, s.WSocketImpl_->TLSSocket, msg);
             }
-        }
-
-        void onPing(std::shared_ptr<WSListener> l, std::function<void(std::weak_ptr<WSocket>, const char *, size_t)>& handle) {
-            if (l) {
-                l->onPing = handle;
-            }
-        }
-        void onPing(std::shared_ptr<WSListener> l, const std::function<void(std::weak_ptr<WSocket>, const char *, size_t)>& handle) {
-            if (l) {
-                l->onPing = handle;
-            }
-        }
-
-        void onPong(std::shared_ptr<WSListener> l, std::function<void(std::weak_ptr<WSocket>, const char *, size_t)>& handle) {
-            if (l) {
-                l->onPong = handle;
-            }
-        }
-        void onPong(std::shared_ptr<WSListener> l, const std::function<void(std::weak_ptr<WSocket>, const char *, size_t)>& handle) {
-            if (l) {
-                l->onPong = handle;
-            }
-        }
-
-        void onHttpUpgrade(std::shared_ptr<WSListener> l, std::function<void(std::weak_ptr<WSocket>)>& handle) {
-            if (l) {
-                l->onHttpUpgrade = handle;
-            }
-        }
-        void onHttpUpgrade(std::shared_ptr<WSListener> l, const std::function<void(std::weak_ptr<WSocket>)>& handle) {
-            if (l) {
-                l->onHttpUpgrade = handle;
-            }
-        }
-        void send(const WSocket& s, const UnpackedMessage& msg) {
-
-        }
-        void set_ReadTimeout(WSListener& s, unsigned int seconds) {
-            s.ReadTimeout = seconds;
-        }
-
-        unsigned int get_ReadTimeout(WSListener& s) {
-            return s.ReadTimeout;
-        }
-
-        void set_WriteTimeout(WSListener& s, unsigned int seconds) {
-            s.WriteTimeout = seconds;
-        }
-
-        unsigned int get_WriteTimeout(WSListener& s) {
-            return s.WriteTimeout;
-        }
-
-        void set_MaxPayload(WSListener& s, unsigned long long int bytes) {
-            s.MaxPayload = bytes;
-        }
-        unsigned long long int get_MaxPayload(WSListener& s) {
-            return s.MaxPayload;
         }
     }
 }

@@ -174,6 +174,9 @@ namespace SL {
                                 if (self->onConnection) {
                                     self->onConnection(websocket, header);
                                 }
+                                if (read_buffer->size() > bytes_transferred) {
+                                    //check and handle case where more data is read
+                                }
                                 ReadHeader(self, websocket, socket);
                             }
                             else {
@@ -198,7 +201,7 @@ namespace SL {
             });
 
         }
-       void async_handshake(std::shared_ptr<WSClient> self, std::shared_ptr<boost::asio::ip::tcp::socket> socket) {
+        void async_handshake(std::shared_ptr<WSClient> self, std::shared_ptr<boost::asio::ip::tcp::socket> socket) {
             ConnectHandshake(self, socket);
         }
         void async_handshake(std::shared_ptr<WSClient> self, std::shared_ptr<boost::asio::ssl::stream<boost::asio::ip::tcp::socket>> socket) {
@@ -212,7 +215,8 @@ namespace SL {
                     SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, msg);
                     if (self->onDisconnection) {
                         std::weak_ptr<WSocket> ptr;
-                        self->onDisconnection(ptr, 0, msg.c_str(), msg.size());
+                        auto b = WSReceiveMessage{ msg.c_str(), msg.size(), OpCode::TEXT };
+                        self->onDisconnection(ptr, b);
                     }
                 }
             });
@@ -289,23 +293,23 @@ namespace SL {
                 l->onConnection = handle;
             }
         }
-        void onMessage(std::shared_ptr<WSClient> l, std::function<void(std::weak_ptr<WSocket>, UnpackedMessage&, PackgedMessageInfo&)>& handle) {
+        void onMessage(std::shared_ptr<WSClient> l, std::function<void(std::weak_ptr<WSocket>, WSReceiveMessage&)>& handle) {
             if (l) {
                 l->onMessage = handle;
             }
         }
-        void onMessage(std::shared_ptr<WSClient> l, const std::function<void(std::weak_ptr<WSocket>, UnpackedMessage&, PackgedMessageInfo&)>& handle) {
+        void onMessage(std::shared_ptr<WSClient> l, const std::function<void(std::weak_ptr<WSocket>, WSReceiveMessage&)>& handle) {
             if (l) {
                 l->onMessage = handle;
             }
         }
 
-        void onDisconnection(std::shared_ptr<WSClient> l, std::function<void(std::weak_ptr<WSocket>, int code, const char *message, size_t length)>& handle) {
+        void onDisconnection(std::shared_ptr<WSClient> l, std::function<void(std::weak_ptr<WSocket>, WSReceiveMessage&)>& handle) {
             if (l) {
                 l->onDisconnection = handle;
             }
         }
-        void onDisconnection(std::shared_ptr<WSClient> l, const std::function<void(std::weak_ptr<WSocket>, int code, const char *message, size_t length)>& handle) {
+        void onDisconnection(std::shared_ptr<WSClient> l, const std::function<void(std::weak_ptr<WSocket>, WSReceiveMessage&)>& handle) {
             if (l) {
                 l->onDisconnection = handle;
             }
@@ -365,10 +369,70 @@ namespace SL {
         unsigned long long int get_MaxPayload(WSClient& s) {
             return s.MaxPayload;
         }
-        void send(WSocket& s, const UnpackedMessage& msg) {
 
+
+        template<class SOCKETTYPE>void send(std::shared_ptr<WSClient>& l, WSocket& s, SOCKETTYPE& socket, WSSendMessage& msg) {
+
+            WSHeader header;
+            header.FIN = true;
+            header.Mask = true;
+            header.Opcode = msg.code;
+            header.RSV1 = header.RSV2 = header.RSV3 = false;
+            if (msg.len <= 125) {
+                header.Payloadlen = static_cast<unsigned char>(msg.len);
+            }
+            else if (msg.len > USHRT_MAX) {
+                header.ExtendedPayloadlen = msg.len;
+                header.Payloadlen = 127;
+            }
+            else {
+                header.Payloadlen = 126;
+                header.ShortPayloadlen = static_cast<unsigned short>(msg.len);
+            }
+            assert(msg.len < UINT32_MAX);
+            writeexpire_from_now(s, l->WriteTimeout);
+            boost::system::error_code ec;
+            auto bytes_written = boost::asio::write(socket, boost::asio::buffer(&header, sizeof(header)), ec);
+            assert(bytes_written == sizeof(header));
+            if (!ec)
+            {
+                ec.clear();
+
+                std::uniform_int_distribution<unsigned int> dist(0, 255);
+                std::random_device rd;
+                unsigned char mask[4];
+                for (size_t c = 0; c < sizeof(mask); c++) {
+                    mask[c] = static_cast<unsigned char>(dist(rd));
+                }
+                auto p = reinterpret_cast<unsigned char*>(msg.data);
+                for (decltype(msg.len) i = 0; i < msg.len; i++) {
+                    *p++ ^= mask[i % sizeof(mask)];
+                }
+
+                bytes_written = boost::asio::write(socket, boost::asio::buffer(mask, sizeof(mask)), ec);
+                if (!ec) {
+                    bytes_written = boost::asio::write(socket, boost::asio::buffer(p, static_cast<size_t>(msg.len)), ec);
+                    if (ec) {
+                        SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "write payload failed " << ec.message());
+                    }
+                }
+                else {
+                    SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "write mask failed " << ec.message());
+                }
+            }
+            else {
+                SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "write header failed " << ec.message());
+            }
         }
-        bool is_open(WSocket& s) {
+        void send(std::shared_ptr<WSClient>& l, WSocket& s, WSReceiveMessage& msg) {
+            if (s.Socket) {
+                send(l, s, s.Socket, msg);
+            }
+            else {
+                send(l, s, s.TLSSocket, msg);
+            }
+        }
+        bool WSocket::is_open() {
             if (s.Socket) {
                 return s.Socket->is_open();
             }
@@ -376,7 +440,7 @@ namespace SL {
                 return s.TLSSocket->lowest_layer().is_open();
             }
         }
-        std::string get_address(WSocket& s) {
+        std::string WSocket::get_address() {
             if (s.Socket) {
                 return get_address(*s.Socket);
             }
@@ -384,7 +448,7 @@ namespace SL {
                 return get_address(*s.TLSSocket);
             }
         }
-        unsigned short get_port(WSocket& s) {
+        unsigned short WSocket::get_port() {
             if (s.Socket) {
                 return get_port(*s.Socket);
             }
@@ -392,7 +456,8 @@ namespace SL {
                 return get_port(*s.TLSSocket);
             }
         }
-        bool is_v4(WSocket& s) {
+        bool WSocket::is_v4() {
+
             if (s.Socket) {
                 return is_v4(*s.Socket);
             }
@@ -400,7 +465,8 @@ namespace SL {
                 return is_v4(*s.TLSSocket);
             }
         }
-        bool is_v6(WSocket& s) {
+        bool WSocket::is_v6() {
+
             if (s.Socket) {
                 return is_v6(*s.Socket);
             }
@@ -408,9 +474,10 @@ namespace SL {
                 return is_v6(*s.TLSSocket);
             }
         }
-        bool is_loopback(WSocket& s) {
-            if (s.Socket) {
-                return is_loopback(*s.Socket);
+        bool WSocket::is_loopback() {
+           
+            if (Socket) {
+                return is_loopback(Socket);
             }
             else {
                 return is_loopback(*s.TLSSocket);

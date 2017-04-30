@@ -55,7 +55,7 @@ namespace SL {
             else return true;
         }
 
-        template<class T> void readexpire_from_now(T& self, int seconds)
+        template<class T> void readexpire_from_now(T self, int seconds)
         {
             boost::system::error_code ec;
             if (seconds <= 0) self->read_deadline.expires_at(boost::posix_time::pos_infin, ec);
@@ -71,7 +71,7 @@ namespace SL {
                 });
             }
         }
-        template<class T> void writeexpire_from_now(T& self, int seconds)
+        template<class T> void writeexpire_from_now(T self, int seconds)
         {
             boost::system::error_code ec;
             if (seconds <= 0) self->write_deadline.expires_at(boost::posix_time::pos_infin, ec);
@@ -89,10 +89,10 @@ namespace SL {
             }
         }
 
-        struct WSocket
+        struct WSocketImpl
         {
-            WSocket(boost::asio::io_service& s) :read_deadline(s), write_deadline(s) {}
-            ~WSocket() {
+            WSocketImpl(boost::asio::io_service& s) :read_deadline(s), write_deadline(s) {}
+            ~WSocketImpl() {
                 read_deadline.cancel();
                 write_deadline.cancel();
             }
@@ -103,11 +103,11 @@ namespace SL {
 
         };
 
-        inline void set_Socket(std::shared_ptr<WSocket>& ws, std::shared_ptr<boost::asio::ssl::stream<boost::asio::ip::tcp::socket>> s) {
-            ws->TLSSocket = s;
+        inline void set_Socket(WSocket& ws, std::shared_ptr<boost::asio::ssl::stream<boost::asio::ip::tcp::socket>> s) {
+            ws.WSocketImpl_->TLSSocket = s;
         }
-        inline void set_Socket(std::shared_ptr<WSocket>& ws, std::shared_ptr<boost::asio::ip::tcp::socket>  s) {
-            ws->Socket = s;
+        inline void set_Socket(WSocket& ws, std::shared_ptr<boost::asio::ip::tcp::socket>  s) {
+            ws.WSocketImpl_->Socket = s;
         }
 
         struct WSContext {
@@ -137,12 +137,12 @@ namespace SL {
             std::unique_ptr<boost::asio::io_service::work> work;
             std::unique_ptr<boost::asio::ssl::context> sslcontext;
 
-            std::function<void(std::weak_ptr<WSocket>, const std::unordered_map<std::string, std::string>&)> onConnection;
-            std::function<void(std::weak_ptr<WSocket>, UnpackedMessage&, PackgedMessageInfo&)> onMessage;
-            std::function<void(std::weak_ptr<WSocket>, int code, const char *message, size_t length)> onDisconnection;
-            std::function<void(std::weak_ptr<WSocket>, char *, size_t)> onPing;
-            std::function<void(std::weak_ptr<WSocket>, char *, size_t)> onPong;
-            std::function<void(std::weak_ptr<WSocket>)> onHttpUpgrade;
+            std::function<void(WSocket, const std::unordered_map<std::string, std::string>&)> onConnection;
+            std::function<void(WSocket, WSReceiveMessage&)> onMessage;
+            std::function<void(WSocket, WSReceiveMessage&)> onDisconnection;
+            std::function<void(WSocket, char *, size_t)> onPing;
+            std::function<void(WSocket, char *, size_t)> onPong;
+            std::function<void(WSocket)> onHttpUpgrade;
 
         };
         /*
@@ -288,17 +288,18 @@ namespace SL {
         inline std::string Generate_Handshake(const std::string& host_addr, std::ostream & request) {
 
             request << "GET /rdpenpoint/ HTTP/1.1" << HTTP_ENDLINE;
-            request << "Host: " << host_addr << HTTP_ENDLINE;
+            request << HTTP_HOST << HTTP_KEYVALUEDELIM << host_addr << HTTP_ENDLINE;
             request << "Upgrade: websocket" << HTTP_ENDLINE;
             request << "Connection: Upgrade" << HTTP_ENDLINE;
 
             //Make random 16-byte nonce
             std::string nonce;
             nonce.resize(16);
-            std::uniform_int_distribution<unsigned short> dist(0, 255);
+            std::uniform_int_distribution<unsigned int> dist(0, 255);
             std::random_device rd;
-            for (int c = 0; c < 16; c++)
+            for (int c = 0; c < 16; c++) {
                 nonce[c] = static_cast<unsigned char>(dist(rd));
+            }
             
             auto nonce_base64 = cppcodec::base64_rfc4648::encode<std::string>(nonce);
             request << HTTP_SECWEBSOCKETKEY << HTTP_KEYVALUEDELIM << nonce_base64 << HTTP_ENDLINE;
