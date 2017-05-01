@@ -45,22 +45,28 @@ namespace SL {
         };
 
 
-        //forward declares
-        struct WSocketImpl;
-        struct WSocket {
-            std::shared_ptr<WSocketImpl> WSocketImpl_;
 
+        class WSListener;
+        class WSClient;
+        struct WSocketImpl;
+        class WSocket {
+            std::shared_ptr<WSocketImpl> WSocketImpl_;
+        public:
+            WSocket(const std::shared_ptr<WSocketImpl>& ptr) : WSocketImpl_(ptr) {}
+            bool operator=(const WSocket& s) { return s.WSocketImpl_ == WSocketImpl_; }
             bool is_open();
             std::string get_address();
             unsigned short get_port();
             bool is_v4();
             bool is_v6();
             bool is_loopback();
+            friend WSListener;
+            friend WSClient;
         };
         class WSListenerImpl;
-        struct WSListener {
-            std::shared_ptr<WSListenerImpl> WSListenerImpl_;
-
+        class WSListener {
+            std::shared_ptr<WSListenerImpl> Impl_;
+        public:
             void onConnection(std::function<void(WSocket, const std::unordered_map<std::string, std::string>&)>& handle);
             void onConnection(const std::function<void(WSocket, const std::unordered_map<std::string, std::string>&)>& handle);
          
@@ -91,11 +97,19 @@ namespace SL {
             void send(WSocket& s, WSSendMessage& msg);
 
             void startlistening();
-        };
-        struct WSClientImpl;
-        struct WSClient {
-            std::shared_ptr<WSClientImpl> WSClientImpl_;
 
+            static WSListener CreateListener(unsigned short port);
+            static WSListener CreateListener(
+                unsigned short port,
+                std::string Password,
+                std::string Privatekey_File,
+                std::string Publiccertificate_File,
+                std::string dh_File);
+        };
+        class WSClientImpl;
+        class WSClient {
+            std::shared_ptr<WSClientImpl> Impl_;
+        public:
             void onConnection(std::function<void(WSocket, const std::unordered_map<std::string, std::string>&)>& handle);
             void onConnection(const std::function<void(WSocket, const std::unordered_map<std::string, std::string>&)>& handle);
 
@@ -126,19 +140,9 @@ namespace SL {
             void send(WSocket& s, WSSendMessage& msg);
 
             void connect(const char* host, unsigned short port);
+            static WSClient CreateClient(std::string Publiccertificate_File);
+            static WSClient CreateClient();
         };
-        
-        WSListener CreateListener(unsigned short port);
-        WSListener CreateListener(
-            unsigned short port,
-            std::string Password,
-            std::string Privatekey_File,
-            std::string Publiccertificate_File,
-            std::string dh_File);
-
-        WSClient CreateClient(std::string Publiccertificate_File);
-        WSClient CreateClient();
-
     }
 }
 

@@ -60,7 +60,7 @@ namespace SL {
             }
         };
 
-        template<class SOCKETTYPE>void send(const std::shared_ptr<WSListenerImpl>& l, WSocket w, SOCKETTYPE& socket, WSSendMessage& msg) {
+        template<class SOCKETTYPE>void send(const std::shared_ptr<WSListenerImpl>& l, std::shared_ptr<WSocketImpl> w, SOCKETTYPE& socket, WSSendMessage& msg) {
 
             WSHeader header;
             header.FIN = true;
@@ -79,7 +79,7 @@ namespace SL {
                 header.ShortPayloadlen = static_cast<unsigned short>(msg.len);
             }
             assert(msg.len < UINT32_MAX);
-            writeexpire_from_now(w.WSocketImpl_, l->WriteTimeout);
+            writeexpire_from_now(w, l->WriteTimeout);
             boost::system::error_code ec;
             auto bytes_written = boost::asio::write(*socket, boost::asio::buffer(&header, sizeof(header)), ec);
             assert(bytes_written == sizeof(header));
@@ -95,9 +95,9 @@ namespace SL {
                 SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "write header failed " << ec.message());
             }
         }
-        template <class SOCKETTYPE>void ReadBody(std::shared_ptr<WSListenerImpl> listener, WSocket websocket, SOCKETTYPE socket, std::shared_ptr<WSHeader> header) {
+        template <class SOCKETTYPE>void ReadBody(std::shared_ptr<WSListenerImpl> listener, std::shared_ptr<WSocketImpl> websocket, SOCKETTYPE socket, std::shared_ptr<WSHeader> header) {
 
-            readexpire_from_now(websocket.WSocketImpl_, listener->ReadTimeout);
+            readexpire_from_now(websocket, listener->ReadTimeout);
             unsigned long long int size = 0;
             switch (GetPayloadBytes(header.get())) {
             case 1:
@@ -127,20 +127,21 @@ namespace SL {
 
             boost::asio::async_read(*socket, boost::asio::buffer(buffer.get(), static_cast<size_t>(size)), [listener, websocket, socket, header, buffer, size](const boost::system::error_code& ec, size_t bytes_transferred) {
                 if (!ec) {
+                    WSocket wsocket(websocket);
                     if (size != bytes_transferred) {
                         SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "size != bytes_transferred");
                         return;
                     }
                     else if (header->Opcode == OpCode::PING) {
                         if (listener->onPing) {
-                            listener->onPing(websocket, buffer.get() + 4, static_cast<size_t>(size - 4));
+                            listener->onPing(wsocket, buffer.get() + 4, static_cast<size_t>(size - 4));
                         }
                         auto unpacked = WSSendMessage{ buffer.get() + 4, size - 4, OpCode::PONG };
-                        send(listener,websocket, socket,unpacked);
+                        send(listener, websocket, socket, unpacked);
                     }
                     else if (header->Opcode == OpCode::PONG) {
                         if (listener->onPong) {
-                            listener->onPong(websocket, buffer.get() + 4, static_cast<size_t>(size - 4));
+                            listener->onPong(wsocket, buffer.get() + 4, static_cast<size_t>(size - 4));
                         }
                     }
                     else if (listener->onMessage) {
@@ -151,7 +152,7 @@ namespace SL {
                             p[c] = p[c] ^ mask[c % 4];
                         }
                         auto unpacked = WSReceiveMessage{ p, size - 4, header->Opcode };
-                        listener->onMessage(websocket, unpacked);
+                        listener->onMessage(wsocket, unpacked);
                     }
                     ReadHeader(listener, websocket, socket);
                 }
@@ -160,8 +161,8 @@ namespace SL {
                 }
             });
         }
-        template <class SOCKETTYPE>void ReadHeader(std::shared_ptr<WSListenerImpl> listener, WSocket websocket, SOCKETTYPE socket) {
-            readexpire_from_now(websocket.WSocketImpl_, 0);
+        template <class SOCKETTYPE>void ReadHeader(std::shared_ptr<WSListenerImpl> listener, std::shared_ptr<WSocketImpl> websocket, SOCKETTYPE socket) {
+            readexpire_from_now(websocket, 0);
             auto buff = std::make_shared<WSHeader>();
             boost::asio::async_read(*socket, boost::asio::buffer(buff.get(), 2), [listener, websocket, socket, buff](const boost::system::error_code& ec, size_t bytes_transferred) {
                 if (!ec) {
@@ -206,20 +207,21 @@ namespace SL {
                     auto write_buffer(std::make_shared<boost::asio::streambuf>());
                     std::ostream handshake(write_buffer.get());
                     if (Generate_Handshake(header, handshake)) {
-                        WSocket websocket;
-                        websocket.WSocketImpl_ = std::make_shared<WSocketImpl>(listener->io_service);
-                        set_Socket(websocket, socket);
+                        auto sock = std::make_shared<WSocketImpl>(listener->io_service);
+                        WSocket websocket(sock);
+                        set_Socket(sock, socket);
                         if (listener->onHttpUpgrade) {
                             listener->onHttpUpgrade(websocket);
                         }
 
-                        boost::asio::async_write(*socket, *write_buffer, [listener, websocket, socket, header, write_buffer](const boost::system::error_code& ec, size_t bytes_transferred) {
+                        boost::asio::async_write(*socket, *write_buffer, [listener, sock, socket, header, write_buffer](const boost::system::error_code& ec, size_t bytes_transferred) {
                             if (!ec) {
+                                WSocket websocket(sock);
                                 SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "Connected: Sent Handshake bytes " << bytes_transferred);
                                 if (listener->onConnection) {
                                     listener->onConnection(websocket, header);
                                 }
-                                ReadHeader(listener, websocket, socket);
+                                ReadHeader(listener, sock, socket);
                             }
                             else {
                                 SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "WebSocket receivehandshake failed " << ec.message());
@@ -265,14 +267,14 @@ namespace SL {
                 Listen(listener, socketcreator);
             });
         }
-        WSListener CreateListener(unsigned short port)
+        WSListener  WSListener::CreateListener(unsigned short port)
         {
             WSListener tmp;
-            tmp.WSListenerImpl_ = std::make_shared<WSListenerImpl>(port);
+            tmp.Impl_ = std::make_shared<WSListenerImpl>(port);
             return tmp;
         }
 
-        WSListener CreateListener(
+        WSListener  WSListener::CreateListener(
             unsigned short port,
             std::string Password,
             std::string Privatekey_File,
@@ -281,85 +283,85 @@ namespace SL {
         {
 
             WSListener tmp;
-            tmp.WSListenerImpl_ = std::make_shared<WSListenerImpl>(port, Password, Privatekey_File, Publiccertificate_File, dh_File);
+            tmp.Impl_ = std::make_shared<WSListenerImpl>(port, Password, Privatekey_File, Publiccertificate_File, dh_File);
             return tmp;
         }
         void WSListener::startlistening()
         {
-            if (WSListenerImpl_->sslcontext) {
+            if (Impl_->sslcontext) {
                 auto createsocket = [](auto c) {
                     return std::make_shared<boost::asio::ssl::stream<boost::asio::ip::tcp::socket>>(c->io_service, *c->sslcontext);
                 };
-                Listen(WSListenerImpl_, createsocket);
+                Listen(Impl_, createsocket);
             }
             else {
                 auto createsocket = [](auto c) {
                     return std::make_shared<boost::asio::ip::tcp::socket>(c->io_service);
                 };
-                Listen(WSListenerImpl_, createsocket);
+                Listen(Impl_, createsocket);
             }
         }
         void WSListener::onConnection(std::function<void(WSocket, const std::unordered_map<std::string, std::string>&)>& handle) {
-            WSListenerImpl_->onConnection = handle;
+            Impl_->onConnection = handle;
         }
         void WSListener::onConnection(const std::function<void(WSocket, const std::unordered_map<std::string, std::string>&)>& handle) {
-            WSListenerImpl_->onConnection = handle;
+            Impl_->onConnection = handle;
         }
         void WSListener::onMessage(std::function<void(WSocket, WSReceiveMessage&)>& handle) {
-            WSListenerImpl_->onMessage = handle;
+            Impl_->onMessage = handle;
         }
         void WSListener::onMessage(const std::function<void(WSocket, WSReceiveMessage&)>& handle) {
-            WSListenerImpl_->onMessage = handle;
+            Impl_->onMessage = handle;
         }
         void WSListener::onDisconnection(std::function<void(WSocket, WSReceiveMessage&)>& handle) {
-            WSListenerImpl_->onDisconnection = handle;
+            Impl_->onDisconnection = handle;
         }
         void WSListener::onDisconnection(const std::function<void(WSocket, WSReceiveMessage&)>& handle) {
-            WSListenerImpl_->onDisconnection = handle;
+            Impl_->onDisconnection = handle;
         }
         void WSListener::onPing(std::function<void(WSocket, const char *, size_t)>& handle) {
-            WSListenerImpl_->onPing = handle;
+            Impl_->onPing = handle;
         }
         void WSListener::onPing(const std::function<void(WSocket, const char *, size_t)>& handle) {
-            WSListenerImpl_->onPing = handle;
+            Impl_->onPing = handle;
         }
         void WSListener::onPong(std::function<void(WSocket, const char *, size_t)>& handle) {
-            WSListenerImpl_->onPong = handle;
+            Impl_->onPong = handle;
         }
         void WSListener::onPong(const std::function<void(WSocket, const char *, size_t)>& handle) {
-            WSListenerImpl_->onPong = handle;
+            Impl_->onPong = handle;
         }
         void WSListener::onHttpUpgrade(std::function<void(WSocket)>& handle) {
-            WSListenerImpl_->onHttpUpgrade = handle;
+            Impl_->onHttpUpgrade = handle;
         }
         void WSListener::onHttpUpgrade(const std::function<void(WSocket)>& handle) {
-            WSListenerImpl_->onHttpUpgrade = handle;
+            Impl_->onHttpUpgrade = handle;
         }
         void WSListener::set_ReadTimeout(unsigned int seconds) {
-            WSListenerImpl_->ReadTimeout = seconds;
+            Impl_->ReadTimeout = seconds;
         }
         unsigned int WSListener::get_ReadTimeout() {
-            return  WSListenerImpl_->ReadTimeout;
+            return  Impl_->ReadTimeout;
         }
         void WSListener::set_WriteTimeout(unsigned int seconds) {
-            WSListenerImpl_->WriteTimeout = seconds;
+            Impl_->WriteTimeout = seconds;
         }
         unsigned int WSListener::get_WriteTimeout() {
-            return  WSListenerImpl_->WriteTimeout;
+            return  Impl_->WriteTimeout;
         }
         void WSListener::set_MaxPayload(unsigned long long int bytes) {
-            WSListenerImpl_->MaxPayload = bytes;
+            Impl_->MaxPayload = bytes;
         }
         unsigned long long int WSListener::get_MaxPayload() {
-            return  WSListenerImpl_->MaxPayload;
+            return  Impl_->MaxPayload;
         }
 
         void WSListener::send(WSocket& s, WSSendMessage& msg) {
             if (s.WSocketImpl_->Socket) {
-                SL::WS_LITE::send(WSListenerImpl_, s, s.WSocketImpl_->Socket, msg);
+                SL::WS_LITE::send(Impl_, s.WSocketImpl_, s.WSocketImpl_->Socket, msg);
             }
             else {
-                SL::WS_LITE::send(WSListenerImpl_, s, s.WSocketImpl_->TLSSocket, msg);
+                SL::WS_LITE::send(Impl_, s.WSocketImpl_, s.WSocketImpl_->TLSSocket, msg);
             }
         }
     }

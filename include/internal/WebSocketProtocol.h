@@ -22,35 +22,35 @@ namespace SL {
         template<class T>std::string get_address(T& _socket)
         {
             boost::system::error_code ec;
-            auto rt(_socket.lowest_layer().remote_endpoint(ec));
+            auto rt(_socket->lowest_layer().remote_endpoint(ec));
             if (!ec) return rt.address().to_string();
             else return "";
         }
         template<class T> unsigned short get_port(T& _socket)
         {
             boost::system::error_code ec;
-            auto rt(_socket.lowest_layer().remote_endpoint(ec));
+            auto rt(_socket->lowest_layer().remote_endpoint(ec));
             if (!ec) return rt.port();
             else return static_cast<unsigned short>(-1);
         }
         template<class T> bool is_v4(T& _socket)
         {
             boost::system::error_code ec;
-            auto rt(_socket.lowest_layer().remote_endpoint(ec));
+            auto rt(_socket->lowest_layer().remote_endpoint(ec));
             if (!ec) return rt.address().is_v4();
             else return true;
         }
         template<class T> bool is_v6(T& _socket)
         {
             boost::system::error_code ec;
-            auto rt(_socket.lowest_layer().remote_endpoint(ec));
+            auto rt(_socket->lowest_layer().remote_endpoint(ec));
             if (!ec) return rt.address().is_v6();
             else return true;
         }
         template<class T> bool is_loopback(T& _socket)
         {
             boost::system::error_code ec;
-            auto rt(_socket.lowest_layer().remote_endpoint(ec));
+            auto rt(_socket->lowest_layer().remote_endpoint(ec));
             if (!ec) return rt.address().is_loopback();
             else return true;
         }
@@ -103,11 +103,11 @@ namespace SL {
 
         };
 
-        inline void set_Socket(WSocket& ws, std::shared_ptr<boost::asio::ssl::stream<boost::asio::ip::tcp::socket>> s) {
-            ws.WSocketImpl_->TLSSocket = s;
+        inline void set_Socket(std::shared_ptr<WSocketImpl>& ws, std::shared_ptr<boost::asio::ssl::stream<boost::asio::ip::tcp::socket>> s) {
+            ws->TLSSocket = s;
         }
-        inline void set_Socket(WSocket& ws, std::shared_ptr<boost::asio::ip::tcp::socket>  s) {
-            ws.WSocketImpl_->Socket = s;
+        inline void set_Socket(std::shared_ptr<WSocketImpl>& ws, std::shared_ptr<boost::asio::ip::tcp::socket>  s) {
+            ws->Socket = s;
         }
 
         struct WSContext {
