@@ -49,7 +49,8 @@ namespace SL {
         template <class SOCKETTYPE>void ReadBody(std::shared_ptr<WSClientImpl> clienthub, std::shared_ptr<WSocketImpl> websocket, SOCKETTYPE socket, std::shared_ptr<WSHeader> header) {
 
             readexpire_from_now(websocket, clienthub->ReadTimeout);
-            unsigned long long int size = 0;
+            unsigned long long int size = 0; 
+            WSocket wsocket(websocket);
             switch (GetPayloadBytes(header.get())) {
             case 1:
                 size = static_cast<unsigned long long int>(header->Payloadlen);
@@ -61,26 +62,22 @@ namespace SL {
                 size = static_cast<unsigned long long int>(swap_endian(header->ExtendedPayloadlen));
                 break;
             default:
-                SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "Incorrect Payload size received ");
-                return;
+                return Disconnect(clienthub, wsocket, "Incorrect Payload size received ");
             }
 
             auto buffer = std::shared_ptr<char>(new char[static_cast<size_t>(size)], [](char * p) { delete[] p; });
             if ((header->Opcode == OpCode::PING || header->Opcode == OpCode::PONG || header->Opcode == OpCode::CLOSE) && size > 125) {
-                SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "Payload exceeded for control frames. Size requested " << size);
-                return;
+                return Disconnect(clienthub, wsocket, "Payload exceeded for control frames. Size requested "+ std::to_string(size));
             }
             if (size > clienthub->MaxPayload) {
-                SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "Payload exceeded MaxPayload size ");
-                return;
+                return Disconnect(clienthub, wsocket, "Payload exceeded MaxPayload size");
             }
 
             boost::asio::async_read(*socket, boost::asio::buffer(buffer.get(), static_cast<size_t>(size)), [clienthub, websocket, socket, header, buffer, size](const boost::system::error_code& ec, size_t bytes_transferred) {
+                WSocket ws(websocket);
                 if (!ec) {
-                    WSocket ws(websocket);
                     if (size != bytes_transferred) {
-                        SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "size != bytes_transferred");
-                        return;
+                        return Disconnect(clienthub, ws, "size != bytes_transferred");
                     }
                     else if (header->Opcode == OpCode::PING) {
                         if (clienthub->onPing) {
@@ -101,7 +98,7 @@ namespace SL {
                     ReadHeader(clienthub, websocket, socket);
                 }
                 else {
-                    SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "ReadBody " << ec.message());
+                    return Disconnect(clienthub, ws, "ReadBody " + ec.message());
                 }
             });
         }
@@ -117,15 +114,13 @@ namespace SL {
                     else {
                         auto readbytes = GetPayloadBytes(buff.get());
                         if (readbytes > 1) {
-                            boost::asio::async_read(*socket, boost::asio::buffer(&buff->ExtendedPayloadlen, readbytes), [clienthub, websocket, socket, buff, readbytes](const boost::system::error_code& ec, size_t bytes_transferred) {
-                                if (readbytes != bytes_transferred) {
-                                    SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "readbytes != bytes_transferred ");
-                                }
-                                else if (!ec) {
+                            boost::asio::async_read(*socket, boost::asio::buffer(&buff->ExtendedPayloadlen, readbytes), [clienthub, websocket, socket, buff, readbytes](const boost::system::error_code& ec, size_t) {
+                                if (!ec) {
                                     ReadBody(clienthub, websocket, socket, buff);
                                 }
                                 else {
-                                    SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "readheader ExtendedPayloadlen " << ec.message());
+                                    WSocket wsocket(websocket);
+                                    return Disconnect(clienthub, wsocket, "async_read ExtendedPayloadlen " + ec.message());
                                 }
                             });
                         }
@@ -135,7 +130,8 @@ namespace SL {
                     }
                 }
                 else {
-                    SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "ReadHeader Failed: " << ec.message());
+                    WSocket wsocket(websocket);
+                    return Disconnect(clienthub, wsocket, "ReadHeader Failed: " + ec.message());
                 }
             });
         }
@@ -181,27 +177,22 @@ namespace SL {
                                 ReadHeader(self, websocket, socket);
                             }
                             else {
-                                auto msg = "WebSocket handshake failed " + ec.message();
-                                SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, msg);
-                                if (self->onDisconnection) {
-                                    WSReceiveMessage rec{msg.c_str(), msg.size(), OpCode::TEXT};
-                                    std::shared_ptr<WSocketImpl> ptr;
-                                    WSocket wsocket(ptr);
-                                    self->onDisconnection(wsocket, rec);
-                                }
+                                std::shared_ptr<WSocketImpl> ptr;
+                                WSocket wsocket(ptr);
+                                return Disconnect(self, wsocket, "WebSocket handshake failed  ");
                             }
+                        }
+                        else {
+                            std::shared_ptr<WSocketImpl> ptr;
+                            WSocket wsocket(ptr);
+                            return Disconnect(self, wsocket, "async_read_until failed  " + ec.message());
                         }
                     });
                 }
                 else {
-                    auto msg = "Failed sending handshake " + ec.message();
-                    SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, msg);
-                    if (self->onDisconnection) {
-                        WSReceiveMessage rec{ msg.c_str(), msg.size(), OpCode::TEXT };
-                        std::shared_ptr<WSocketImpl> ptr;
-                        WSocket wsocket(ptr);
-                        self->onDisconnection(wsocket, rec);
-                    }
+                    std::shared_ptr<WSocketImpl> ptr;
+                    WSocket wsocket(ptr);
+                    return Disconnect(self, wsocket, "Failed sending handshake" + ec.message());
                 }
             });
 
@@ -216,19 +207,14 @@ namespace SL {
                     ConnectHandshake(self, socket);
                 }
                 else {
-                    auto msg = "Failed async_handshake " + ec.message();
-                    SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, msg);
-                    if (self->onDisconnection) {
-                        std::shared_ptr<WSocketImpl> emptysocket;
-                        WSocket websocket(emptysocket);
-                        auto b = WSReceiveMessage{ msg.c_str(), msg.size(), OpCode::TEXT };
-                        self->onDisconnection(websocket, b);
-                    }
+                    std::shared_ptr<WSocketImpl> emptysocket;
+                    WSocket websocket(emptysocket);
+                    return Disconnect(self, websocket, "Failed async_handshake " + ec.message());
                 }
             });
         }
 
-        template<class SOCKETTYPE>void send(std::shared_ptr<WSClientImpl> l, std::shared_ptr<WSocketImpl> s, SOCKETTYPE& socket, WSSendMessage& msg) {
+        template<class SOCKETTYPE>void send(std::shared_ptr<WSClientImpl> self, std::shared_ptr<WSocketImpl> s, SOCKETTYPE& websocket, WSSendMessage& msg) {
 
             WSHeader header;
             header.FIN = true;
@@ -247,9 +233,9 @@ namespace SL {
                 header.ShortPayloadlen = static_cast<unsigned short>(msg.len);
             }
             assert(msg.len < UINT32_MAX);
-            writeexpire_from_now(s, l->WriteTimeout);
+            writeexpire_from_now(s, self->WriteTimeout);
             boost::system::error_code ec;
-            auto bytes_written = boost::asio::write(*socket, boost::asio::buffer(&header, sizeof(header)), ec);
+            auto bytes_written = boost::asio::write(*websocket, boost::asio::buffer(&header, sizeof(header)), ec);
             assert(bytes_written == sizeof(header));
             if (!ec)
             {
@@ -266,19 +252,19 @@ namespace SL {
                     *p++ ^= mask[i % sizeof(mask)];
                 }
 
-                bytes_written = boost::asio::write(*socket, boost::asio::buffer(mask, sizeof(mask)), ec);
+                bytes_written = boost::asio::write(*websocket, boost::asio::buffer(mask, sizeof(mask)), ec);
                 if (!ec) {
-                    bytes_written = boost::asio::write(*socket, boost::asio::buffer(p, static_cast<size_t>(msg.len)), ec);
+                    bytes_written = boost::asio::write(*websocket, boost::asio::buffer(p, static_cast<size_t>(msg.len)), ec);
                     if (ec) {
-                        SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "write payload failed " << ec.message());
+                        return Disconnect(self, WSocket(s), "write payload failed " + ec.message());
                     }
                 }
                 else {
-                    SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "write mask failed " << ec.message());
+                    return Disconnect(self, WSocket(s), "write mask failed  " + ec.message());
                 }
             }
             else {
-                SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "write header failed " << ec.message());
+                return Disconnect(self, WSocket(s), "write header failed " + ec.message());
             }
         }
         template<typename SOCKETCREATOR>void Connect(std::shared_ptr<WSClientImpl> self, const char* host, unsigned short port, SOCKETCREATOR&& socketcreator) {
@@ -301,14 +287,8 @@ namespace SL {
                         async_handshake(self, socket);
                     }
                     else {
-                        auto msg = "Failed async_connect " + ec.message();
-                        SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, msg);
-                        if (self->onDisconnection) {
-                            WSReceiveMessage rec{ msg.c_str(), msg.size(), OpCode::TEXT };
-                            std::shared_ptr<WSocketImpl> ptr;
-                            WSocket wsocket(ptr);
-                            self->onDisconnection(wsocket, rec);
-                        }
+                        std::shared_ptr<WSocketImpl> ptr;
+                        Disconnect(self, WSocket(ptr), "Failed async_connect " + ec.message());
                     }
                 });
             }

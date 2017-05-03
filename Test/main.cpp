@@ -18,7 +18,16 @@ void wssautobahntest() {
     listener.startlistening();
     system("wstest -m fuzzingclient -s wssfuzzingclient.json");
 }
+int main(int argc, char* argv[]) {
 
+    wssautobahntest();
+    while (true) {
+        std::this_thread::sleep_for(1s);
+    }
+    return 0;
+}
+
+/*
 int main(int argc, char* argv[]) {
 
     auto listener = SL::WS_LITE::WSListener::CreateListener(12345, TEST_CERTIFICATE_PRIVATE_PASSWORD, TEST_CERTIFICATE_PRIVATE_PATH, TEST_CERTIFICATE_PUBLIC_PATH, TEST_DH_PATH);
@@ -48,4 +57,4 @@ int main(int argc, char* argv[]) {
         std::this_thread::sleep_for(1s);
     }
     return 0;
-}
+}*/

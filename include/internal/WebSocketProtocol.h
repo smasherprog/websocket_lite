@@ -17,8 +17,14 @@
 
 namespace SL {
     namespace WS_LITE {
-
-
+        template<class PARENT, class SOCKETTYPE>void Disconnect(const PARENT& parent, const SOCKETTYPE& websocket, const std::string& msg)
+        {
+            if (parent->onDisconnection) {
+                auto wsdisc = WSReceiveMessage{ msg.c_str(), msg.size(),OpCode::TEXT };
+                parent->onDisconnection(websocket, wsdisc);
+            }
+            SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, msg);
+        }
         template<class T>std::string get_address(T& _socket)
         {
             boost::system::error_code ec;
