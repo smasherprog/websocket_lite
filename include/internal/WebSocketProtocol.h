@@ -302,6 +302,7 @@ namespace SL {
         size_t inline GetPayloadBytes(WSHeader* buff) { return (buff->Payloadlen & 127) == 126 ? 2 : ((buff->Payloadlen & 127) == 127 ? 8 : 1); }
 
         template<class SOCKETTYPE>inline void send(const std::shared_ptr<WSClientImpl>& parent, SOCKETTYPE& websocket, WSSendMessage& msg, WSocket& ws) {
+            UNUSED(parent);
             std::uniform_int_distribution<unsigned int> dist(0, 255);
             std::random_device rd;
             unsigned char mask[4];
@@ -327,6 +328,7 @@ namespace SL {
         }
 
         template<class SOCKETTYPE>inline void send(const std::shared_ptr<WSListenerImpl>& parent, SOCKETTYPE& websocket, WSSendMessage& msg, WSocket& ws) {
+            UNUSED(parent);
             boost::system::error_code ec;
             auto bytes_written = boost::asio::write(*websocket, boost::asio::buffer(msg.data, static_cast<size_t>(msg.len)), ec);
             if (ec) {
@@ -335,7 +337,8 @@ namespace SL {
         }
 
 
-        template<class PARENTTYPE, class SOCKETTYPE>void send(std::shared_ptr<PARENTTYPE> parent, std::shared_ptr<WSocketImpl> s, SOCKETTYPE& websocket, WSSendMessage& msg) {
+        template<class PARENTTYPE, class SOCKETTYPE>inline void send(std::shared_ptr<PARENTTYPE> parent, std::shared_ptr<WSocketImpl> s, SOCKETTYPE& websocket, WSSendMessage& msg) {
+            
             WSHeader header;
             header.FIN = true;
             set_MaskBitForSending<PARENTTYPE>(header);
@@ -372,7 +375,7 @@ namespace SL {
             }
         }
 
-        template <class PARENTTYPE, class SOCKETTYPE>void ReadBody(std::shared_ptr<PARENTTYPE> parent, std::shared_ptr<WSocketImpl> websocket, SOCKETTYPE socket, std::shared_ptr<WSHeader> header) {
+        template <class PARENTTYPE, class SOCKETTYPE>inline void ReadBody(std::shared_ptr<PARENTTYPE> parent, std::shared_ptr<WSocketImpl> websocket, SOCKETTYPE socket, std::shared_ptr<WSHeader> header) {
 
             readexpire_from_now(websocket, parent->ReadTimeout);
             unsigned long long int size = 0;
@@ -427,7 +430,7 @@ namespace SL {
             });
         }
 
-        template <class PARENTTYPE, class SOCKETTYPE>void ReadHeader(std::shared_ptr<PARENTTYPE> parent, std::shared_ptr<WSocketImpl> websocket, SOCKETTYPE socket) {
+        template <class PARENTTYPE, class SOCKETTYPE>inline void ReadHeader(std::shared_ptr<PARENTTYPE> parent, std::shared_ptr<WSocketImpl> websocket, SOCKETTYPE socket) {
             readexpire_from_now(websocket, 0);
             auto buff = std::make_shared<WSHeader>();
             boost::asio::async_read(*socket, boost::asio::buffer(buff.get(), 2), [parent, websocket, socket, buff](const boost::system::error_code& ec, size_t bytes_transferred) {
