@@ -1,7 +1,9 @@
 #pragma once
 #include "WS_Lite.h"
-#include "cppcodec/base64_rfc4648.hpp"
-#include "internal/SHA.h"
+#include "internal/Utils.h"
+#if WIN32
+#include <SDKDDKVer.h>
+#endif
 
 #include <unordered_map>
 #include <sstream>
@@ -136,7 +138,7 @@ namespace SL {
 
             unsigned int ReadTimeout = 5;
             unsigned int WriteTimeout = 5;
-            unsigned long long int MaxPayload = 1024 * 1024 * 100;//100 MBs
+            unsigned long long int MaxPayload = 1024 * 1024;//1 MB
 
             boost::asio::io_service io_service;
             std::thread io_servicethread;
@@ -150,6 +152,81 @@ namespace SL {
             std::function<void(WSocket, char *, size_t)> onPong;
             std::function<void(WSocket)> onHttpUpgrade;
 
+        };
+
+        class WSClientImpl : public WSContext {
+        public:
+            WSClientImpl(std::string Publiccertificate_File)
+            {
+                sslcontext = std::make_unique<boost::asio::ssl::context>(boost::asio::ssl::context::tlsv11);
+                std::ifstream file(Publiccertificate_File, std::ios::binary);
+                assert(file);
+                std::vector<char> buf;
+                buf.resize(static_cast<size_t>(filesize(Publiccertificate_File)));
+                file.read(buf.data(), buf.size());
+                boost::asio::const_buffer cert(buf.data(), buf.size());
+                boost::system::error_code ec;
+                sslcontext->add_certificate_authority(cert, ec);
+                ec.clear();
+                sslcontext->set_default_verify_paths(ec);
+
+            }
+            WSClientImpl() {  }
+            ~WSClientImpl() {}
+        };
+
+        class WSListenerImpl : public WSContext {
+        public:
+
+            boost::asio::ip::tcp::acceptor acceptor;
+
+            WSListenerImpl(unsigned short port,
+                std::string Password,
+                std::string Privatekey_File,
+                std::string Publiccertificate_File,
+                std::string dh_File) :
+                WSListenerImpl(port)
+            {
+                sslcontext = std::make_unique<boost::asio::ssl::context>(boost::asio::ssl::context::tlsv11);
+                sslcontext->set_options(
+                    boost::asio::ssl::context::default_workarounds
+                    | boost::asio::ssl::context::no_sslv2 | boost::asio::ssl::context::no_sslv3
+                    | boost::asio::ssl::context::single_dh_use);
+                boost::system::error_code ec;
+                sslcontext->set_password_callback([Password](std::size_t, boost::asio::ssl::context::password_purpose) { return Password; }, ec);
+                if (ec) {
+                    SL_WS_LITE_LOG(Logging_Levels::ERROR_log_level, "set_password_callback " << ec.message());
+                    ec.clear();
+                }
+                sslcontext->use_tmp_dh_file(dh_File, ec);
+                if (ec) {
+                    SL_WS_LITE_LOG(Logging_Levels::ERROR_log_level, "use_tmp_dh_file " << ec.message());
+                    ec.clear();
+                }
+                sslcontext->use_certificate_chain_file(Publiccertificate_File, ec);
+                if (ec) {
+                    SL_WS_LITE_LOG(Logging_Levels::ERROR_log_level, "use_certificate_chain_file " << ec.message());
+                    ec.clear();
+                }
+                sslcontext->set_default_verify_paths(ec);
+                if (ec) {
+                    SL_WS_LITE_LOG(Logging_Levels::ERROR_log_level, "set_default_verify_paths " << ec.message());
+                    ec.clear();
+                }
+                sslcontext->use_private_key_file(Privatekey_File, boost::asio::ssl::context::pem, ec);
+                if (ec) {
+                    SL_WS_LITE_LOG(Logging_Levels::ERROR_log_level, "use_private_key_file " << ec.message());
+                    ec.clear();
+                }
+
+            }
+
+            WSListenerImpl(unsigned short port) :acceptor(io_service, boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), port)) { }
+
+            ~WSListenerImpl() {
+                boost::system::error_code ec;
+                acceptor.close(ec);
+            }
         };
         /*
         0                   1                   2                   3
@@ -187,130 +264,204 @@ namespace SL {
                 unsigned long long int ExtendedPayloadlen;
             };
         };
+        struct HandshakeContainer {
+            boost::asio::streambuf Read;
+            boost::asio::streambuf Write;
+            std::unordered_map<std::string, std::string> Header;
+        };
+
+        template<class PARENTTYPE>inline bool DidPassMaskRequirement(const std::shared_ptr<WSHeader>& h) { return h->Mask; }
+        template<> inline bool DidPassMaskRequirement<WSListenerImpl>(const std::shared_ptr<WSHeader>& h) { return h->Mask; }
+        template<> inline bool DidPassMaskRequirement<WSClientImpl>(const std::shared_ptr<WSHeader>& h) { return !h->Mask; }
+
+        template<class PARENTTYPE>inline unsigned long long int AdditionalBodyBytesToRead() { return 0; }
+        template<>inline unsigned long long int AdditionalBodyBytesToRead<WSListenerImpl>() { return 4; }
+        template<>inline unsigned long long int AdditionalBodyBytesToRead<WSClientImpl>() { return 0; }
+
+        template<class PARENTTYPE>inline void set_MaskBitForSending(WSHeader& header) {  }
+        template<>inline void set_MaskBitForSending<WSListenerImpl>(WSHeader& header) { header.Mask = false; }
+        template<>inline void set_MaskBitForSending<WSClientImpl>(WSHeader& header) { header.Mask = true; }
+
+        inline void ProcessMessage(const std::shared_ptr<WSListenerImpl>& parent, const std::shared_ptr<char>& buffer, unsigned long long int size, const std::shared_ptr<WSocketImpl>& websocket, const std::shared_ptr<WSHeader>& header) {
+            unsigned char mask[4];
+            memcpy(mask, buffer.get(), 4);
+            auto p = buffer.get() + 4;
+            for (decltype(size) c = 0; c < size - 4; c++) {
+                p[c] = p[c] ^ mask[c % 4];
+            }
+            auto unpacked = WSReceiveMessage{ p, size - 4, header->Opcode };
+            WSocket ws(websocket);
+            parent->onMessage(ws, unpacked);
+        }
+        inline void ProcessMessage(const std::shared_ptr<WSClientImpl>& parent, const std::shared_ptr<char>& buffer, unsigned long long int  size, const std::shared_ptr<WSocketImpl>& websocket, const std::shared_ptr<WSHeader>& header) {
+            auto unpacked = WSReceiveMessage{ buffer.get(), size, header->Opcode };
+            WSocket ws(websocket);
+            parent->onMessage(ws, unpacked);
+        }
+
         size_t inline GetPayloadBytes(WSHeader* buff) { return (buff->Payloadlen & 127) == 126 ? 2 : ((buff->Payloadlen & 127) == 127 ? 8 : 1); }
-        template <typename T>
-        T swap_endian(T u)
-        {
-            static_assert (CHAR_BIT == 8, "CHAR_BIT != 8");
-            union
-            {
-                T u;
-                unsigned char u8[sizeof(T)];
-            } source, dest;
-            source.u = u;
-            for (size_t k = 0; k < sizeof(T); k++)
-                dest.u8[k] = source.u8[sizeof(T) - k - 1];
 
-            return dest.u;
-        }
-        inline std::string url_decode(const std::string& in)
-        {
-            std::string out;
-            out.reserve(in.size());
-            for (std::size_t i = 0; i < in.size(); ++i)
-            {
-                if (in[i] == '%')
-                {
-                    if (i + 3 <= in.size())
-                    {
-                        int value = 0;
-                        std::istringstream is(in.substr(i + 1, 2));
-                        if (is >> std::hex >> value)
-                        {
-                            out += static_cast<char>(value);
-                            i += 2;
-                        }
-                        else
-                        {
-                            return std::string("/");
-                        }
-                    }
-                    else
-                    {
-                        return std::string("/");
-                    }
-                }
-                else if (in[i] == '+')
-                {
-                    out += ' ';
-                }
-                else
-                {
-                    out += in[i];
-                }
-            }
-            return out;
-        }
-
-        inline std::unordered_map<std::string, std::string> Parse_Handshake(std::string defaultheaderversion, std::istream& stream)
-        {
-            std::unordered_map<std::string, std::string> header;
-            std::string line;
-            std::getline(stream, line);
-            size_t method_end;
-            if ((method_end = line.find(' ')) != std::string::npos) {
-                size_t path_end;
-                if ((path_end = line.find(' ', method_end + 1)) != std::string::npos) {
-                    header[HTTP_METHOD] = line.substr(0, method_end);
-                    header[HTTP_PATH] = url_decode(line.substr(method_end + 1, path_end - method_end - 1));
-                    if ((path_end + 6) < line.size())
-                        header[HTTP_VERSION] = line.substr(path_end + 6, line.size() - (path_end + 6) - 1);
-                    else
-                        header[HTTP_VERSION] = defaultheaderversion;
-
-                    getline(stream, line);
-                    size_t param_end;
-                    while ((param_end = line.find(':')) != std::string::npos) {
-                        size_t value_start = param_end + 1;
-                        if ((value_start) < line.size()) {
-                            if (line[value_start] == ' ')
-                                value_start++;
-                            if (value_start < line.size())
-                                header.insert(std::make_pair(line.substr(0, param_end), line.substr(value_start, line.size() - value_start - 1)));
-                        }
-
-                        getline(stream, line);
-                    }
-                }
-            }
-            return header;
-        }
-
-        const std::string ws_magic_string = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
-        inline bool Generate_Handshake(std::unordered_map<std::string, std::string>& header, std::ostream & stream)
-        {
-            auto header_it = header.find(HTTP_SECWEBSOCKETKEY);
-            if (header_it == header.end())
-                return false;
-
-            auto sha1 = SHA1(header_it->second + ws_magic_string);
-            stream << "HTTP/1.1 101 Web Socket Protocol Handshake" << HTTP_ENDLINE;
-            stream << "Upgrade: websocket" << HTTP_ENDLINE;
-            stream << "Connection: Upgrade" << HTTP_ENDLINE;
-            
-            stream << HTTP_SECWEBSOCKETACCEPT << HTTP_KEYVALUEDELIM << cppcodec::base64_rfc4648::encode(sha1) << HTTP_ENDLINE << HTTP_ENDLINE;
-            return true;
-        }
-        inline std::string Generate_Handshake(const std::string& host_addr, std::ostream & request) {
-
-            request << "GET /rdpenpoint/ HTTP/1.1" << HTTP_ENDLINE;
-            request << HTTP_HOST << HTTP_KEYVALUEDELIM << host_addr << HTTP_ENDLINE;
-            request << "Upgrade: websocket" << HTTP_ENDLINE;
-            request << "Connection: Upgrade" << HTTP_ENDLINE;
-
-            //Make random 16-byte nonce
-            std::string nonce;
-            nonce.resize(16);
+        template<class SOCKETTYPE>inline void send(const std::shared_ptr<WSClientImpl>& parent, SOCKETTYPE& websocket, WSSendMessage& msg, WSocket& ws) {
             std::uniform_int_distribution<unsigned int> dist(0, 255);
             std::random_device rd;
-            for (int c = 0; c < 16; c++) {
-                nonce[c] = static_cast<unsigned char>(dist(rd));
+            unsigned char mask[4];
+            for (size_t c = 0; c < sizeof(mask); c++) {
+                mask[c] = static_cast<unsigned char>(dist(rd));
             }
-            
-            auto nonce_base64 = cppcodec::base64_rfc4648::encode<std::string>(nonce);
-            request << HTTP_SECWEBSOCKETKEY << HTTP_KEYVALUEDELIM << nonce_base64 << HTTP_ENDLINE;
-            request << "Sec-WebSocket-Version: 13" << HTTP_ENDLINE << HTTP_ENDLINE;
-            return SHA1(nonce_base64 + ws_magic_string);
+            auto p = reinterpret_cast<unsigned char*>(msg.data);
+            for (decltype(msg.len) i = 0; i < msg.len; i++) {
+                *p++ ^= mask[i % sizeof(mask)];
+            }
+
+            boost::system::error_code ec;
+            auto bytes_written = boost::asio::write(*websocket, boost::asio::buffer(mask, sizeof(mask)), ec);
+            if (!ec) {
+                bytes_written = boost::asio::write(*websocket, boost::asio::buffer(p, static_cast<size_t>(msg.len)), ec);
+                if (ec) {
+                    return Disconnect(parent, ws, "write payload failed " + ec.message());
+                }
+            }
+            else {
+                return Disconnect(parent, ws, "write mask failed  " + ec.message());
+            }
         }
+
+        template<class SOCKETTYPE>inline void send(const std::shared_ptr<WSListenerImpl>& parent, SOCKETTYPE& websocket, WSSendMessage& msg, WSocket& ws) {
+            boost::system::error_code ec;
+            auto bytes_written = boost::asio::write(*websocket, boost::asio::buffer(msg.data, static_cast<size_t>(msg.len)), ec);
+            if (ec) {
+                return Disconnect(parent, ws, "write payload failed " + ec.message());
+            }
+        }
+
+
+        template<class PARENTTYPE, class SOCKETTYPE>void send(std::shared_ptr<PARENTTYPE> parent, std::shared_ptr<WSocketImpl> s, SOCKETTYPE& websocket, WSSendMessage& msg) {
+            WSHeader header;
+            header.FIN = true;
+            set_MaskBitForSending<PARENTTYPE>(header);
+            header.Opcode = msg.code;
+            header.RSV1 = header.RSV2 = header.RSV3 = false;
+            size_t sendsize = sizeof(header);
+            if (msg.len <= 125) {
+                header.Payloadlen = static_cast<unsigned char>(msg.len);
+                sendsize -= 7;
+            }
+            else if (msg.len > USHRT_MAX) {
+                header.ExtendedPayloadlen = msg.len;
+                header.Payloadlen = 127;
+            }
+            else {
+                header.Payloadlen = 126;
+                header.ShortPayloadlen = static_cast<unsigned short>(msg.len);
+                sendsize -= 4;
+            }
+
+            assert(msg.len < UINT32_MAX);
+            writeexpire_from_now(s, parent->WriteTimeout);
+            boost::system::error_code ec;
+            auto bytes_written = boost::asio::write(*websocket, boost::asio::buffer(&header, sendsize), ec);
+            assert(bytes_written == sizeof(sendsize));
+
+            WSocket ws(s);
+            if (!ec)
+            {
+                send(parent, websocket, msg, ws);
+            }
+            else {
+                return Disconnect(parent, ws, "write header failed " + ec.message());
+            }
+        }
+
+        template <class PARENTTYPE, class SOCKETTYPE>void ReadBody(std::shared_ptr<PARENTTYPE> parent, std::shared_ptr<WSocketImpl> websocket, SOCKETTYPE socket, std::shared_ptr<WSHeader> header) {
+
+            readexpire_from_now(websocket, parent->ReadTimeout);
+            unsigned long long int size = 0;
+            switch (GetPayloadBytes(header.get())) {
+            case 1:
+                size = static_cast<unsigned long long int>(header->Payloadlen);
+                break;
+            case 2:
+                size = static_cast<unsigned long long int>(swap_endian(header->ShortPayloadlen));
+                break;
+            case 8:
+                size = static_cast<unsigned long long int>(swap_endian(header->ExtendedPayloadlen));
+                break;
+            default:
+                return Disconnect(parent, websocket, "Incorrect Payload size received");
+            }
+
+            auto buffer = std::shared_ptr<char>(new char[static_cast<size_t>(size)], [](char * p) { delete[] p; });
+            if ((header->Opcode == OpCode::PING || header->Opcode == OpCode::PONG || header->Opcode == OpCode::CLOSE) && size > 125) {
+                return Disconnect(parent, websocket, "Payload exceeded for control frames. Size requested " + std::to_string(size));
+            }
+            size += AdditionalBodyBytesToRead<PARENTTYPE>();
+            if (size > parent->MaxPayload) {
+                return Disconnect(parent, websocket, "Payload exceeded MaxPayload size");
+            }
+            boost::asio::async_read(*socket, boost::asio::buffer(buffer.get(), static_cast<size_t>(size)), [parent, websocket, socket, header, buffer, size](const boost::system::error_code& ec, size_t bytes_transferred) {
+                WSocket wsocket(websocket);
+                if (!ec) {
+                    if (size != bytes_transferred) {
+                        return Disconnect(parent, websocket, "readbytes != bytes_transferred ");
+                    }
+                    else if (header->Opcode == OpCode::PING) {
+                        if (parent->onPing) {
+                            parent->onPing(wsocket, buffer.get() + 4, static_cast<size_t>(size - 4));
+                        }
+                        auto unpacked = WSSendMessage{ buffer.get() + 4, size - 4, OpCode::PONG };
+                        send(parent, websocket, socket, unpacked);
+                    }
+                    else if (header->Opcode == OpCode::PONG) {
+                        if (parent->onPong) {
+                            parent->onPong(wsocket, buffer.get() + 4, static_cast<size_t>(size - 4));
+                        }
+                    }
+                    else if (parent->onMessage) {
+                        ProcessMessage(parent, buffer, size, websocket, header);
+                    }
+                    ReadHeader(parent, websocket, socket);
+                }
+                else {
+                    return Disconnect(parent, wsocket, "ReadBody Error " + ec.message());
+                }
+            });
+        }
+
+        template <class PARENTTYPE, class SOCKETTYPE>void ReadHeader(std::shared_ptr<PARENTTYPE> parent, std::shared_ptr<WSocketImpl> websocket, SOCKETTYPE socket) {
+            readexpire_from_now(websocket, 0);
+            auto buff = std::make_shared<WSHeader>();
+            boost::asio::async_read(*socket, boost::asio::buffer(buff.get(), 2), [parent, websocket, socket, buff](const boost::system::error_code& ec, size_t bytes_transferred) {
+                if (!ec) {
+                    assert(bytes_transferred == 2);
+
+                    if (!DidPassMaskRequirement<PARENTTYPE>(buff)) {//Close connection if it did not meet the mask requirement. 
+                        return Disconnect(parent, websocket, "Closing connection because mask requirement not met");
+                    }
+                    else {
+                        auto readbytes = GetPayloadBytes(buff.get());
+                        if (readbytes > 1) {
+                            boost::asio::async_read(*socket, boost::asio::buffer(&buff->ExtendedPayloadlen, readbytes), [parent, websocket, socket, buff, readbytes](const boost::system::error_code& ec, size_t bytes_transferred) {
+                                if (readbytes != bytes_transferred) {
+                                    return Disconnect(parent, websocket, "readbytes != bytes_transferred");
+                                }
+                                else if (!ec) {
+                                    ReadBody(parent, websocket, socket, buff);
+                                }
+                                else {
+                                    return Disconnect(parent, websocket, "readheader ExtendedPayloadlen " + ec.message());
+                                }
+                            });
+                        }
+                        else {
+                            ReadBody(parent, websocket, socket, buff);
+                        }
+                    }
+                }
+                else {
+                    return Disconnect(parent, websocket, "WebSocket ReadHeader failed " + ec.message());
+                }
+            });
+        }
+
     }
 }

@@ -32,6 +32,7 @@ endif()
 
 set(WEBSOCKET_LITE_COMMON_SRC 
 	${CMAKE_CURRENT_SOURCE_DIR}/../include/internal/WebSocketProtocol.h
+	${CMAKE_CURRENT_SOURCE_DIR}/../include/internal/Utils.h
 	${CMAKE_CURRENT_SOURCE_DIR}/../include/internal/SHA.h
 	${CMAKE_CURRENT_SOURCE_DIR}/../include/Logging.h
 	${CMAKE_CURRENT_SOURCE_DIR}/../include/WS_Lite.h

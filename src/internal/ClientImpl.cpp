@@ -8,133 +8,6 @@
 namespace SL {
     namespace WS_LITE {
 
-        std::ifstream::pos_type filesize(const std::string& filename)
-        {
-            std::ifstream in(filename, std::ifstream::ate | std::ifstream::binary);
-            return in.tellg();
-        }
-
-        class WSClientImpl : public WSContext {
-        public:
-
-
-            WSClientImpl(std::string Publiccertificate_File)
-            {
-                sslcontext = std::make_unique<boost::asio::ssl::context>(boost::asio::ssl::context::tlsv11);
-                std::ifstream file(Publiccertificate_File, std::ios::binary);
-                assert(file);
-                std::vector<char> buf;
-                buf.resize(static_cast<size_t>(filesize(Publiccertificate_File)));
-                file.read(buf.data(), buf.size());
-                boost::asio::const_buffer cert(buf.data(), buf.size());
-                boost::system::error_code ec;
-                sslcontext->add_certificate_authority(cert, ec);
-                ec.clear();
-                sslcontext->set_default_verify_paths(ec);
-
-            }
-
-            WSClientImpl()
-            {
-            }
-
-            ~WSClientImpl() {
-
-            }
-
-
-
-        };
-
-        template <class SOCKETTYPE>void ReadBody(std::shared_ptr<WSClientImpl> clienthub, std::shared_ptr<WSocketImpl> websocket, SOCKETTYPE socket, std::shared_ptr<WSHeader> header) {
-
-            readexpire_from_now(websocket, clienthub->ReadTimeout);
-            unsigned long long int size = 0; 
-            WSocket wsocket(websocket);
-            switch (GetPayloadBytes(header.get())) {
-            case 1:
-                size = static_cast<unsigned long long int>(header->Payloadlen);
-                break;
-            case 2:
-                size = static_cast<unsigned long long int>(swap_endian(header->ShortPayloadlen));
-                break;
-            case 8:
-                size = static_cast<unsigned long long int>(swap_endian(header->ExtendedPayloadlen));
-                break;
-            default:
-                return Disconnect(clienthub, wsocket, "Incorrect Payload size received ");
-            }
-
-            auto buffer = std::shared_ptr<char>(new char[static_cast<size_t>(size)], [](char * p) { delete[] p; });
-            if ((header->Opcode == OpCode::PING || header->Opcode == OpCode::PONG || header->Opcode == OpCode::CLOSE) && size > 125) {
-                return Disconnect(clienthub, wsocket, "Payload exceeded for control frames. Size requested "+ std::to_string(size));
-            }
-            if (size > clienthub->MaxPayload) {
-                return Disconnect(clienthub, wsocket, "Payload exceeded MaxPayload size");
-            }
-
-            boost::asio::async_read(*socket, boost::asio::buffer(buffer.get(), static_cast<size_t>(size)), [clienthub, websocket, socket, header, buffer, size](const boost::system::error_code& ec, size_t bytes_transferred) {
-                WSocket ws(websocket);
-                if (!ec) {
-                    if (size != bytes_transferred) {
-                        return Disconnect(clienthub, ws, "size != bytes_transferred");
-                    }
-                    else if (header->Opcode == OpCode::PING) {
-                        if (clienthub->onPing) {
-                            clienthub->onPing(ws, buffer.get(), static_cast<size_t>(size));
-                        }
-                        auto unpacked = WSSendMessage{ buffer.get(), size , OpCode::PONG };
-                        send(clienthub, websocket, socket, unpacked);
-                    }
-                    else if (header->Opcode == OpCode::PONG) {
-                        if (clienthub->onPong) {
-                            clienthub->onPong(ws, buffer.get(), static_cast<size_t>(size));
-                        }
-                    }
-                    else if (clienthub->onMessage) {
-                        auto unpacked = WSReceiveMessage{ buffer.get(), size , header->Opcode };
-                        clienthub->onMessage(ws, unpacked);
-                    }
-                    ReadHeader(clienthub, websocket, socket);
-                }
-                else {
-                    return Disconnect(clienthub, ws, "ReadBody " + ec.message());
-                }
-            });
-        }
-        template <class SOCKETTYPE>void ReadHeader(std::shared_ptr<WSClientImpl> clienthub, std::shared_ptr<WSocketImpl> websocket, SOCKETTYPE socket) {
-            readexpire_from_now(websocket, 0);
-            auto buff = std::make_shared<WSHeader>();
-            boost::asio::async_read(*socket, boost::asio::buffer(buff.get(), 2), [clienthub, websocket, socket, buff](const boost::system::error_code& ec, size_t bytes_transferred) {
-                if (!ec) {
-                    assert(bytes_transferred == 2);
-                    if (buff->Mask) {//Close connection if the server sends a masked message
-                        SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "Closing connection because mask was received from a server");
-                    }
-                    else {
-                        auto readbytes = GetPayloadBytes(buff.get());
-                        if (readbytes > 1) {
-                            boost::asio::async_read(*socket, boost::asio::buffer(&buff->ExtendedPayloadlen, readbytes), [clienthub, websocket, socket, buff, readbytes](const boost::system::error_code& ec, size_t) {
-                                if (!ec) {
-                                    ReadBody(clienthub, websocket, socket, buff);
-                                }
-                                else {
-                                    WSocket wsocket(websocket);
-                                    return Disconnect(clienthub, wsocket, "async_read ExtendedPayloadlen " + ec.message());
-                                }
-                            });
-                        }
-                        else {
-                            ReadBody(clienthub, websocket, socket, buff);
-                        }
-                    }
-                }
-                else {
-                    WSocket wsocket(websocket);
-                    return Disconnect(clienthub, wsocket, "ReadHeader Failed: " + ec.message());
-                }
-            });
-        }
         bool verify_certificate(bool preverified, boost::asio::ssl::verify_context& ctx)
         {
             char subject_name[256];
@@ -145,8 +18,6 @@ namespace SL {
             return preverified;
         }
         template<class SOCKETTYPE>void ConnectHandshake(std::shared_ptr<WSClientImpl> self, SOCKETTYPE& socket) {
-
-
             auto write_buffer(std::make_shared<boost::asio::streambuf>());
             std::ostream request(write_buffer.get());
             auto accept_sha1 = Generate_Handshake(get_address(socket), request);
@@ -159,7 +30,8 @@ namespace SL {
                         if (!ec) {
                             SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "Read Handshake bytes " << bytes_transferred);
                             std::istream stream(read_buffer.get());
-                            auto header = Parse_Handshake("1.1", stream);
+                            std::unordered_map<std::string, std::string> header;
+                             Parse_Handshake("1.1", stream, header);
                             if (cppcodec::base64_rfc4648::decode<std::string>(header[HTTP_SECWEBSOCKETACCEPT]) == accept_sha1) {
                                 SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "Connected ");
                                 auto websocket = std::make_shared<WSocketImpl>(self->io_service);
@@ -212,60 +84,6 @@ namespace SL {
                     return Disconnect(self, websocket, "Failed async_handshake " + ec.message());
                 }
             });
-        }
-
-        template<class SOCKETTYPE>void send(std::shared_ptr<WSClientImpl> self, std::shared_ptr<WSocketImpl> s, SOCKETTYPE& websocket, WSSendMessage& msg) {
-
-            WSHeader header;
-            header.FIN = true;
-            header.Mask = true;
-            header.Opcode = msg.code;
-            header.RSV1 = header.RSV2 = header.RSV3 = false;
-            if (msg.len <= 125) {
-                header.Payloadlen = static_cast<unsigned char>(msg.len);
-            }
-            else if (msg.len > USHRT_MAX) {
-                header.ExtendedPayloadlen = msg.len;
-                header.Payloadlen = 127;
-            }
-            else {
-                header.Payloadlen = 126;
-                header.ShortPayloadlen = static_cast<unsigned short>(msg.len);
-            }
-            assert(msg.len < UINT32_MAX);
-            writeexpire_from_now(s, self->WriteTimeout);
-            boost::system::error_code ec;
-            auto bytes_written = boost::asio::write(*websocket, boost::asio::buffer(&header, sizeof(header)), ec);
-            assert(bytes_written == sizeof(header));
-            if (!ec)
-            {
-                ec.clear();
-
-                std::uniform_int_distribution<unsigned int> dist(0, 255);
-                std::random_device rd;
-                unsigned char mask[4];
-                for (size_t c = 0; c < sizeof(mask); c++) {
-                    mask[c] = static_cast<unsigned char>(dist(rd));
-                }
-                auto p = reinterpret_cast<unsigned char*>(msg.data);
-                for (decltype(msg.len) i = 0; i < msg.len; i++) {
-                    *p++ ^= mask[i % sizeof(mask)];
-                }
-
-                bytes_written = boost::asio::write(*websocket, boost::asio::buffer(mask, sizeof(mask)), ec);
-                if (!ec) {
-                    bytes_written = boost::asio::write(*websocket, boost::asio::buffer(p, static_cast<size_t>(msg.len)), ec);
-                    if (ec) {
-                        return Disconnect(self, WSocket(s), "write payload failed " + ec.message());
-                    }
-                }
-                else {
-                    return Disconnect(self, WSocket(s), "write mask failed  " + ec.message());
-                }
-            }
-            else {
-                return Disconnect(self, WSocket(s), "write header failed " + ec.message());
-            }
         }
         template<typename SOCKETCREATOR>void Connect(std::shared_ptr<WSClientImpl> self, const char* host, unsigned short port, SOCKETCREATOR&& socketcreator) {
 
