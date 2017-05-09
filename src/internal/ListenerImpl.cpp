@@ -174,12 +174,16 @@ namespace SL {
         }
 
         void WSListener::send(WSocket& s, WSSendMessage& msg) {
-            if (s.WSocketImpl_->Socket) {
-                SL::WS_LITE::write(Impl_, s.WSocketImpl_, s.WSocketImpl_->Socket, msg);
-            }
-            else {
-                SL::WS_LITE::write(Impl_, s.WSocketImpl_, s.WSocketImpl_->TLSSocket, msg);
-            }
+            auto self(Impl_);
+            Impl_->io_service.post([s, msg, self]() {
+                if (self->SendItems.empty()) {
+                    self->SendItems.push_front(SendQueueItem{ s.WSocketImpl_, msg });
+                    SL::WS_LITE::startwrite(self);
+                }
+                else {
+                    self->SendItems.push_front(SendQueueItem{ s.WSocketImpl_, msg });
+                }
+            });
         }
     }
 }
