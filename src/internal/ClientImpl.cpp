@@ -31,7 +31,7 @@ namespace SL {
                             SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "Read Handshake bytes " << bytes_transferred);
                             std::istream stream(read_buffer.get());
                             std::unordered_map<std::string, std::string> header;
-                             Parse_Handshake("1.1", stream, header);
+                            Parse_Handshake("1.1", stream, header);
                             if (cppcodec::base64_rfc4648::decode<std::string>(header[HTTP_SECWEBSOCKETACCEPT]) == accept_sha1) {
                                 SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "Connected ");
                                 auto websocket = std::make_shared<WSocketImpl>(self->io_service);
@@ -105,8 +105,9 @@ namespace SL {
                         async_handshake(self, socket);
                     }
                     else {
-                        std::shared_ptr<WSocketImpl> ptr;
-                        Disconnect(self, WSocket(ptr), "Failed async_connect " + ec.message());
+                        std::shared_ptr<WSocketImpl> emptysocket;
+                        WSocket websocket(emptysocket);
+                        Disconnect(self, websocket, "Failed async_connect " + ec.message());
                     }
                 });
             }
@@ -142,40 +143,40 @@ namespace SL {
             }
         }
 
-        void WSClient::onConnection(std::function<void(WSocket, const std::unordered_map<std::string, std::string>&)>& handle) {
+        void WSClient::onConnection(std::function<void(WSocket&, const std::unordered_map<std::string, std::string>&)>& handle) {
             Impl_->onConnection = handle;
         }
-        void WSClient::onConnection(const std::function<void(WSocket, const std::unordered_map<std::string, std::string>&)>& handle) {
+        void WSClient::onConnection(const std::function<void(WSocket&, const std::unordered_map<std::string, std::string>&)>& handle) {
             Impl_->onConnection = handle;
         }
-        void WSClient::onMessage(std::function<void(WSocket, WSReceiveMessage&)>& handle) {
+        void WSClient::onMessage(std::function<void(WSocket&, WSReceiveMessage&)>& handle) {
             Impl_->onMessage = handle;
         }
-        void WSClient::onMessage(const std::function<void(WSocket, WSReceiveMessage&)>& handle) {
+        void WSClient::onMessage(const std::function<void(WSocket&, WSReceiveMessage&)>& handle) {
             Impl_->onMessage = handle;
         }
-        void WSClient::onDisconnection(std::function<void(WSocket, WSReceiveMessage&)>& handle) {
+        void WSClient::onDisconnection(std::function<void(WSocket&, WSReceiveMessage&)>& handle) {
             Impl_->onDisconnection = handle;
         }
-        void WSClient::onDisconnection(const std::function<void(WSocket, WSReceiveMessage&)>& handle) {
+        void WSClient::onDisconnection(const std::function<void(WSocket&, WSReceiveMessage&)>& handle) {
             Impl_->onDisconnection = handle;
         }
-        void WSClient::onPing(std::function<void(WSocket, const char *, size_t)>& handle) {
+        void WSClient::onPing(std::function<void(WSocket&, const char *, size_t)>& handle) {
             Impl_->onPing = handle;
         }
-        void WSClient::onPing(const std::function<void(WSocket, const char *, size_t)>& handle) {
+        void WSClient::onPing(const std::function<void(WSocket&, const char *, size_t)>& handle) {
             Impl_->onPing = handle;
         }
-        void WSClient::onPong(std::function<void(WSocket, const char *, size_t)>& handle) {
+        void WSClient::onPong(std::function<void(WSocket&, const char *, size_t)>& handle) {
             Impl_->onPong = handle;
         }
-        void WSClient::onPong(const std::function<void(WSocket, const char *, size_t)>& handle) {
+        void WSClient::onPong(const std::function<void(WSocket&, const char *, size_t)>& handle) {
             Impl_->onPong = handle;
         }
-        void WSClient::onHttpUpgrade(std::function<void(WSocket)>& handle) {
+        void WSClient::onHttpUpgrade(std::function<void(WSocket&)>& handle) {
             Impl_->onHttpUpgrade = handle;
         }
-        void WSClient::onHttpUpgrade(const std::function<void(WSocket)>& handle) {
+        void WSClient::onHttpUpgrade(const std::function<void(WSocket&)>& handle) {
             Impl_->onHttpUpgrade = handle;
         }
         void WSClient::set_ReadTimeout(unsigned int seconds) {
@@ -198,12 +199,16 @@ namespace SL {
         }
 
         void WSClient::send(WSocket& s, WSSendMessage& msg) {
-            if (s.WSocketImpl_->Socket) {
-                SL::WS_LITE::send(Impl_, s.WSocketImpl_, s.WSocketImpl_->Socket, msg);
-            }
-            else {
-                SL::WS_LITE::send(Impl_, s.WSocketImpl_, s.WSocketImpl_->TLSSocket, msg);
-            }
+            auto self(Impl_);
+            Impl_->io_service.post([s, msg, self]() {
+                if (self->SendItems.empty()) {
+                    self->SendItems.push_front(SendQueueItem{ s.WSocketImpl_, msg });
+                    SL::WS_LITE::startwrite(self);
+                }
+                else {
+                    self->SendItems.push_front(SendQueueItem{ s.WSocketImpl_, msg });
+                }
+            });
         }
         bool WSocket::is_open()
         {

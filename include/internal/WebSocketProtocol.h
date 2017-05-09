@@ -12,6 +12,7 @@
 #include <memory>
 #include <thread>
 #include <random>
+#include <deque>
 
 #include <boost/asio.hpp>
 #include <boost/asio/ssl.hpp>
@@ -19,11 +20,12 @@
 
 namespace SL {
     namespace WS_LITE {
-        template<class PARENT, class SOCKETTYPE>void Disconnect(const PARENT& parent, const SOCKETTYPE& websocket, const std::string& msg)
+        template<class PARENT, class SOCKETTYPE>void Disconnect(const PARENT& parent, SOCKETTYPE& websocket, const std::string& msg)
         {
             if (parent->onDisconnection) {
                 auto wsdisc = WSReceiveMessage{ msg.c_str(), msg.size(),OpCode::TEXT };
-                parent->onDisconnection(websocket, wsdisc);
+                WSocket wsocket(websocket);
+                parent->onDisconnection(wsocket, wsdisc);
             }
             SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, msg);
         }
@@ -117,7 +119,10 @@ namespace SL {
         inline void set_Socket(std::shared_ptr<WSocketImpl>& ws, std::shared_ptr<boost::asio::ip::tcp::socket>  s) {
             ws->Socket = s;
         }
-
+        struct SendQueueItem {
+            std::shared_ptr<WSocketImpl> socket;
+            WSSendMessage msg;
+        };
         struct WSContext {
             WSContext() :
                 work(std::make_unique<boost::asio::io_service::work>(io_service)) {
@@ -128,6 +133,7 @@ namespace SL {
 
             }
             ~WSContext() {
+                SendItems.clear();
                 work.reset();
                 io_service.stop();
                 while (!io_service.stopped()) {
@@ -139,18 +145,19 @@ namespace SL {
             unsigned int ReadTimeout = 5;
             unsigned int WriteTimeout = 5;
             unsigned long long int MaxPayload = 1024 * 1024;//1 MB
+            std::deque<SendQueueItem> SendItems;
 
             boost::asio::io_service io_service;
             std::thread io_servicethread;
             std::unique_ptr<boost::asio::io_service::work> work;
             std::unique_ptr<boost::asio::ssl::context> sslcontext;
 
-            std::function<void(WSocket, const std::unordered_map<std::string, std::string>&)> onConnection;
-            std::function<void(WSocket, WSReceiveMessage&)> onMessage;
-            std::function<void(WSocket, WSReceiveMessage&)> onDisconnection;
-            std::function<void(WSocket, char *, size_t)> onPing;
-            std::function<void(WSocket, char *, size_t)> onPong;
-            std::function<void(WSocket)> onHttpUpgrade;
+            std::function<void(WSocket&, const std::unordered_map<std::string, std::string>&)> onConnection;
+            std::function<void(WSocket&, WSReceiveMessage&)> onMessage;
+            std::function<void(WSocket&, WSReceiveMessage&)> onDisconnection;
+            std::function<void(WSocket&, char *, size_t)> onPing;
+            std::function<void(WSocket&, char *, size_t)> onPong;
+            std::function<void(WSocket&)> onHttpUpgrade;
 
         };
 
@@ -301,80 +308,100 @@ namespace SL {
 
         size_t inline GetPayloadBytes(WSHeader* buff) { return (buff->Payloadlen & 127) == 126 ? 2 : ((buff->Payloadlen & 127) == 127 ? 8 : 1); }
 
-        template<class SOCKETTYPE>inline void send(const std::shared_ptr<WSClientImpl>& parent, SOCKETTYPE& websocket, WSSendMessage& msg, WSocket& ws) {
+        template<class SOCKETTYPE>inline void writeend(const std::shared_ptr<WSClientImpl>& parent, const std::shared_ptr<WSocketImpl>& socket, const SOCKETTYPE& websocket, const WSSendMessage& msg) {
             UNUSED(parent);
             std::uniform_int_distribution<unsigned int> dist(0, 255);
             std::random_device rd;
-            unsigned char mask[4];
-            for (size_t c = 0; c < sizeof(mask); c++) {
-                mask[c] = static_cast<unsigned char>(dist(rd));
+
+            auto mask(std::shared_ptr<char>(new char[4], [](char* p) { delete[] p; }));
+            auto maskeddata = mask.get();
+            for (auto c = 0; c < 4; c++) {
+                maskeddata[c] = static_cast<unsigned char>(dist(rd));
             }
-            auto p = reinterpret_cast<unsigned char*>(msg.data);
+            auto p = reinterpret_cast<unsigned char*>(msg.Data);
             for (decltype(msg.len) i = 0; i < msg.len; i++) {
-                *p++ ^= mask[i % sizeof(mask)];
+                *p++ ^= maskeddata[i % 4];
             }
 
-            boost::system::error_code ec;
-            auto bytes_written = boost::asio::write(*websocket, boost::asio::buffer(mask, sizeof(mask)), ec);
-            if (!ec) {
-                bytes_written = boost::asio::write(*websocket, boost::asio::buffer(p, static_cast<size_t>(msg.len)), ec);
-                if (ec) {
-                    return Disconnect(parent, ws, "write payload failed " + ec.message());
+            boost::asio::async_write(*websocket, boost::asio::buffer(mask.get(), 4), [parent, websocket, socket, msg](const boost::system::error_code& ec, size_t) {
+                if (!ec) {
+                    boost::asio::async_write(*websocket, boost::asio::buffer(msg.Data, static_cast<size_t>(msg.len)), [parent, websocket, socket, msg](const boost::system::error_code& ec, size_t) {
+                        parent->SendItems.pop_back();
+                        if (ec) {
+                            WSocket ws(socket);
+                            return Disconnect(parent, ws, "write payload failed " + ec.message());
+                        }
+                        else {
+                            startwrite(parent);
+                        }
+                    });
                 }
-            }
-            else {
-                return Disconnect(parent, ws, "write mask failed  " + ec.message());
-            }
+                else {
+                    WSocket ws(socket);
+                    return Disconnect(parent, ws, "write mask failed  " + ec.message());
+                }
+            });
         }
-
-        template<class SOCKETTYPE>inline void send(const std::shared_ptr<WSListenerImpl>& parent, SOCKETTYPE& websocket, WSSendMessage& msg, WSocket& ws) {
+        template<class SOCKETTYPE>inline void writeend(const std::shared_ptr<WSListenerImpl>& parent, const std::shared_ptr<WSocketImpl>& socket, const SOCKETTYPE& websocket, const WSSendMessage& msg) {
             UNUSED(parent);
-            boost::system::error_code ec;
-            auto bytes_written = boost::asio::write(*websocket, boost::asio::buffer(msg.data, static_cast<size_t>(msg.len)), ec);
-            if (ec) {
-                return Disconnect(parent, ws, "write payload failed " + ec.message());
-            }
+            boost::asio::async_write(*websocket, boost::asio::buffer(msg.Data, static_cast<size_t>(msg.len)), [parent, websocket, socket, msg](const boost::system::error_code& ec, size_t) {
+                parent->SendItems.pop_back();
+                if (ec)
+                {
+                    WSocket ws(socket);
+                    return Disconnect(parent, ws, "write header failed " + ec.message());
+                }
+                else {
+                    startwrite(parent);
+                }
+            });
         }
 
-
-        template<class PARENTTYPE, class SOCKETTYPE>inline void send(std::shared_ptr<PARENTTYPE> parent, std::shared_ptr<WSocketImpl> s, SOCKETTYPE& websocket, WSSendMessage& msg) {
-            
-            WSHeader header;
-            header.FIN = true;
-            set_MaskBitForSending<PARENTTYPE>(header);
-            header.Opcode = msg.code;
-            header.RSV1 = header.RSV2 = header.RSV3 = false;
+        template<class PARENTTYPE, class SOCKETTYPE>inline void write(const std::shared_ptr<PARENTTYPE>& parent, const std::shared_ptr<WSocketImpl>& socket, const SOCKETTYPE& websocket, const WSSendMessage& msg) {
+            auto header(std::make_shared<WSHeader>());
+            header->FIN = true;
+            set_MaskBitForSending<PARENTTYPE>(*header);
+            header->Opcode = msg.code;
+            header->RSV1 = header->RSV2 = header->RSV3 = false;
             size_t sendsize = sizeof(header);
             if (msg.len <= 125) {
-                header.Payloadlen = static_cast<unsigned char>(msg.len);
+                header->Payloadlen = static_cast<unsigned char>(msg.len);
                 sendsize -= 7;
             }
             else if (msg.len > USHRT_MAX) {
-                header.ExtendedPayloadlen = msg.len;
-                header.Payloadlen = 127;
+                header->ExtendedPayloadlen = msg.len;
+                header->Payloadlen = 127;
             }
             else {
-                header.Payloadlen = 126;
-                header.ShortPayloadlen = static_cast<unsigned short>(msg.len);
+                header->Payloadlen = 126;
+                header->ShortPayloadlen = static_cast<unsigned short>(msg.len);
                 sendsize -= 4;
             }
 
             assert(msg.len < UINT32_MAX);
-            writeexpire_from_now(s, parent->WriteTimeout);
-            boost::system::error_code ec;
-            auto bytes_written = boost::asio::write(*websocket, boost::asio::buffer(&header, sendsize), ec);
-            assert(bytes_written == sizeof(sendsize));
-
-            WSocket ws(s);
-            if (!ec)
-            {
-                send(parent, websocket, msg, ws);
-            }
-            else {
-                return Disconnect(parent, ws, "write header failed " + ec.message());
+            writeexpire_from_now(socket, parent->WriteTimeout);
+            boost::asio::async_write(*websocket, boost::asio::buffer(header.get(), sendsize), [parent, websocket, socket, header, msg](const boost::system::error_code& ec, size_t) {
+                if (!ec)
+                {
+                    writeend(parent, socket, websocket, msg);
+                }
+                else {
+                    WSocket ws(socket);
+                    return Disconnect(parent, ws, "write header failed " + ec.message());
+                }
+            });
+        }
+        template<class PARENTTYPE>inline void startwrite(const std::shared_ptr<PARENTTYPE>& parent) {
+            if (!parent->SendItems.empty()) {
+                auto msg(parent->SendItems.back());
+                if (msg.socket->Socket) {
+                    write(parent, msg.socket, msg.socket->Socket, msg.msg);
+                }
+                else {
+                    write(parent, msg.socket, msg.socket->TLSSocket, msg.msg);
+                }
             }
         }
-
         template <class PARENTTYPE, class SOCKETTYPE>inline void ReadBody(std::shared_ptr<PARENTTYPE> parent, std::shared_ptr<WSocketImpl> websocket, SOCKETTYPE socket, std::shared_ptr<WSHeader> header) {
 
             readexpire_from_now(websocket, parent->ReadTimeout);
@@ -411,8 +438,8 @@ namespace SL {
                         if (parent->onPing) {
                             parent->onPing(wsocket, buffer.get() + 4, static_cast<size_t>(size - 4));
                         }
-                        auto unpacked = WSSendMessage{ buffer.get() + 4, size - 4, OpCode::PONG };
-                        send(parent, websocket, socket, unpacked);
+                        auto sendmessage = WSSendMessage{ buffer ,buffer.get() + 4, size - 4, OpCode::PONG };
+                        SL::WS_LITE::write(parent, websocket, socket, sendmessage);
                     }
                     else if (header->Opcode == OpCode::PONG) {
                         if (parent->onPong) {

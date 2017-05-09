@@ -118,40 +118,40 @@ namespace SL {
                 Listen(Impl_, createsocket);
             }
         }
-        void WSListener::onConnection(std::function<void(WSocket, const std::unordered_map<std::string, std::string>&)>& handle) {
+        void WSListener::onConnection(std::function<void(WSocket&, const std::unordered_map<std::string, std::string>&)>& handle) {
             Impl_->onConnection = handle;
         }
-        void WSListener::onConnection(const std::function<void(WSocket, const std::unordered_map<std::string, std::string>&)>& handle) {
+        void WSListener::onConnection(const std::function<void(WSocket&, const std::unordered_map<std::string, std::string>&)>& handle) {
             Impl_->onConnection = handle;
         }
-        void WSListener::onMessage(std::function<void(WSocket, WSReceiveMessage&)>& handle) {
+        void WSListener::onMessage(std::function<void(WSocket&, WSReceiveMessage&)>& handle) {
             Impl_->onMessage = handle;
         }
-        void WSListener::onMessage(const std::function<void(WSocket, WSReceiveMessage&)>& handle) {
+        void WSListener::onMessage(const std::function<void(WSocket&, WSReceiveMessage&)>& handle) {
             Impl_->onMessage = handle;
         }
-        void WSListener::onDisconnection(std::function<void(WSocket, WSReceiveMessage&)>& handle) {
+        void WSListener::onDisconnection(std::function<void(WSocket&, WSReceiveMessage&)>& handle) {
             Impl_->onDisconnection = handle;
         }
-        void WSListener::onDisconnection(const std::function<void(WSocket, WSReceiveMessage&)>& handle) {
+        void WSListener::onDisconnection(const std::function<void(WSocket&, WSReceiveMessage&)>& handle) {
             Impl_->onDisconnection = handle;
         }
-        void WSListener::onPing(std::function<void(WSocket, const char *, size_t)>& handle) {
+        void WSListener::onPing(std::function<void(WSocket&, const char *, size_t)>& handle) {
             Impl_->onPing = handle;
         }
-        void WSListener::onPing(const std::function<void(WSocket, const char *, size_t)>& handle) {
+        void WSListener::onPing(const std::function<void(WSocket&, const char *, size_t)>& handle) {
             Impl_->onPing = handle;
         }
-        void WSListener::onPong(std::function<void(WSocket, const char *, size_t)>& handle) {
+        void WSListener::onPong(std::function<void(WSocket&, const char *, size_t)>& handle) {
             Impl_->onPong = handle;
         }
-        void WSListener::onPong(const std::function<void(WSocket, const char *, size_t)>& handle) {
+        void WSListener::onPong(const std::function<void(WSocket&, const char *, size_t)>& handle) {
             Impl_->onPong = handle;
         }
-        void WSListener::onHttpUpgrade(std::function<void(WSocket)>& handle) {
+        void WSListener::onHttpUpgrade(std::function<void(WSocket&)>& handle) {
             Impl_->onHttpUpgrade = handle;
         }
-        void WSListener::onHttpUpgrade(const std::function<void(WSocket)>& handle) {
+        void WSListener::onHttpUpgrade(const std::function<void(WSocket&)>& handle) {
             Impl_->onHttpUpgrade = handle;
         }
         void WSListener::set_ReadTimeout(unsigned int seconds) {
@@ -175,10 +175,10 @@ namespace SL {
 
         void WSListener::send(WSocket& s, WSSendMessage& msg) {
             if (s.WSocketImpl_->Socket) {
-                SL::WS_LITE::send(Impl_, s.WSocketImpl_, s.WSocketImpl_->Socket, msg);
+                SL::WS_LITE::write(Impl_, s.WSocketImpl_, s.WSocketImpl_->Socket, msg);
             }
             else {
-                SL::WS_LITE::send(Impl_, s.WSocketImpl_, s.WSocketImpl_->TLSSocket, msg);
+                SL::WS_LITE::write(Impl_, s.WSocketImpl_, s.WSocketImpl_->TLSSocket, msg);
             }
         }
     }

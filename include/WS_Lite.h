@@ -37,7 +37,8 @@ namespace SL {
             OpCode code;
         };
         struct WSSendMessage {
-            char* data;
+            std::shared_ptr<char> Buffer;
+            char* Data;
             unsigned long long int  len;
             OpCode code;
             //compress the outgoing message?
@@ -69,29 +70,29 @@ namespace SL {
             std::shared_ptr<WSListenerImpl> Impl_;
         public:
             //when a connection is fully established. If onconnect is called, then a matching onDisconnection is guaranteed
-            void onConnection(std::function<void(WSocket, const std::unordered_map<std::string, std::string>&)>& handle);
+            void onConnection(std::function<void(WSocket&, const std::unordered_map<std::string, std::string>&)>& handle);
             //when a connection is fully established.  If onconnect is called, then a matching onDisconnection is guaranteed
-            void onConnection(const std::function<void(WSocket, const std::unordered_map<std::string, std::string>&)>& handle);
+            void onConnection(const std::function<void(WSocket&, const std::unordered_map<std::string, std::string>&)>& handle);
             //when a message has been received
-            void onMessage(std::function<void(WSocket, WSReceiveMessage&)>& handle);
+            void onMessage(std::function<void(WSocket&, WSReceiveMessage&)>& handle);
             //when a message has been received
-            void onMessage(const std::function<void(WSocket, WSReceiveMessage&)>& handle);
+            void onMessage(const std::function<void(WSocket&, WSReceiveMessage&)>& handle);
             //when a socket is closed down for ANY reason. If onconnect is called, then a matching onDisconnection is guaranteed
-            void onDisconnection(std::function<void(WSocket, WSReceiveMessage&)>& handle);
+            void onDisconnection(std::function<void(WSocket&, WSReceiveMessage&)>& handle);
             //when a socket is closed down for ANY reason. If onconnect is called, then a matching onDisconnection is guaranteed
-            void onDisconnection(const std::function<void(WSocket, WSReceiveMessage&)>& handle);
+            void onDisconnection(const std::function<void(WSocket&, WSReceiveMessage&)>& handle);
             //when a ping is received from a client
-            void onPing(std::function<void(WSocket, const char *, size_t)>& handle);            
+            void onPing(std::function<void(WSocket&, const char *, size_t)>& handle);            
             //when a ping is received from a client
-            void onPing(const std::function<void(WSocket, const char *, size_t)>& handle);
+            void onPing(const std::function<void(WSocket&, const char *, size_t)>& handle);
             //when a pong is received from a client
-            void onPong(std::function<void(WSocket, const char *, size_t)>& handle);
+            void onPong(std::function<void(WSocket&, const char *, size_t)>& handle);
             //when a pong is received from a client
-            void onPong(const std::function<void(WSocket, const char *, size_t)>& handle);
+            void onPong(const std::function<void(WSocket&, const char *, size_t)>& handle);
             //before onconnection is called, the conection is upgraded
-            void onHttpUpgrade(std::function<void(WSocket)>& handle);
+            void onHttpUpgrade(std::function<void(WSocket&)>& handle);
             //before onconnection is called, the conection is upgraded
-            void onHttpUpgrade(const std::function<void(WSocket)>& handle);
+            void onHttpUpgrade(const std::function<void(WSocket&)>& handle);
             //the maximum payload size
             void set_MaxPayload(unsigned long long int bytes);
             //the maximum payload size
@@ -123,29 +124,29 @@ namespace SL {
             std::shared_ptr<WSClientImpl> Impl_;
         public: 
             //when a connection is fully established. If onconnect is called, then a matching onDisconnection is guaranteed
-            void onConnection(std::function<void(WSocket, const std::unordered_map<std::string, std::string>&)>& handle);
+            void onConnection(std::function<void(WSocket&, const std::unordered_map<std::string, std::string>&)>& handle);
             //when a connection is fully established.  If onconnect is called, then a matching onDisconnection is guaranteed
-            void onConnection(const std::function<void(WSocket, const std::unordered_map<std::string, std::string>&)>& handle);
+            void onConnection(const std::function<void(WSocket&, const std::unordered_map<std::string, std::string>&)>& handle);
             //when a message has been received
-            void onMessage(std::function<void(WSocket, WSReceiveMessage&)>& handle);
+            void onMessage(std::function<void(WSocket&, WSReceiveMessage&)>& handle);
             //when a message has been received
-            void onMessage(const std::function<void(WSocket, WSReceiveMessage&)>& handle);
+            void onMessage(const std::function<void(WSocket&, WSReceiveMessage&)>& handle);
             //when a socket is closed down for ANY reason. If onconnect is called, then a matching onDisconnection is guaranteed
-            void onDisconnection(std::function<void(WSocket, WSReceiveMessage&)>& handle);
+            void onDisconnection(std::function<void(WSocket&, WSReceiveMessage&)>& handle);
             //when a socket is closed down for ANY reason. If onconnect is called, then a matching onDisconnection is guaranteed
-            void onDisconnection(const std::function<void(WSocket, WSReceiveMessage&)>& handle);
+            void onDisconnection(const std::function<void(WSocket&, WSReceiveMessage&)>& handle);
             //when a ping is received from a client
-            void onPing(std::function<void(WSocket, const char *, size_t)>& handle);
+            void onPing(std::function<void(WSocket&, const char *, size_t)>& handle);
             //when a ping is received from a client
-            void onPing(const std::function<void(WSocket, const char *, size_t)>& handle);
+            void onPing(const std::function<void(WSocket&, const char *, size_t)>& handle);
             //when a pong is received from a client
-            void onPong(std::function<void(WSocket, const char *, size_t)>& handle);
+            void onPong(std::function<void(WSocket&, const char *, size_t)>& handle);
             //when a pong is received from a client
-            void onPong(const std::function<void(WSocket, const char *, size_t)>& handle);
+            void onPong(const std::function<void(WSocket&, const char *, size_t)>& handle);
             //before onconnection is called, the conection is upgraded
-            void onHttpUpgrade(std::function<void(WSocket)>& handle);
+            void onHttpUpgrade(std::function<void(WSocket&)>& handle);
             //before onconnection is called, the conection is upgraded
-            void onHttpUpgrade(const std::function<void(WSocket)>& handle);
+            void onHttpUpgrade(const std::function<void(WSocket&)>& handle);
             //the maximum payload size
             void set_MaxPayload(unsigned long long int bytes);
             //the maximum payload size
