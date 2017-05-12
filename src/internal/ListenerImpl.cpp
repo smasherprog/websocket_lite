@@ -11,11 +11,15 @@ namespace SL {
                 if (!ec) {
                     SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "Read Handshake bytes " << bytes_transferred);
 
-                    std::istream stream(&handshakecontainer->Read);
-                    if (!Parse_Handshake("1.1", stream, handshakecontainer->Header)) {
+                    std::istream headerdata(&handshakecontainer->Read);
+
+                    if (!Parse_Handshake("1.1", headerdata, handshakecontainer->Header)) {
                         std::shared_ptr<WSocketImpl> impl;
                         WSocket websocket(impl);
                         return Disconnect(listener, websocket, "Parse Handshake failed " + ec.message());
+                    }
+                    if (handshakecontainer->Read.size() > 0) {
+                        SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "READ MORE DATA " << handshakecontainer->Read.size());
                     }
 
                     std::ostream handshake(&handshakecontainer->Write);

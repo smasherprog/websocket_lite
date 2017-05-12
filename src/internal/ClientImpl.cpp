@@ -44,7 +44,7 @@ namespace SL {
                                     self->onConnection(wsocket, header);
                                 }
                                 if (read_buffer->size() > bytes_transferred) {
-                                    //check and handle case where more data is read
+                                    SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "Read Extra Data "<< read_buffer->size() - bytes_transferred);
                                 }
                                 ReadHeader(self, websocket, socket);
                             }
