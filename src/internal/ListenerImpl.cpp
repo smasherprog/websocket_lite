@@ -14,12 +14,12 @@ namespace SL {
                     std::istream headerdata(&handshakecontainer->Read);
 
                     if (!Parse_Handshake("1.1", headerdata, handshakecontainer->Header)) {
-                        std::shared_ptr<WSocketImpl> impl;
-                        WSocket websocket(impl);
-                        return Disconnect(listener, websocket, "Parse Handshake failed " + ec.message());
+                        SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "Parse Handshake failed ");
+                        return;
                     }
                     if (handshakecontainer->Read.size() > 0) {
                         SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "READ MORE DATA " << handshakecontainer->Read.size());
+                        return;
                     }
 
                     std::ostream handshake(&handshakecontainer->Write);
@@ -41,20 +41,16 @@ namespace SL {
                                 ReadHeader(listener, sock, socket);
                             }
                             else {
-                                return Disconnect(listener, websocket, "WebSocket receivehandshake failed " + ec.message());
+                                SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "WebSocket receivehandshake failed " + ec.message());
                             }
                         });
                     }
                     else {
-                        std::shared_ptr<WSocketImpl> impl;
-                        WSocket websocket(impl);
-                        return Disconnect(listener, websocket, "WebSocket Generate_Handshake failed ");
+                        SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "WebSocket Generate_Handshake failed ");
                     }
                 }
                 else {
-                    std::shared_ptr<WSocketImpl> impl;
-                    WSocket websocket(impl);
-                    return Disconnect(listener, websocket, "Read Handshake failed " + ec.message());
+                    SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "Read Handshake failed " + ec.message());
                 }
             });
 
@@ -134,10 +130,10 @@ namespace SL {
         void WSListener::onMessage(const std::function<void(WSocket&, WSReceiveMessage&)>& handle) {
             Impl_->onMessage = handle;
         }
-        void WSListener::onDisconnection(std::function<void(WSocket&, WSReceiveMessage&)>& handle) {
+        void WSListener::onDisconnection(std::function<void(WSocket&, unsigned short, const std::string&)>& handle) {
             Impl_->onDisconnection = handle;
         }
-        void WSListener::onDisconnection(const std::function<void(WSocket&, WSReceiveMessage&)>& handle) {
+        void WSListener::onDisconnection(const std::function<void(WSocket&, unsigned short, const std::string&)>& handle) {
             Impl_->onDisconnection = handle;
         }
         void WSListener::onPing(std::function<void(WSocket&, const char *, size_t)>& handle) {
@@ -188,6 +184,18 @@ namespace SL {
                     self->SendItems.push_front(SendQueueItem{ s.WSocketImpl_, msg });
                 }
             });
+        }
+        void WSListener::close(WSocket& s, unsigned short code, const std::string& msg)
+        {
+            WSSendMessage ws;
+            ws.code = OpCode::CLOSE;
+            auto size = sizeof(code) + msg.size();
+            ws.len = static_cast<unsigned long long int>(size);
+            ws.Buffer = std::shared_ptr<char>(new char[size], [](char* p) { delete[] p; });
+            *reinterpret_cast<unsigned short*>(ws.Buffer.get()) = code;
+            memcpy(ws.Buffer.get() + sizeof(code), msg.c_str(), msg.size());
+            ws.Compress = false;
+            send(s, ws);
         }
     }
 }

@@ -78,9 +78,9 @@ namespace SL {
             //when a message has been received
             void onMessage(const std::function<void(WSocket&, WSReceiveMessage&)>& handle);
             //when a socket is closed down for ANY reason. If onconnect is called, then a matching onDisconnection is guaranteed
-            void onDisconnection(std::function<void(WSocket&, WSReceiveMessage&)>& handle);
+            void onDisconnection(std::function<void(WSocket&, unsigned short, const std::string&)>& handle);
             //when a socket is closed down for ANY reason. If onconnect is called, then a matching onDisconnection is guaranteed
-            void onDisconnection(const std::function<void(WSocket&, WSReceiveMessage&)>& handle);
+            void onDisconnection(const std::function<void(WSocket&, unsigned short , const std::string&)>& handle);
             //when a ping is received from a client
             void onPing(std::function<void(WSocket&, const char *, size_t)>& handle);            
             //when a ping is received from a client
@@ -107,6 +107,8 @@ namespace SL {
             unsigned int  get_WriteTimeout();
             //send a message to a specific client
             void send(WSocket& s, WSSendMessage& msg);
+            //send a close message and close the socket
+            void close(WSocket& s, unsigned short code = 1000, const std::string& msg = "");
             //start the process to listen for clients. This is non-blocking and will return immediatly
             void startlistening();
             //factory to create listeners. Use this if you ARE NOT using TLS
@@ -130,11 +132,11 @@ namespace SL {
             //when a message has been received
             void onMessage(std::function<void(WSocket&, WSReceiveMessage&)>& handle);
             //when a message has been received
-            void onMessage(const std::function<void(WSocket&, WSReceiveMessage&)>& handle);
+            void onMessage(const std::function<void(WSocket&, WSReceiveMessage&)>& handle);          
             //when a socket is closed down for ANY reason. If onconnect is called, then a matching onDisconnection is guaranteed
-            void onDisconnection(std::function<void(WSocket&, WSReceiveMessage&)>& handle);
+            void onDisconnection(std::function<void(WSocket&, unsigned short, const std::string&)>& handle);
             //when a socket is closed down for ANY reason. If onconnect is called, then a matching onDisconnection is guaranteed
-            void onDisconnection(const std::function<void(WSocket&, WSReceiveMessage&)>& handle);
+            void onDisconnection(const std::function<void(WSocket&, unsigned short, const std::string&)>& handle);
             //when a ping is received from a client
             void onPing(std::function<void(WSocket&, const char *, size_t)>& handle);
             //when a ping is received from a client
@@ -161,6 +163,8 @@ namespace SL {
             unsigned int  get_WriteTimeout();
             //send a message to a specific client
             void send(WSocket& s, WSSendMessage& msg);
+            //send a close message and close the socket
+            void close(WSocket& s, unsigned short code= 1000, const std::string& msg ="");
             //connect to an endpoint. This is non-blocking and will return immediatly. If the library is unable to establish a connection, ondisconnection will be called. 
             void connect(const char* host, unsigned short port);
             //factory to create clients. Use this if you ARE NOT using TLS

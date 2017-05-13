@@ -49,22 +49,31 @@ namespace SL {
                                 ReadHeader(self, websocket, socket);
                             }
                             else {
-                                std::shared_ptr<WSocketImpl> ptr;
-                                WSocket wsocket(ptr);
-                                return Disconnect(self, wsocket, "WebSocket handshake failed  ");
+                                SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "WebSocket handshake failed  ");
+                                std::shared_ptr<WSocketImpl> emptysocket;
+                                WSocket ws(emptysocket);
+                                if (self->onDisconnection) {
+                                    self->onDisconnection(ws, 1002, "WebSocket handshake failed  ");
+                                }
                             }
                         }
                         else {
-                            std::shared_ptr<WSocketImpl> ptr;
-                            WSocket wsocket(ptr);
-                            return Disconnect(self, wsocket, "async_read_until failed  " + ec.message());
+                            SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "async_read_until failed  " << ec.message());
+                            std::shared_ptr<WSocketImpl> emptysocket;
+                            WSocket ws(emptysocket);
+                            if (self->onDisconnection) {
+                                self->onDisconnection(ws, 1002, "async_read_until failed  " + ec.message());
+                            }
                         }
                     });
                 }
                 else {
-                    std::shared_ptr<WSocketImpl> ptr;
-                    WSocket wsocket(ptr);
-                    return Disconnect(self, wsocket, "Failed sending handshake" + ec.message());
+                    SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "Failed sending handshake" << ec.message());
+                    std::shared_ptr<WSocketImpl> emptysocket;
+                    WSocket ws(emptysocket);
+                    if (self->onDisconnection) {
+                        self->onDisconnection(ws, 1002, "Failed sending handshake" + ec.message());
+                    }
                 }
             });
 
@@ -79,9 +88,12 @@ namespace SL {
                     ConnectHandshake(self, socket);
                 }
                 else {
+                    SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "Failed async_handshake " << ec.message());
                     std::shared_ptr<WSocketImpl> emptysocket;
-                    WSocket websocket(emptysocket);
-                    return Disconnect(self, websocket, "Failed async_handshake " + ec.message());
+                    WSocket ws(emptysocket);
+                    if (self->onDisconnection) {
+                        self->onDisconnection(ws, 1002, "Failed async_handshake " +ec.message());
+                    }
                 }
             });
         }
@@ -95,7 +107,12 @@ namespace SL {
             auto endpoint = resolver.resolve(query, ec);
 
             if (ec) {
-                SL_WS_LITE_LOG(Logging_Levels::ERROR_log_level, "resolve " << ec.message());
+                SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "resolve error " << ec.message());
+                std::shared_ptr<WSocketImpl> emptysocket;
+                WSocket ws(emptysocket);
+                if (self->onDisconnection) {
+                    self->onDisconnection(ws, 1002, "resolve error " + ec.message());
+                }
             }
             else {
                 boost::asio::async_connect(socket->lowest_layer(), endpoint, [socket, self](const boost::system::error_code& ec, boost::asio::ip::tcp::resolver::iterator)
@@ -105,9 +122,12 @@ namespace SL {
                         async_handshake(self, socket);
                     }
                     else {
+                        SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "Failed async_connect " << ec.message());
                         std::shared_ptr<WSocketImpl> emptysocket;
-                        WSocket websocket(emptysocket);
-                        Disconnect(self, websocket, "Failed async_connect " + ec.message());
+                        WSocket ws(emptysocket);
+                        if (self->onDisconnection) {
+                            self->onDisconnection(ws, 1002, "Failed async_connect " + ec.message());
+                        }
                     }
                 });
             }
@@ -155,10 +175,10 @@ namespace SL {
         void WSClient::onMessage(const std::function<void(WSocket&, WSReceiveMessage&)>& handle) {
             Impl_->onMessage = handle;
         }
-        void WSClient::onDisconnection(std::function<void(WSocket&, WSReceiveMessage&)>& handle) {
+        void WSClient::onDisconnection(std::function<void(WSocket&, unsigned short, const std::string&)>& handle) {
             Impl_->onDisconnection = handle;
         }
-        void WSClient::onDisconnection(const std::function<void(WSocket&, WSReceiveMessage&)>& handle) {
+        void WSClient::onDisconnection(const std::function<void(WSocket&, unsigned short, const std::string&)>& handle) {
             Impl_->onDisconnection = handle;
         }
         void WSClient::onPing(std::function<void(WSocket&, const char *, size_t)>& handle) {
@@ -209,6 +229,18 @@ namespace SL {
                     self->SendItems.push_front(SendQueueItem{ s.WSocketImpl_, msg });
                 }
             });
+        }
+        void WSClient::close(WSocket& s, unsigned short code, const std::string& msg)
+        {
+            WSSendMessage ws;
+            ws.code = OpCode::CLOSE;
+            auto size = sizeof(code) + msg.size();
+            ws.len = static_cast<unsigned long long int>(size);
+            ws.Buffer = std::shared_ptr<char>(new char[size], [](char* p) { delete[] p; });
+            *reinterpret_cast<unsigned short*>(ws.Buffer.get()) = code;
+            memcpy(ws.Buffer.get() + sizeof(code), msg.c_str(), msg.size());
+            ws.Compress = false;
+            send(s, ws);
         }
         bool WSocket::is_open()
         {
