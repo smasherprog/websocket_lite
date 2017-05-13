@@ -9,3 +9,4 @@ add_subdirectory(src)
 
 enable_testing() 
 add_subdirectory(Test)
+add_subdirectory(Bench)

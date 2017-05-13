@@ -8,6 +8,7 @@ namespace SL {
         template<class SOCKETTYPE>void read_handshake(std::shared_ptr<WSListenerImpl> listener, SOCKETTYPE& socket) {
             auto handshakecontainer(std::make_shared<HandshakeContainer>());
             boost::asio::async_read_until(*socket, handshakecontainer->Read, "\r\n\r\n", [listener, socket, handshakecontainer](const boost::system::error_code& ec, size_t bytes_transferred) {
+                UNUSED(bytes_transferred);
                 if (!ec) {
                     SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "Read Handshake bytes " << bytes_transferred);
 
@@ -23,6 +24,12 @@ namespace SL {
                     }
 
                     std::ostream handshake(&handshakecontainer->Write);
+                    /*         handshake<< HTTP_ENDLINE << HTTP_ENDLINE;
+
+                             boost::asio::async_write(*socket, handshakecontainer->Write, [listener, socket, handshakecontainer](const boost::system::error_code& , size_t) {
+
+                             });*/
+
                     if (Generate_Handshake(handshakecontainer->Header, handshake)) {
                         auto sock = std::make_shared<WSocketImpl>(listener->io_service);
                         WSocket websocket(sock);
@@ -32,6 +39,7 @@ namespace SL {
                         }
 
                         boost::asio::async_write(*socket, handshakecontainer->Write, [listener, sock, socket, handshakecontainer](const boost::system::error_code& ec, size_t bytes_transferred) {
+                            UNUSED(bytes_transferred);
                             WSocket websocket(sock);
                             if (!ec) {
                                 SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "Connected: Sent Handshake bytes " << bytes_transferred);
@@ -83,6 +91,7 @@ namespace SL {
                 }
                 Listen(listener, socketcreator);
             });
+
         }
         WSListener  WSListener::CreateListener(unsigned short port)
         {

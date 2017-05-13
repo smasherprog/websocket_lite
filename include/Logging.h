@@ -12,7 +12,6 @@
 
 #endif
 
-
 namespace SL {
 	namespace WS_LITE {
 
@@ -63,9 +62,15 @@ namespace SL {
 #define S(x) #x
 #define S_(x) S(x)
 
-#define SL_WS_LITE_LOG(level, msg) {\
-std::ostringstream buffersl134nonesd; \
-buffersl134nonesd << msg; \
-SL::WS_LITE::Log(level, __FILE__, __LINE__, __func__, buffersl134nonesd);\
-}
+#if NDEBUG
+#define SL_WS_LITE_LOG(level, msg) 
+#else
+#define SL_WS_LITE_LOG(level, msg) 
+//
+//#define SL_WS_LITE_LOG(level, msg) {\
+//std::ostringstream buffersl134nonesd; \
+//buffersl134nonesd << msg; \
+//SL::WS_LITE::Log(level, __FILE__, __LINE__, __func__, buffersl134nonesd);\
+//}
 
+#endif

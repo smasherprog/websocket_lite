@@ -23,6 +23,7 @@ namespace SL {
             auto accept_sha1 = Generate_Handshake(get_address(socket), request);
 
             boost::asio::async_write(*socket, *write_buffer, [write_buffer, accept_sha1, socket, self](const boost::system::error_code& ec, size_t bytes_transferred) {
+                UNUSED(bytes_transferred);
                 if (!ec) {
                     SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "Sent Handshake bytes " << bytes_transferred);
                     auto read_buffer(std::make_shared<boost::asio::streambuf>());

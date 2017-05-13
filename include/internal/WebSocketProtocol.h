@@ -360,9 +360,11 @@ namespace SL {
             }
 
             boost::asio::async_write(*socket, boost::asio::buffer(mask.get(), 4), [parent, websocket, socket, msg](const boost::system::error_code& ec, size_t bytes_transferred) {
+                UNUSED(bytes_transferred);
                 assert(bytes_transferred == 4);
                 if (!ec) {
                     boost::asio::async_write(*socket, boost::asio::buffer(msg.Data, static_cast<size_t>(msg.len)), [parent, websocket, socket, msg](const boost::system::error_code& ec, size_t bytes_transferred) {
+                        UNUSED(bytes_transferred);
                         assert(static_cast<size_t>(msg.len) == bytes_transferred);
                         if (!parent->SendItems.empty()) {
                             parent->SendItems.pop_back();
@@ -383,6 +385,7 @@ namespace SL {
         template<class SOCKETTYPE>inline void writeend(const std::shared_ptr<WSListenerImpl>& parent, const std::shared_ptr<WSocketImpl>& websocket, const SOCKETTYPE& socket, const WSSendMessage& msg) {
             UNUSED(parent);
             boost::asio::async_write(*socket, boost::asio::buffer(msg.Data, static_cast<size_t>(msg.len)), [parent, websocket, socket, msg](const boost::system::error_code& ec, size_t bytes_transferred) {
+                UNUSED(bytes_transferred);
                 assert(static_cast<size_t>(msg.len) == bytes_transferred);
                 if (!parent->SendItems.empty()) {
                     parent->SendItems.pop_back();
@@ -425,6 +428,7 @@ namespace SL {
             assert(msg.len < UINT32_MAX);
             writeexpire_from_now(parent, websocket, socket, parent->WriteTimeout);
             boost::asio::async_write(*socket, boost::asio::buffer(header.get(), sendsize), [parent, socket, websocket, header, msg, sendsize](const boost::system::error_code& ec, size_t bytes_transferred) {
+                UNUSED(bytes_transferred);
                 if (!ec)
                 {
                     assert(sendsize == bytes_transferred);
@@ -532,6 +536,7 @@ namespace SL {
             readexpire_from_now(parent, websocket, socket, parent->ReadTimeout);
             auto buff(std::shared_ptr<unsigned char>(new unsigned char[16], [](unsigned char *p) { delete[] p; }));
             boost::asio::async_read(*socket, boost::asio::buffer(buff.get(), 2), [parent, websocket, socket, buff](const boost::system::error_code& ec, size_t bytes_transferred) {
+                UNUSED(bytes_transferred);
                 if (!ec) {
                     assert(bytes_transferred == 2);
                     if (!DidPassMaskRequirement<PARENTTYPE>(buff)) {//Close connection if it did not meet the mask requirement. 
