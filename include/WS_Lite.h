@@ -32,8 +32,8 @@ namespace SL {
         };
         //this is the message after being uncompressed
         struct WSReceiveMessage {
-            const char* data;
-            unsigned long long int  len;
+            const char *data;
+            unsigned long long int len;
             OpCode code;
         };
         struct WSSendMessage {

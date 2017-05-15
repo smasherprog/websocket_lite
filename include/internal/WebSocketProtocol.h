@@ -129,9 +129,13 @@ namespace SL {
             WSocketImpl(boost::asio::io_service& s) :read_deadline(s), write_deadline(s) {}
             ~WSocketImpl() {
                 canceltimers();
+                if (ReceiveBuffer) {
+                    free(ReceiveBuffer);
+                }
             }
             boost::asio::deadline_timer read_deadline;
             boost::asio::deadline_timer write_deadline;
+            void* ReceiveBuffer = nullptr;
             std::shared_ptr<boost::asio::ip::tcp::socket> Socket;
             std::shared_ptr<boost::asio::ssl::stream<boost::asio::ip::tcp::socket>> TLSSocket;
             void canceltimers() {
@@ -139,7 +143,6 @@ namespace SL {
                 write_deadline.cancel();
             }
         };
-
         inline void set_Socket(std::shared_ptr<WSocketImpl>& ws, std::shared_ptr<boost::asio::ssl::stream<boost::asio::ip::tcp::socket>> s) {
             ws->TLSSocket = s;
         }
@@ -480,8 +483,8 @@ namespace SL {
                 return closesocket(parent, websocket, socket, 1009, "Payload exceeded MaxPayload size");
             }
             if (size > 0) {
-                auto buffer = std::shared_ptr<char>(new char[static_cast<size_t>(size)], [](char * p) { delete[] p; });
-                boost::asio::async_read(*socket, boost::asio::buffer(buffer.get(), static_cast<size_t>(size)), [parent, websocket, socket, header, buffer, size](const boost::system::error_code& ec, size_t bytes_transferred) {
+                realloc(websocket->ReceiveBuffer, static_cast<size_t>(size));
+                boost::asio::async_read(*socket, boost::asio::buffer(websocket->ReceiveBuffer, static_cast<size_t>(size)), [parent, websocket, socket, header, size](const boost::system::error_code& ec, size_t bytes_transferred) {
                     WSocket wsocket(websocket);
                     if (!ec) {
                         assert(size == bytes_transferred);
@@ -501,7 +504,7 @@ namespace SL {
                             }
                         }
                         else if (parent->onMessage) {
-                            ProcessMessage(parent, buffer, size, websocket, header);
+                            ProcessMessage(parent, size, websocket, header);
                         }
                         ReadHeader(parent, websocket, socket);
                     }

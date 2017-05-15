@@ -24,12 +24,6 @@ namespace SL {
                     }
 
                     std::ostream handshake(&handshakecontainer->Write);
-                    /*         handshake<< HTTP_ENDLINE << HTTP_ENDLINE;
-
-                             boost::asio::async_write(*socket, handshakecontainer->Write, [listener, socket, handshakecontainer](const boost::system::error_code& , size_t) {
-
-                             });*/
-
                     if (Generate_Handshake(handshakecontainer->Header, handshake)) {
                         auto sock = std::make_shared<WSocketImpl>(listener->io_service);
                         WSocket websocket(sock);
