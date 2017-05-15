@@ -58,7 +58,7 @@ namespace SL {
 
         template<class PARENTTYPE, class SOCKETTYPE> void readexpire_from_now(const std::shared_ptr<PARENTTYPE>& parent, const std::shared_ptr<WSocketImpl>& websocket, const SOCKETTYPE& socket, int seconds)
         {
-     
+
             boost::system::error_code ec;
             if (seconds <= 0) websocket->read_deadline.expires_at(boost::posix_time::pos_infin, ec);
             else  websocket->read_deadline.expires_from_now(boost::posix_time::seconds(seconds), ec);
@@ -72,7 +72,7 @@ namespace SL {
                     }
                 });
             }
-        } 
+        }
         template<class PARENTTYPE, class SOCKETTYPE> void writeexpire_from_now(const std::shared_ptr<PARENTTYPE>& parent, const std::shared_ptr<WSocketImpl>& websocket, const SOCKETTYPE& socket, int seconds)
         {
             boost::system::error_code ec;
@@ -111,8 +111,8 @@ namespace SL {
 
 
             //writeexpire_from_now(parent, websocket, socket, parent->WriteTimeout);
-            SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "Sending Close reason: '" <<code<<"'  msg: '"<<msg<<"'");
-            boost::asio::async_write(*socket, boost::asio::buffer(header.get(), sendsize), [parent, websocket, socket, header, code, msg](const boost::system::error_code& , size_t) {
+            SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "Sending Close reason: '" << code << "'  msg: '" << msg << "'");
+            boost::asio::async_write(*socket, boost::asio::buffer(header.get(), sendsize), [parent, websocket, socket, header, code, msg](const boost::system::error_code&, size_t) {
                 WSocket ws(websocket);
                 if (parent->onDisconnection) {
                     parent->onDisconnection(ws, code, msg);
@@ -135,7 +135,9 @@ namespace SL {
             }
             boost::asio::deadline_timer read_deadline;
             boost::asio::deadline_timer write_deadline;
-            void* ReceiveBuffer = nullptr;
+            unsigned char* ReceiveBuffer = nullptr;
+            unsigned char ReceiveHeader[16];
+
             std::shared_ptr<boost::asio::ip::tcp::socket> Socket;
             std::shared_ptr<boost::asio::ssl::stream<boost::asio::ip::tcp::socket>> TLSSocket;
             void canceltimers() {
@@ -174,7 +176,7 @@ namespace SL {
 
             unsigned int ReadTimeout = 30;
             unsigned int WriteTimeout = 30;
-            unsigned long long int MaxPayload = 1024 * 1024;//1 MB
+            size_t MaxPayload = 1024 * 1024;//1 MB
             std::deque<SendQueueItem> SendItems;
 
             boost::asio::io_service io_service;
@@ -184,9 +186,9 @@ namespace SL {
 
             std::function<void(WSocket&, const std::unordered_map<std::string, std::string>&)> onConnection;
             std::function<void(WSocket&, WSReceiveMessage&)> onMessage;
-            std::function<void(WSocket&,unsigned short, const std::string&)> onDisconnection;
-            std::function<void(WSocket&, char *, size_t)> onPing;
-            std::function<void(WSocket&, char *, size_t)> onPong;
+            std::function<void(WSocket&, unsigned short, const std::string&)> onDisconnection;
+            std::function<void(WSocket&, const unsigned char *, size_t)> onPing;
+            std::function<void(WSocket&, const unsigned char *, size_t)> onPong;
             std::function<void(WSocket&)> onHttpUpgrade;
 
         };
@@ -317,10 +319,17 @@ namespace SL {
             boost::asio::streambuf Write;
             std::unordered_map<std::string, std::string> Header;
         };
+        struct WSSendMessageInternal {
+            unsigned char* Data;
+            unsigned long long int  len;
+            OpCode code;
+            //compress the outgoing message?
+            bool Compress;
+        };
 
-        template<class PARENTTYPE>inline bool DidPassMaskRequirement(const std::shared_ptr<unsigned char>& h) { return true; }
-        template<> inline bool DidPassMaskRequirement<WSListenerImpl>(const std::shared_ptr<unsigned char>& h) { return getMask(h.get()); }
-        template<> inline bool DidPassMaskRequirement<WSClientImpl>(const std::shared_ptr<unsigned char>& h) { return !getMask(h.get()); }
+        template<class PARENTTYPE>inline bool DidPassMaskRequirement(unsigned char* h) { return true; }
+        template<> inline bool DidPassMaskRequirement<WSListenerImpl>(unsigned char* h) { return getMask(h); }
+        template<> inline bool DidPassMaskRequirement<WSClientImpl>(unsigned char* h) { return !getMask(h); }
 
         template<class PARENTTYPE>inline unsigned long long int AdditionalBodyBytesToRead() { return 0; }
         template<>inline unsigned long long int AdditionalBodyBytesToRead<WSListenerImpl>() { return 4; }
@@ -330,24 +339,25 @@ namespace SL {
         template<>inline void set_MaskBitForSending<WSListenerImpl>(unsigned char* frame) { setMask(frame, 0x00); }
         template<>inline void set_MaskBitForSending<WSClientImpl>(unsigned char* frame) { setMask(frame, 0xff); }
 
-        inline void ProcessMessage(const std::shared_ptr<WSListenerImpl>& parent, const std::shared_ptr<char>& buffer, unsigned long long int size, const std::shared_ptr<WSocketImpl>& websocket, const std::shared_ptr<unsigned char>& header) {
+        inline void ProcessMessage(const std::shared_ptr<WSListenerImpl>& parent, unsigned char* buffer, unsigned long long int size, const std::shared_ptr<WSocketImpl>& websocket) {
             unsigned char mask[4];
-            memcpy(mask, buffer.get(), 4);
-            auto p = buffer.get() + 4;
+            memcpy(mask, buffer, 4);
+            auto p = buffer + 4;
             for (decltype(size) c = 0; c < size - 4; c++) {
                 p[c] = p[c] ^ mask[c % 4];
             }
-            auto unpacked = WSReceiveMessage{ p, size - 4, getOpCode(header.get()) };
+
+            auto unpacked = WSReceiveMessage{ p, size - 4, getOpCode(websocket->ReceiveHeader) };
             WSocket ws(websocket);
             parent->onMessage(ws, unpacked);
         }
-        inline void ProcessMessage(const std::shared_ptr<WSClientImpl>& parent, const std::shared_ptr<char>& buffer, unsigned long long int  size, const std::shared_ptr<WSocketImpl>& websocket, const std::shared_ptr<unsigned char>& header) {
-            auto unpacked = WSReceiveMessage{ buffer.get(), size, getOpCode(header.get()) };
+        inline void ProcessMessage(const std::shared_ptr<WSClientImpl>& parent, unsigned char* buffer, unsigned long long int  size, const std::shared_ptr<WSocketImpl>& websocket) {
+            auto unpacked = WSReceiveMessage{ buffer, size, getOpCode(websocket->ReceiveHeader) };
             WSocket ws(websocket);
             parent->onMessage(ws, unpacked);
         }
 
-        template<class SOCKETTYPE>inline void writeend(const std::shared_ptr<WSClientImpl>& parent, const std::shared_ptr<WSocketImpl>& websocket, const SOCKETTYPE& socket, const WSSendMessage& msg) {
+        template<class SOCKETTYPE, class SENDBUFFERTYPE>inline void writeend(const std::shared_ptr<WSClientImpl>& parent, const std::shared_ptr<WSocketImpl>& websocket, const SOCKETTYPE& socket, const SENDBUFFERTYPE& msg) {
             UNUSED(parent);
             std::uniform_int_distribution<unsigned int> dist(0, 255);
             std::random_device rd;
@@ -385,7 +395,7 @@ namespace SL {
                 }
             });
         }
-        template<class SOCKETTYPE>inline void writeend(const std::shared_ptr<WSListenerImpl>& parent, const std::shared_ptr<WSocketImpl>& websocket, const SOCKETTYPE& socket, const WSSendMessage& msg) {
+        template<class SOCKETTYPE, class SENDBUFFERTYPE>inline void writeend(const std::shared_ptr<WSListenerImpl>& parent, const std::shared_ptr<WSocketImpl>& websocket, const SOCKETTYPE& socket, const SENDBUFFERTYPE& msg) {
             UNUSED(parent);
             boost::asio::async_write(*socket, boost::asio::buffer(msg.Data, static_cast<size_t>(msg.len)), [parent, websocket, socket, msg](const boost::system::error_code& ec, size_t bytes_transferred) {
                 UNUSED(bytes_transferred);
@@ -403,7 +413,7 @@ namespace SL {
             });
         }
 
-        template<class PARENTTYPE, class SOCKETTYPE>inline void write(const std::shared_ptr<PARENTTYPE>& parent, const std::shared_ptr<WSocketImpl>& websocket, const SOCKETTYPE& socket, const WSSendMessage& msg) {
+        template<class PARENTTYPE, class SOCKETTYPE, class SENDBUFFERTYPE>inline void write(const std::shared_ptr<PARENTTYPE>& parent, const std::shared_ptr<WSocketImpl>& websocket, const SOCKETTYPE& socket, const SENDBUFFERTYPE& msg) {
             size_t sendsize = 16;
             auto header(std::shared_ptr<unsigned char>(new unsigned char[sendsize], [](unsigned char* p) { delete[] p; }));
             setFin(header.get(), 0xFF);
@@ -453,21 +463,21 @@ namespace SL {
                 }
             }
         }
-        template <class PARENTTYPE, class SOCKETTYPE>inline void ReadBody(const std::shared_ptr<PARENTTYPE>& parent, const std::shared_ptr<WSocketImpl>& websocket, const SOCKETTYPE& socket, const std::shared_ptr<unsigned char>& header, size_t payloadlen) {
+        template <class PARENTTYPE, class SOCKETTYPE>inline void ReadBody(const std::shared_ptr<PARENTTYPE>& parent, const std::shared_ptr<WSocketImpl>& websocket, const SOCKETTYPE& socket, size_t payloadlen) {
 
             readexpire_from_now(parent, websocket, socket, parent->ReadTimeout);
             unsigned long long int size = 0;
             switch (payloadlen) {
             case 2:
-                size = swap_endian(getpayloadLength2(header.get()));
+                size = swap_endian(getpayloadLength2(websocket->ReceiveHeader));
                 break;
             case 8:
-                size = swap_endian(getpayloadLength8(header.get()));
+                size = swap_endian(getpayloadLength8(websocket->ReceiveHeader));
                 break;
             default:
-                size = getpayloadLength1(header.get());
+                size = getpayloadLength1(websocket->ReceiveHeader);
             }
-            auto opcode = getOpCode(header.get());
+            auto opcode = getOpCode(websocket->ReceiveHeader);
             SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "ReadBody size " << size << " opcode " << opcode);
             if ((opcode == OpCode::PING || opcode == OpCode::PONG || opcode == OpCode::CLOSE) && size > 125) {
                 return closesocket(parent, websocket, socket, 1002, "Payload exceeded for control frames. Size requested " + std::to_string(size));
@@ -479,34 +489,38 @@ namespace SL {
                 return closesocket(parent, websocket, socket, 1000, "Close requested by the other side");
             }
             size += AdditionalBodyBytesToRead<PARENTTYPE>();
-            if (size > parent->MaxPayload) {
+            if (static_cast<size_t>(size) > parent->MaxPayload || size > std::numeric_limits<std::size_t>::max()) {
                 return closesocket(parent, websocket, socket, 1009, "Payload exceeded MaxPayload size");
             }
             if (size > 0) {
-                realloc(websocket->ReceiveBuffer, static_cast<size_t>(size));
-                boost::asio::async_read(*socket, boost::asio::buffer(websocket->ReceiveBuffer, static_cast<size_t>(size)), [parent, websocket, socket, header, size](const boost::system::error_code& ec, size_t bytes_transferred) {
+                websocket->ReceiveBuffer = static_cast<unsigned char*>(realloc(websocket->ReceiveBuffer, static_cast<size_t>(size)));
+                if (!websocket->ReceiveBuffer) {
+                    SL_WS_LITE_LOG(Logging_Levels::ERROR_log_level, "MEMORY ALLOCATION ERROR!!!");
+                    return closesocket(parent, websocket, socket, 1009, "Payload exceeded MaxPayload size");
+                }
+                boost::asio::async_read(*socket, boost::asio::buffer(websocket->ReceiveBuffer, static_cast<size_t>(size)), [parent, websocket, socket, size](const boost::system::error_code& ec, size_t bytes_transferred) {
                     WSocket wsocket(websocket);
                     if (!ec) {
                         assert(size == bytes_transferred);
                         if (size != bytes_transferred) {
                             return closesocket(parent, websocket, socket, 1002, "Did not receive all bytes ... ");
                         }
-                        else if (getOpCode(header.get()) == OpCode::PING) {
+                        else if (getOpCode(websocket->ReceiveHeader) == OpCode::PING) {
                             if (parent->onPing) {
-                                parent->onPing(wsocket, buffer.get() + 4, static_cast<size_t>(size - 4));
+                                parent->onPing(wsocket, websocket->ReceiveBuffer + AdditionalBodyBytesToRead<PARENTTYPE>(), static_cast<size_t>(size - AdditionalBodyBytesToRead<PARENTTYPE>()));
                             }
-                            auto sendmessage = WSSendMessage{ buffer ,buffer.get() + 4, size - 4, OpCode::PONG };
+                            auto sendmessage = WSSendMessageInternal{ websocket->ReceiveBuffer + AdditionalBodyBytesToRead<PARENTTYPE>(), size - AdditionalBodyBytesToRead<PARENTTYPE>(), OpCode::PONG, false };
                             SL::WS_LITE::write(parent, websocket, socket, sendmessage);
                         }
-                        else if (getOpCode(header.get()) == OpCode::PONG) {
+                        else if (getOpCode(websocket->ReceiveHeader) == OpCode::PONG) {
                             if (parent->onPong) {
-                                parent->onPong(wsocket, buffer.get() + 4, static_cast<size_t>(size - 4));
+                                parent->onPong(wsocket, websocket->ReceiveBuffer + AdditionalBodyBytesToRead<PARENTTYPE>(), static_cast<size_t>(size - AdditionalBodyBytesToRead<PARENTTYPE>()));
                             }
                         }
                         else if (parent->onMessage) {
-                            ProcessMessage(parent, size, websocket, header);
+                            ProcessMessage(parent, websocket->ReceiveBuffer, size, websocket);
                         }
-                        ReadHeader(parent, websocket, socket);
+                        ReadHeaderStart(parent, websocket, socket);
                     }
                     else {
                         return closesocket(parent, websocket, socket, 1002, "ReadBody Error " + ec.message());
@@ -514,13 +528,12 @@ namespace SL {
                 });
             }
             else {
-                std::shared_ptr<char> buffer;
                 WSocket wsocket(websocket);
                 if (opcode == OpCode::PING) {
                     if (parent->onPing) {
                         parent->onPing(wsocket, nullptr, 0);
                     }
-                    auto sendmessage = WSSendMessage{ buffer  ,nullptr, 0, OpCode::PONG };
+                    auto sendmessage = WSSendMessageInternal{ nullptr, 0, OpCode::PONG , false };
                     SL::WS_LITE::write(parent, websocket, socket, sendmessage);
                 }
                 else if (opcode == OpCode::PONG) {
@@ -529,24 +542,29 @@ namespace SL {
                     }
                 }
                 else if (parent->onMessage) {
-                    ProcessMessage(parent, buffer, 0, websocket, header);
+                    ProcessMessage(parent, websocket->ReceiveBuffer, 0, websocket);
                 }
-                ReadHeader(parent, websocket, socket);
+                ReadHeaderStart(parent, websocket, socket);
             }
         }
-
-        template <class PARENTTYPE, class SOCKETTYPE>inline void ReadHeader(const std::shared_ptr<PARENTTYPE>& parent, const std::shared_ptr<WSocketImpl>& websocket, const SOCKETTYPE& socket) {
+        template <class PARENTTYPE, class SOCKETTYPE>inline void ReadHeaderStart(const std::shared_ptr<PARENTTYPE>& parent, const std::shared_ptr<WSocketImpl>& websocket, const SOCKETTYPE& socket) {
+            free(websocket->ReceiveBuffer);
+            websocket->ReceiveBuffer = nullptr;
+            ReadHeaderNext(parent, websocket, socket);
+        }
+        template <class PARENTTYPE, class SOCKETTYPE>inline void ReadHeaderNext(const std::shared_ptr<PARENTTYPE>& parent, const std::shared_ptr<WSocketImpl>& websocket, const SOCKETTYPE& socket) {
             readexpire_from_now(parent, websocket, socket, parent->ReadTimeout);
-            auto buff(std::shared_ptr<unsigned char>(new unsigned char[16], [](unsigned char *p) { delete[] p; }));
-            boost::asio::async_read(*socket, boost::asio::buffer(buff.get(), 2), [parent, websocket, socket, buff](const boost::system::error_code& ec, size_t bytes_transferred) {
+            free(websocket->ReceiveBuffer);
+            websocket->ReceiveBuffer = nullptr;
+            boost::asio::async_read(*socket, boost::asio::buffer(websocket->ReceiveHeader, 2), [parent, websocket, socket](const boost::system::error_code& ec, size_t bytes_transferred) {
                 UNUSED(bytes_transferred);
                 if (!ec) {
                     assert(bytes_transferred == 2);
-                    if (!DidPassMaskRequirement<PARENTTYPE>(buff)) {//Close connection if it did not meet the mask requirement. 
-                        return closesocket(parent, websocket,  socket,1002, "Closing connection because mask requirement not met");
+                    if (!DidPassMaskRequirement<PARENTTYPE>(websocket->ReceiveHeader)) {//Close connection if it did not meet the mask requirement. 
+                        return closesocket(parent, websocket, socket, 1002, "Closing connection because mask requirement not met");
                     }
                     else {
-                        size_t readbytes = getpayloadLength1(buff.get());
+                        size_t readbytes = getpayloadLength1(websocket->ReceiveHeader);
                         switch (readbytes) {
                         case 126:
                             readbytes = 2;
@@ -560,12 +578,12 @@ namespace SL {
 
                         SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "ReadHeader readbytes " << readbytes);
                         if (readbytes > 1) {
-                            boost::asio::async_read(*socket, boost::asio::buffer(buff.get() + 2, readbytes), [parent, websocket, socket, buff, readbytes](const boost::system::error_code& ec, size_t bytes_transferred) {
+                            boost::asio::async_read(*socket, boost::asio::buffer(websocket->ReceiveHeader + 2, readbytes), [parent, websocket, socket, readbytes](const boost::system::error_code& ec, size_t bytes_transferred) {
                                 if (readbytes != bytes_transferred) {
                                     return closesocket(parent, websocket, socket, 1002, "Did not receive all bytes ... ");
                                 }
                                 else if (!ec) {
-                                    ReadBody(parent, websocket, socket, buff, readbytes);
+                                    ReadBody(parent, websocket, socket, readbytes);
                                 }
                                 else {
                                     return closesocket(parent, websocket, socket, 1002, "readheader ExtendedPayloadlen " + ec.message());
@@ -573,7 +591,7 @@ namespace SL {
                             });
                         }
                         else {
-                            ReadBody(parent, websocket, socket, buff, readbytes);
+                            ReadBody(parent, websocket, socket, readbytes);
                         }
                     }
                 }

@@ -40,7 +40,7 @@ namespace SL {
                                 if (listener->onConnection) {
                                     listener->onConnection(websocket, handshakecontainer->Header);
                                 }
-                                ReadHeader(listener, sock, socket);
+                                ReadHeaderStart(listener, sock, socket);
                             }
                             else {
                                 SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "WebSocket receivehandshake failed " + ec.message());
@@ -139,16 +139,16 @@ namespace SL {
         void WSListener::onDisconnection(const std::function<void(WSocket&, unsigned short, const std::string&)>& handle) {
             Impl_->onDisconnection = handle;
         }
-        void WSListener::onPing(std::function<void(WSocket&, const char *, size_t)>& handle) {
+        void WSListener::onPing(std::function<void(WSocket&, const unsigned char *, size_t)>& handle) {
             Impl_->onPing = handle;
         }
-        void WSListener::onPing(const std::function<void(WSocket&, const char *, size_t)>& handle) {
+        void WSListener::onPing(const std::function<void(WSocket&, const unsigned char *, size_t)>& handle) {
             Impl_->onPing = handle;
         }
-        void WSListener::onPong(std::function<void(WSocket&, const char *, size_t)>& handle) {
+        void WSListener::onPong(std::function<void(WSocket&, const unsigned char *, size_t)>& handle) {
             Impl_->onPong = handle;
         }
-        void WSListener::onPong(const std::function<void(WSocket&, const char *, size_t)>& handle) {
+        void WSListener::onPong(const std::function<void(WSocket&, const unsigned char *, size_t)>& handle) {
             Impl_->onPong = handle;
         }
         void WSListener::onHttpUpgrade(std::function<void(WSocket&)>& handle) {
@@ -169,7 +169,7 @@ namespace SL {
         unsigned int WSListener::get_WriteTimeout() {
             return  Impl_->WriteTimeout;
         }
-        void WSListener::set_MaxPayload(unsigned long long int bytes) {
+        void WSListener::set_MaxPayload(size_t bytes) {
             Impl_->MaxPayload = bytes;
         }
         unsigned long long int WSListener::get_MaxPayload() {

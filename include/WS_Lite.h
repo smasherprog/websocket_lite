@@ -32,7 +32,7 @@ namespace SL {
         };
         //this is the message after being uncompressed
         struct WSReceiveMessage {
-            const char *data;
+            const unsigned char *data;
             unsigned long long int len;
             OpCode code;
         };
@@ -82,19 +82,19 @@ namespace SL {
             //when a socket is closed down for ANY reason. If onconnect is called, then a matching onDisconnection is guaranteed
             void onDisconnection(const std::function<void(WSocket&, unsigned short , const std::string&)>& handle);
             //when a ping is received from a client
-            void onPing(std::function<void(WSocket&, const char *, size_t)>& handle);            
+            void onPing(std::function<void(WSocket&, const unsigned char *, size_t)>& handle);            
             //when a ping is received from a client
-            void onPing(const std::function<void(WSocket&, const char *, size_t)>& handle);
+            void onPing(const std::function<void(WSocket&, const unsigned char *, size_t)>& handle);
             //when a pong is received from a client
-            void onPong(std::function<void(WSocket&, const char *, size_t)>& handle);
+            void onPong(std::function<void(WSocket&, const unsigned char *, size_t)>& handle);
             //when a pong is received from a client
-            void onPong(const std::function<void(WSocket&, const char *, size_t)>& handle);
+            void onPong(const std::function<void(WSocket&, const unsigned char *, size_t)>& handle);
             //before onconnection is called, the conection is upgraded
             void onHttpUpgrade(std::function<void(WSocket&)>& handle);
             //before onconnection is called, the conection is upgraded
             void onHttpUpgrade(const std::function<void(WSocket&)>& handle);
             //the maximum payload size
-            void set_MaxPayload(unsigned long long int bytes);
+            void set_MaxPayload(size_t bytes);
             //the maximum payload size
             unsigned long long int get_MaxPayload();
             //maximum time in seconds before a client is considered disconnected -- for reads
@@ -138,19 +138,19 @@ namespace SL {
             //when a socket is closed down for ANY reason. If onconnect is called, then a matching onDisconnection is guaranteed
             void onDisconnection(const std::function<void(WSocket&, unsigned short, const std::string&)>& handle);
             //when a ping is received from a client
-            void onPing(std::function<void(WSocket&, const char *, size_t)>& handle);
+            void onPing(std::function<void(WSocket&, const unsigned char *, size_t)>& handle);
             //when a ping is received from a client
-            void onPing(const std::function<void(WSocket&, const char *, size_t)>& handle);
+            void onPing(const std::function<void(WSocket&, const unsigned char *, size_t)>& handle);
             //when a pong is received from a client
-            void onPong(std::function<void(WSocket&, const char *, size_t)>& handle);
+            void onPong(std::function<void(WSocket&, const unsigned char *, size_t)>& handle);
             //when a pong is received from a client
-            void onPong(const std::function<void(WSocket&, const char *, size_t)>& handle);
+            void onPong(const std::function<void(WSocket&, const unsigned char *, size_t)>& handle);
             //before onconnection is called, the conection is upgraded
             void onHttpUpgrade(std::function<void(WSocket&)>& handle);
             //before onconnection is called, the conection is upgraded
             void onHttpUpgrade(const std::function<void(WSocket&)>& handle);
             //the maximum payload size
-            void set_MaxPayload(unsigned long long int bytes);
+            void set_MaxPayload(size_t bytes);
             //the maximum payload size
             unsigned long long int get_MaxPayload();
             //maximum time in seconds before a client is considered disconnected -- for reads

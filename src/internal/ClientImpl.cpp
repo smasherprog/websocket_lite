@@ -47,7 +47,7 @@ namespace SL {
                                 if (read_buffer->size() > bytes_transferred) {
                                     SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "Read Extra Data "<< read_buffer->size() - bytes_transferred);
                                 }
-                                ReadHeader(self, websocket, socket);
+                                ReadHeaderStart(self, websocket, socket);
                             }
                             else {
                                 SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "WebSocket handshake failed  ");
@@ -182,16 +182,16 @@ namespace SL {
         void WSClient::onDisconnection(const std::function<void(WSocket&, unsigned short, const std::string&)>& handle) {
             Impl_->onDisconnection = handle;
         }
-        void WSClient::onPing(std::function<void(WSocket&, const char *, size_t)>& handle) {
+        void WSClient::onPing(std::function<void(WSocket&, const unsigned char *, size_t)>& handle) {
             Impl_->onPing = handle;
         }
-        void WSClient::onPing(const std::function<void(WSocket&, const char *, size_t)>& handle) {
+        void WSClient::onPing(const std::function<void(WSocket&, const unsigned char *, size_t)>& handle) {
             Impl_->onPing = handle;
         }
-        void WSClient::onPong(std::function<void(WSocket&, const char *, size_t)>& handle) {
+        void WSClient::onPong(std::function<void(WSocket&, const unsigned char *, size_t)>& handle) {
             Impl_->onPong = handle;
         }
-        void WSClient::onPong(const std::function<void(WSocket&, const char *, size_t)>& handle) {
+        void WSClient::onPong(const std::function<void(WSocket&, const unsigned char *, size_t)>& handle) {
             Impl_->onPong = handle;
         }
         void WSClient::onHttpUpgrade(std::function<void(WSocket&)>& handle) {
@@ -212,7 +212,7 @@ namespace SL {
         unsigned int WSClient::get_WriteTimeout() {
             return  Impl_->WriteTimeout;
         }
-        void WSClient::set_MaxPayload(unsigned long long int bytes) {
+        void WSClient::set_MaxPayload(size_t bytes) {
             Impl_->MaxPayload = bytes;
         }
         unsigned long long int WSClient::get_MaxPayload() {
