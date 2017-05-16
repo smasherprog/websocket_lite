@@ -480,33 +480,50 @@ namespace SL {
         }
         template <class PARENTTYPE, class SOCKETTYPE>inline void ProcessBody(const std::shared_ptr<PARENTTYPE>& parent, const std::shared_ptr<WSocketImpl>& websocket, const SOCKETTYPE& socket, size_t payloadlen) {
             UnMaskMessage(parent, websocket, payloadlen);
-            if (!getFin(websocket->ReceiveHeader)) {
-                ReadHeaderNext(parent, websocket, socket);
+            auto opcode = getOpCode(websocket->ReceiveHeader);
+            if (!getFin(websocket->ReceiveHeader)) {//not a final frame.. must be either text, binary or continuation
+                if (opcode == OpCode::CONTINUATION && websocket->ReceiveBufferSize == 0) {
+                    return closesocket(parent, websocket, socket, 1002, "Continuation Received without a previous frame");
+                }
+                else if (opcode == OpCode::BINARY || opcode == OpCode::TEXT || opcode == OpCode::CONTINUATION) {
+                    ReadHeaderNext(parent, websocket, socket);
+                }
+                else {
+                    return closesocket(parent, websocket, socket, 1002, "Only Binary, Text or continuation are valid on non fin msgs");
+                }
+
             }
             else {
                 WSocket wsocket(websocket);
-                if (getOpCode(websocket->ReceiveHeader) == OpCode::PING) {
+                switch (opcode)
+                {
+                case OpCode::PING:
                     if (parent->onPing) {
                         parent->onPing(wsocket, websocket->ReceiveBuffer, websocket->ReceiveBufferSize);
                     }
                     auto sendmessage = WSSendMessageInternal{ websocket->ReceiveBuffer,  websocket->ReceiveBufferSize, OpCode::PONG, false };
                     SL::WS_LITE::write(parent, websocket, socket, sendmessage);
-                }
-                else if (getOpCode(websocket->ReceiveHeader) == OpCode::PONG) {
+                    break;
+                case OpCode::PONG:
                     if (parent->onPong) {
                         parent->onPong(wsocket, websocket->ReceiveBuffer, websocket->ReceiveBufferSize);
                     }
-                }
-                else if (getOpCode(websocket->ReceiveHeader) == OpCode::CLOSE) {
-
-
+                    break;
+                case OpCode::CLOSE:
                     return closesocket(parent, websocket, socket, 1000, "Close requested by the other side");
+                case OpCode::CONTINUATION:
+                    if (websocket->ReceiveBufferSize == 0) {
+                        return closesocket(parent, websocket, socket, 1002, "Continuation Received without a previous frame");
+                    }
+
+                default:
+                    if (parent->onMessage) {
+                        auto unpacked = WSReceiveMessage{ websocket->ReceiveBuffer,  websocket->ReceiveBufferSize, getOpCode(websocket->ReceiveHeader) };
+                        parent->onMessage(wsocket, unpacked);
+                    }
+                    ReadHeaderStart(parent, websocket, socket);
+                    break;
                 }
-                if (parent->onMessage) {
-                    auto unpacked = WSReceiveMessage{ websocket->ReceiveBuffer,  websocket->ReceiveBufferSize, getOpCode(websocket->ReceiveHeader) };
-                    parent->onMessage(wsocket, unpacked);
-                }
-                ReadHeaderStart(parent, websocket, socket);
             }
 
         }
@@ -519,14 +536,7 @@ namespace SL {
                 size = swap_endian(getpayloadLength2(websocket->ReceiveHeader));
                 break;
             case 8:
-#if INTPTR_MAX == INT64_MAX
                 size = swap_endian(getpayloadLength8(websocket->ReceiveHeader));
-#elif INTPTR_MAX == INT32_MAX
-                SL_WS_LITE_LOG(Logging_Levels::ERROR_log_level, "payload exceeds memory on system!!! ");
-                return closesocket(parent, websocket, socket, 1009, "Payload exceeded MaxPayload size");
-#else
-#error This platform is not suppprted!
-#endif
                 break;
             default:
                 size = getpayloadLength1(websocket->ReceiveHeader);
@@ -537,9 +547,6 @@ namespace SL {
                 return closesocket(parent, websocket, socket, 1002, "Payload exceeded for control frames. Size requested " + std::to_string(size));
             }
             size += AdditionalBodyBytesToRead<PARENTTYPE>();
-            if (!getFin(websocket->ReceiveHeader) && opcode != OpCode::BINARY && opcode != OpCode::TEXT) {
-                return closesocket(parent, websocket, socket, 1002, "Continuation frame received that is not binary or text! ");
-            }
 
             auto addedsize = static_cast<unsigned long long int>(websocket->ReceiveBufferSize) + static_cast<unsigned long long int>(size);
             if (addedsize > std::numeric_limits<std::size_t>::max()) {
