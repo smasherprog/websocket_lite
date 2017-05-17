@@ -22,6 +22,43 @@
 
 namespace SL {
     namespace WS_LITE {
+
+        inline char* ZlibInflate(char *data, size_t &length, size_t maxPayload, std::string& dynamicInflationBuffer, z_stream& inflationStream, char* inflationBuffer) {
+            dynamicInflationBuffer.clear();
+
+            inflationStream.next_in = (Bytef *)data;
+            inflationStream.avail_in = length;
+
+            int err;
+            do {
+                inflationStream.next_out = (Bytef *)inflationBuffer;
+                inflationStream.avail_out = LARGE_BUFFER_SIZE;
+                err = ::inflate(&inflationStream, Z_FINISH);
+                if (!inflationStream.avail_in) {
+                    break;
+                }
+
+                dynamicInflationBuffer.append(inflationBuffer, LARGE_BUFFER_SIZE - inflationStream.avail_out);
+            } while (err == Z_BUF_ERROR && dynamicInflationBuffer.length() <= maxPayload);
+
+            inflateReset(&inflationStream);
+
+            if ((err != Z_BUF_ERROR && err != Z_OK) || dynamicInflationBuffer.length() > maxPayload) {
+                length = 0;
+                return nullptr;
+            }
+
+            if (dynamicInflationBuffer.length()) {
+                dynamicInflationBuffer.append(inflationBuffer, LARGE_BUFFER_SIZE - inflationStream.avail_out);
+
+                length = dynamicInflationBuffer.length();
+                return (char *)dynamicInflationBuffer.data();
+            }
+
+            length = LARGE_BUFFER_SIZE - inflationStream.avail_out;
+            return inflationBuffer;
+        }
+
         template<class T>std::string get_address(T& _socket)
         {
             boost::system::error_code ec;
@@ -175,12 +212,11 @@ namespace SL {
             std::shared_ptr<WSocketImpl> socket;
             WSSendMessage msg;
         }; 
-        static const int LARGE_BUFFER_SIZE = 300 * 1024;
         struct WSContext {
             WSContext() :
                 work(std::make_unique<boost::asio::io_service::work>(io_service)) {
                 inflationBuffer = std::make_unique<char[]>(LARGE_BUFFER_SIZE);
-                inflateInit2(&inflationStream, -15);
+                inflateInit2(&inflationStream, -MAX_WBITS);
                 io_servicethread = std::thread([&]() {
                     boost::system::error_code ec;
                     io_service.run(ec);

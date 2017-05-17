@@ -190,6 +190,8 @@ namespace SL {
         }
 
         const std::string ws_magic_string = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
+        const int LARGE_BUFFER_SIZE = 300 * 1024;
+
         inline bool Generate_Handshake(std::unordered_map<std::string, std::string>& header, std::ostream & handshake)
         {
             auto header_it = header.find(HTTP_SECWEBSOCKETKEY);
@@ -208,5 +210,6 @@ namespace SL {
 
             return true;
         }
+  
     }
 }
