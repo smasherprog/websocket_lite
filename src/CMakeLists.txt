@@ -33,7 +33,6 @@ endif()
 set(WEBSOCKET_LITE_COMMON_SRC 
 	${CMAKE_CURRENT_SOURCE_DIR}/../include/internal/WebSocketProtocol.h
 	${CMAKE_CURRENT_SOURCE_DIR}/../include/internal/Utils.h
-	${CMAKE_CURRENT_SOURCE_DIR}/../include/internal/SHA.h
 	${CMAKE_CURRENT_SOURCE_DIR}/../include/Logging.h
 	${CMAKE_CURRENT_SOURCE_DIR}/../include/WS_Lite.h
 	${CMAKE_CURRENT_SOURCE_DIR}/../src/internal/ListenerImpl.cpp
@@ -42,10 +41,12 @@ set(WEBSOCKET_LITE_COMMON_SRC
 
 find_package(Boost COMPONENTS system date_time REQUIRED)
 find_package(OpenSSL REQUIRED)
+find_package(ZLIB REQUIRED)
 
 set(WEBSOCKET_LITE_INCLUDE_DIRS 
 	${OPENSSL_INCLUDE_DIR}
 	${Boost_INCLUDE_DIRS}
+	${ZLIB_INCLUDE_DIRS}
 	${CMAKE_CURRENT_SOURCE_DIR}/../include
 	${CMAKE_CURRENT_SOURCE_DIR}/../libcppcodec
 	${CMAKE_CURRENT_SOURCE_DIR}/../src
@@ -55,6 +56,7 @@ set(WEBSOCKET_LITE_INCLUDE_DIRS
 
 set(WEBSOCKET_LITE_LIBS
 	${OPENSSL_LIBRARIES} 
+	${ZLIB_LIBRARIES}
 	${Boost_LIBRARIES}
 	${PROJECT_NAME}
 	CACHE INTERNAL "${PROJECT_NAME}: Include Libraries" FORCE

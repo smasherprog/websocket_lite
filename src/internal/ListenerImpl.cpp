@@ -27,6 +27,9 @@ namespace SL {
                     if (Generate_Handshake(handshakecontainer->Header, handshake)) {
                         auto sock = std::make_shared<WSocketImpl>(listener->io_service);
                         WSocket websocket(sock);
+                        if (handshakecontainer->Header.find(PERMESSAGEDEFLATE) != handshakecontainer->Header.end()) {
+                            sock->CompressionEnabled = true;
+                        }
                         set_Socket(sock, socket);
                         if (listener->onHttpUpgrade) {
                             listener->onHttpUpgrade(websocket);

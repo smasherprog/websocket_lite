@@ -17,10 +17,32 @@ namespace SL {
 
             return preverified;
         }
+
+
         template<class SOCKETTYPE>void ConnectHandshake(std::shared_ptr<WSClientImpl> self, SOCKETTYPE& socket) {
             auto write_buffer(std::make_shared<boost::asio::streambuf>());
             std::ostream request(write_buffer.get());
-            auto accept_sha1 = Generate_Handshake(get_address(socket), request);
+
+            request << "GET /rdpenpoint/ HTTP/1.1" << HTTP_ENDLINE;
+            request << HTTP_HOST << HTTP_KEYVALUEDELIM << get_address(socket) << HTTP_ENDLINE;
+            request << "Upgrade: websocket" << HTTP_ENDLINE;
+            request << "Connection: Upgrade" << HTTP_ENDLINE;
+
+            //Make random 16-byte nonce
+            std::string nonce;
+            nonce.resize(16);
+            std::uniform_int_distribution<unsigned int> dist(0, 255);
+            std::random_device rd;
+            for (int c = 0; c < 16; c++) {
+                nonce[c] = static_cast<unsigned char>(dist(rd));
+            }
+
+            auto nonce_base64 = Base64encode(nonce);
+            request << HTTP_SECWEBSOCKETKEY << HTTP_KEYVALUEDELIM << nonce_base64 << HTTP_ENDLINE;
+            request << "Sec-WebSocket-Version: 13" << HTTP_ENDLINE << HTTP_ENDLINE;
+            request << HTTP_SECWEBSOCKETEXTENSIONS << HTTP_KEYVALUEDELIM << PERMESSAGEDEFLATE << HTTP_ENDLINE;
+
+            auto accept_sha1 = SHA1(nonce_base64 + ws_magic_string);
 
             boost::asio::async_write(*socket, *write_buffer, [write_buffer, accept_sha1, socket, self](const boost::system::error_code& ec, size_t bytes_transferred) {
                 UNUSED(bytes_transferred);
@@ -33,9 +55,14 @@ namespace SL {
                             std::istream stream(read_buffer.get());
                             std::unordered_map<std::string, std::string> header;
                             Parse_Handshake("1.1", stream, header);
-                            if (cppcodec::base64_rfc4648::decode<std::string>(header[HTTP_SECWEBSOCKETACCEPT]) == accept_sha1) {
+                            if (Base64decode(header[HTTP_SECWEBSOCKETACCEPT]) == accept_sha1) {
+
+
                                 SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "Connected ");
                                 auto websocket = std::make_shared<WSocketImpl>(self->io_service);
+                                if (header.find(PERMESSAGEDEFLATE) != header.end()) {
+                                    websocket->CompressionEnabled = true;
+                                }
                                 set_Socket(websocket, socket);
                                 WSocket wsocket(websocket);
                                 if (self->onHttpUpgrade) {
@@ -45,7 +72,7 @@ namespace SL {
                                     self->onConnection(wsocket, header);
                                 }
                                 if (read_buffer->size() > bytes_transferred) {
-                                    SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "Read Extra Data "<< read_buffer->size() - bytes_transferred);
+                                    SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "Read Extra Data " << read_buffer->size() - bytes_transferred);
                                 }
                                 ReadHeaderStart(self, websocket, socket);
                             }
@@ -93,7 +120,7 @@ namespace SL {
                     std::shared_ptr<WSocketImpl> emptysocket;
                     WSocket ws(emptysocket);
                     if (self->onDisconnection) {
-                        self->onDisconnection(ws, 1002, "Failed async_handshake " +ec.message());
+                        self->onDisconnection(ws, 1002, "Failed async_handshake " + ec.message());
                     }
                 }
             });

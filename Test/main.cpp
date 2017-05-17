@@ -16,8 +16,10 @@ void wssautobahntest() {
     listener.onConnection([](SL::WS_LITE::WSocket socket, const std::unordered_map<std::string, std::string>& header) {
         SL_WS_LITE_LOG(SL::WS_LITE::Logging_Levels::INFO_log_level, "listener::onConnection");
     });
-    listener.startlistening();
-    system("wstest -m fuzzingclient -s wssfuzzingclient.json");
+    listener.startlistening(); 
+    std::string cmd = "wstest -m fuzzingclient -s ";
+    cmd += TEST_FUZZING_PATH;
+    system(cmd.c_str());
 }
 int main(int argc, char* argv[]) {
 

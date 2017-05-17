@@ -1,7 +1,5 @@
 #pragma once
-
-#include "cppcodec/base64_rfc4648.hpp"
-#include "internal/SHA.h"
+#include "WS_Lite.h"
 
 #include <unordered_map>
 #include <sstream>
@@ -11,8 +9,93 @@
 #include <random>
 #include <fstream>
 
+#include <openssl/evp.h>
+#include <openssl/buffer.h>
+#include <openssl/sha.h>
+#include <openssl/md5.h>
+
 namespace SL {
     namespace WS_LITE {
+
+
+        template<class type>
+        void SHA1(const type& input, type& hash) {
+            SHA_CTX context;
+            SHA1_Init(&context);
+            SHA1_Update(&context, &input[0], input.size());
+
+            hash.resize(160 / 8);
+            SHA1_Final((unsigned char*)&hash[0], &context);
+        }
+        template<class type>
+        type SHA1(const type& input) {
+            type hash;
+            SHA1(input, hash);
+            return hash;
+        }
+
+        template<class type>
+        void Base64encode(const type& ascii, type& base64) {
+            BIO *bio, *b64;
+            BUF_MEM *bptr;
+
+            b64 = BIO_new(BIO_f_base64());
+            BIO_set_flags(b64, BIO_FLAGS_BASE64_NO_NL);
+            bio = BIO_new(BIO_s_mem());
+            BIO_push(b64, bio);
+            BIO_get_mem_ptr(b64, &bptr);
+
+            //Write directly to base64-buffer to avoid copy
+            int base64_length = static_cast<int>(round(4 * ceil((double)ascii.size() / 3.0)));
+            base64.resize(base64_length);
+            bptr->length = 0;
+            bptr->max = base64_length + 1;
+            bptr->data = (char*)&base64[0];
+
+            BIO_write(b64, &ascii[0], static_cast<int>(ascii.size()));
+            BIO_flush(b64);
+
+            //To keep &base64[0] through BIO_free_all(b64)
+            bptr->length = 0;
+            bptr->max = 0;
+            bptr->data = nullptr;
+
+            BIO_free_all(b64);
+        }
+        template<class type>
+        type Base64encode(const type& ascii) {
+            type base64;
+            Base64encode(ascii, base64);
+            return base64;
+        }
+
+        template<class type>
+        void Base64decode(const type& base64, type& ascii) {
+            //Resize ascii, however, the size is a up to two bytes too large.
+            ascii.resize((6 * base64.size()) / 8);
+            BIO *b64, *bio;
+
+            b64 = BIO_new(BIO_f_base64());
+            BIO_set_flags(b64, BIO_FLAGS_BASE64_NO_NL);
+            bio = BIO_new_mem_buf((char*)&base64[0], static_cast<int>(base64.size()));
+            bio = BIO_push(b64, bio);
+
+            int decoded_length = BIO_read(bio, &ascii[0], static_cast<int>(ascii.size()));
+            ascii.resize(decoded_length);
+
+            BIO_free_all(b64);
+        }
+        template<class type>
+        type Base64decode(const type& base64) {
+            type ascii;
+            Base64decode(base64, ascii);
+            return ascii;
+        }
+
+
+
+
+
         inline std::ifstream::pos_type filesize(const std::string& filename)
         {
             std::ifstream in(filename, std::ifstream::ate | std::ifstream::binary);
@@ -107,41 +190,23 @@ namespace SL {
         }
 
         const std::string ws_magic_string = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
-        inline bool Generate_Handshake(std::unordered_map<std::string, std::string>& header, std::ostream & stream)
+        inline bool Generate_Handshake(std::unordered_map<std::string, std::string>& header, std::ostream & handshake)
         {
             auto header_it = header.find(HTTP_SECWEBSOCKETKEY);
-            if (header_it == header.end())
+            if (header_it == header.end()) {
                 return false;
-
+            }
             auto sha1 = SHA1(header_it->second + ws_magic_string);
-            stream << "HTTP/1.1 101 Web Socket Protocol Handshake" << HTTP_ENDLINE;
-            stream << "Upgrade: websocket" << HTTP_ENDLINE;
-            stream << "Connection: Upgrade" << HTTP_ENDLINE;
+            handshake << "HTTP/1.1 101 Web Socket Protocol Handshake" << HTTP_ENDLINE;
+            handshake << "Upgrade: websocket" << HTTP_ENDLINE;
+            handshake << "Connection: Upgrade" << HTTP_ENDLINE;
+            header_it = header.find(HTTP_SECWEBSOCKETEXTENSIONS);
+            if (header_it != header.end() && header_it->second.find(PERMESSAGEDEFLATE) != std::string::npos) {
+                handshake << HTTP_SECWEBSOCKETEXTENSIONS << HTTP_KEYVALUEDELIM << PERMESSAGEDEFLATE << HTTP_ENDLINE;
+            }
+            handshake << HTTP_SECWEBSOCKETACCEPT << HTTP_KEYVALUEDELIM << Base64encode(sha1) << HTTP_ENDLINE << HTTP_ENDLINE;
 
-            stream << HTTP_SECWEBSOCKETACCEPT << HTTP_KEYVALUEDELIM << cppcodec::base64_rfc4648::encode(sha1) << HTTP_ENDLINE << HTTP_ENDLINE;
             return true;
         }
-        inline std::string Generate_Handshake(const std::string& host_addr, std::ostream & request) {
-
-            request << "GET /rdpenpoint/ HTTP/1.1" << HTTP_ENDLINE;
-            request << HTTP_HOST << HTTP_KEYVALUEDELIM << host_addr << HTTP_ENDLINE;
-            request << "Upgrade: websocket" << HTTP_ENDLINE;
-            request << "Connection: Upgrade" << HTTP_ENDLINE;
-
-            //Make random 16-byte nonce
-            std::string nonce;
-            nonce.resize(16);
-            std::uniform_int_distribution<unsigned int> dist(0, 255);
-            std::random_device rd;
-            for (int c = 0; c < 16; c++) {
-                nonce[c] = static_cast<unsigned char>(dist(rd));
-            }
-
-            auto nonce_base64 = cppcodec::base64_rfc4648::encode<std::string>(nonce);
-            request << HTTP_SECWEBSOCKETKEY << HTTP_KEYVALUEDELIM << nonce_base64 << HTTP_ENDLINE;
-            request << "Sec-WebSocket-Version: 13" << HTTP_ENDLINE << HTTP_ENDLINE;
-            return SHA1(nonce_base64 + ws_magic_string);
-        }
-
     }
 }
