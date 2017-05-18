@@ -208,10 +208,12 @@ namespace SL {
         inline void set_Socket(std::shared_ptr<WSocketImpl>& ws, std::shared_ptr<boost::asio::ip::tcp::socket>  s) {
             ws->Socket = s;
         }
+
         struct SendQueueItem {
             std::shared_ptr<WSocketImpl> socket;
-            WSSendMessage msg;
-        }; 
+            WSMessage msg;
+            bool compressmessage;
+        };
         struct WSContext {
             WSContext() :
                 work(std::make_unique<boost::asio::io_service::work>(io_service)) {
@@ -246,7 +248,7 @@ namespace SL {
             std::unique_ptr<boost::asio::ssl::context> sslcontext;
 
             std::function<void(WSocket&, const std::unordered_map<std::string, std::string>&)> onConnection;
-            std::function<void(WSocket&, WSReceiveMessage&)> onMessage;
+            std::function<void(WSocket&, const WSMessage&)> onMessage;
             std::function<void(WSocket&, unsigned short, const std::string&)> onDisconnection;
             std::function<void(WSocket&, const unsigned char *, size_t)> onPing;
             std::function<void(WSocket&, const unsigned char *, size_t)> onPong;
@@ -328,6 +330,32 @@ namespace SL {
                 acceptor.close(ec);
             }
         };
+        template<class PARENTTYPE>void sendImpl(const std::shared_ptr<PARENTTYPE>& parent, const std::shared_ptr<WSocketImpl>& websocket, WSMessage& msg, bool compressmessage) {
+            if (compressmessage) {
+                assert(msg.code == OpCode::BINARY || msg.code == OpCode::TEXT);
+            }
+            parent->io_service.post([websocket, msg, parent, compressmessage]() {
+                if (parent->SendItems.empty()) {
+                    parent->SendItems.push_front(SendQueueItem{ websocket, msg, compressmessage });
+                    SL::WS_LITE::startwrite(parent);
+                }
+                else {
+                    parent->SendItems.push_front(SendQueueItem{ websocket, msg , compressmessage });
+                }
+            });
+        }
+        template<class PARENTTYPE>void closeImpl(const std::shared_ptr<PARENTTYPE>& parent, const std::shared_ptr<WSocketImpl>& websocket, unsigned short code, const std::string& msg) {
+            WSMessage ws;
+            ws.code = OpCode::CLOSE;
+            auto size = sizeof(code) + msg.size();
+            ws.len = static_cast<unsigned long long int>(size);
+            ws.Buffer = std::shared_ptr<char>(new char[size], [](char* p) { delete[] p; });
+            *reinterpret_cast<unsigned short*>(ws.Buffer.get()) = code;
+            memcpy(ws.Buffer.get() + sizeof(code), msg.c_str(), msg.size());
+            sendImpl(parent, websocket, ws, false);
+        }
+
+
         /*
         0                   1                   2                   3
          0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
@@ -341,11 +369,11 @@ namespace SL {
         + - - - - - - - - - - - - - - - +-------------------------------+
         |                               |Masking-key, if MASK set to 1  |
         +-------------------------------+-------------------------------+
-        | Masking-key (continued)       |          Payload Data         |
+        | Masking-key (continued)       |          Payload data         |
         +-------------------------------- - - - - - - - - - - - - - - - +
-        :                     Payload Data continued ...                :
+        :                     Payload data continued ...                :
         + - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - +
-        |                     Payload Data continued ...                |
+        |                     Payload data continued ...                |
         +---------------------------------------------------------------+
         */
         inline bool getFin(unsigned char* frame) { return *frame & 128; }
@@ -380,7 +408,7 @@ namespace SL {
             std::unordered_map<std::string, std::string> Header;
         };
         struct WSSendMessageInternal {
-            unsigned char* Data;
+            unsigned char* data;
             unsigned long long int  len;
             OpCode code;
             //compress the outgoing message?
@@ -402,7 +430,7 @@ namespace SL {
 
         template<class PARENTYPE, class SOCKETTYPE, class SENDBUFFERTYPE>inline void write_end(const PARENTYPE& parent, const std::shared_ptr<WSocketImpl>& websocket, const SOCKETTYPE& socket, const SENDBUFFERTYPE& msg) {
 
-            boost::asio::async_write(*socket, boost::asio::buffer(msg.Data, static_cast<size_t>(msg.len)), [parent, websocket, socket, msg](const boost::system::error_code& ec, size_t bytes_transferred) {
+            boost::asio::async_write(*socket, boost::asio::buffer(msg.data, static_cast<size_t>(msg.len)), [parent, websocket, socket, msg](const boost::system::error_code& ec, size_t bytes_transferred) {
                 UNUSED(bytes_transferred);
                 assert(static_cast<size_t>(msg.len) == bytes_transferred);
                 if (!parent->SendItems.empty()) {
@@ -427,7 +455,7 @@ namespace SL {
             for (auto c = 0; c < 4; c++) {
                 maskeddata[c] = static_cast<unsigned char>(dist(rd));
             }
-            auto p = reinterpret_cast<unsigned char*>(msg.Data);
+            auto p = reinterpret_cast<unsigned char*>(msg.data);
             for (decltype(msg.len) i = 0; i < msg.len; i++) {
                 *p++ ^= maskeddata[i % 4];
             }
@@ -551,7 +579,7 @@ namespace SL {
 
                 default:
                     if (parent->onMessage) {
-                        auto unpacked = WSReceiveMessage{ websocket->ReceiveBuffer,  websocket->ReceiveBufferSize, getOpCode(websocket->ReceiveHeader) };
+                        auto unpacked = WSMessage{ websocket->ReceiveBuffer,  websocket->ReceiveBufferSize, getOpCode(websocket->ReceiveHeader) };
                         parent->onMessage(wsocket, unpacked);
                     }
                     ReadHeaderStart(parent, websocket, socket);

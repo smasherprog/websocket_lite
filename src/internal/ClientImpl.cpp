@@ -197,10 +197,10 @@ namespace SL {
         void WSClient::onConnection(const std::function<void(WSocket&, const std::unordered_map<std::string, std::string>&)>& handle) {
             Impl_->onConnection = handle;
         }
-        void WSClient::onMessage(std::function<void(WSocket&, WSReceiveMessage&)>& handle) {
+        void WSClient::onMessage(std::function<void(WSocket&, const WSMessage&)>& handle) {
             Impl_->onMessage = handle;
         }
-        void WSClient::onMessage(const std::function<void(WSocket&, WSReceiveMessage&)>& handle) {
+        void WSClient::onMessage(const std::function<void(WSocket&, const WSMessage&)>& handle) {
             Impl_->onMessage = handle;
         }
         void WSClient::onDisconnection(std::function<void(WSocket&, unsigned short, const std::string&)>& handle) {
@@ -246,29 +246,12 @@ namespace SL {
             return  Impl_->MaxPayload;
         }
 
-        void WSClient::send(WSocket& s, WSSendMessage& msg) {
-            auto self(Impl_);
-            Impl_->io_service.post([s, msg, self]() {
-                if (self->SendItems.empty()) {
-                    self->SendItems.push_front(SendQueueItem{ s.WSocketImpl_, msg });
-                    SL::WS_LITE::startwrite(self);
-                }
-                else {
-                    self->SendItems.push_front(SendQueueItem{ s.WSocketImpl_, msg });
-                }
-            });
+        void WSClient::send(WSocket& s, WSMessage& msg, bool compressmessage) {
+            sendImpl(Impl_, s.WSocketImpl_, msg, compressmessage);
         }
         void WSClient::close(WSocket& s, unsigned short code, const std::string& msg)
         {
-            WSSendMessage ws;
-            ws.code = OpCode::CLOSE;
-            auto size = sizeof(code) + msg.size();
-            ws.len = static_cast<unsigned long long int>(size);
-            ws.Buffer = std::shared_ptr<char>(new char[size], [](char* p) { delete[] p; });
-            *reinterpret_cast<unsigned short*>(ws.Buffer.get()) = code;
-            memcpy(ws.Buffer.get() + sizeof(code), msg.c_str(), msg.size());
-            ws.Compress = false;
-            send(s, ws);
+            closeImpl(Impl_, s.WSocketImpl_, code, msg);
         }
         bool WSocket::is_open()
         {

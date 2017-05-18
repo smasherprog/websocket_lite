@@ -32,19 +32,11 @@ namespace SL {
             PING = 9,
             PONG = 10
         };
-        //this is the message after being uncompressed
-        struct WSReceiveMessage {
-            const unsigned char *data;
-            unsigned long long int len;
+        struct WSMessage {
+            unsigned char *data;
+            size_t len;
             OpCode code;
-        };
-        struct WSSendMessage {
             std::shared_ptr<char> Buffer;
-            char* Data;
-            unsigned long long int  len;
-            OpCode code;
-            //compress the outgoing message?
-            bool Compress;
         };
 
 
@@ -76,65 +68,9 @@ namespace SL {
             //when a connection is fully established.  If onconnect is called, then a matching onDisconnection is guaranteed
             void onConnection(const std::function<void(WSocket&, const std::unordered_map<std::string, std::string>&)>& handle);
             //when a message has been received
-            void onMessage(std::function<void(WSocket&, WSReceiveMessage&)>& handle);
+            void onMessage(std::function<void(WSocket&, const WSMessage&)>& handle);
             //when a message has been received
-            void onMessage(const std::function<void(WSocket&, WSReceiveMessage&)>& handle);
-            //when a socket is closed down for ANY reason. If onconnect is called, then a matching onDisconnection is guaranteed
-            void onDisconnection(std::function<void(WSocket&, unsigned short, const std::string&)>& handle);
-            //when a socket is closed down for ANY reason. If onconnect is called, then a matching onDisconnection is guaranteed
-            void onDisconnection(const std::function<void(WSocket&, unsigned short , const std::string&)>& handle);
-            //when a ping is received from a client
-            void onPing(std::function<void(WSocket&, const unsigned char *, size_t)>& handle);            
-            //when a ping is received from a client
-            void onPing(const std::function<void(WSocket&, const unsigned char *, size_t)>& handle);
-            //when a pong is received from a client
-            void onPong(std::function<void(WSocket&, const unsigned char *, size_t)>& handle);
-            //when a pong is received from a client
-            void onPong(const std::function<void(WSocket&, const unsigned char *, size_t)>& handle);
-            //before onconnection is called, the conection is upgraded
-            void onHttpUpgrade(std::function<void(WSocket&)>& handle);
-            //before onconnection is called, the conection is upgraded
-            void onHttpUpgrade(const std::function<void(WSocket&)>& handle);
-            //the maximum payload size
-            void set_MaxPayload(size_t bytes);
-            //the maximum payload size
-            unsigned long long int get_MaxPayload();
-            //maximum time in seconds before a client is considered disconnected -- for reads
-            void set_ReadTimeout(unsigned int seconds);
-            //get the current read timeout in seconds
-            unsigned int  get_ReadTimeout();
-            //maximum time in seconds before a client is considered disconnected -- for writes
-            void set_WriteTimeout( unsigned int seconds);
-            //get the current write timeout in seconds
-            unsigned int  get_WriteTimeout();
-            //send a message to a specific client
-            void send(WSocket& s, WSSendMessage& msg);
-            //send a close message and close the socket
-            void close(WSocket& s, unsigned short code = 1000, const std::string& msg = "");
-            //start the process to listen for clients. This is non-blocking and will return immediatly
-            void startlistening();
-            //factory to create listeners. Use this if you ARE NOT using TLS
-            static WSListener CreateListener(unsigned short port);
-            //factory to create listeners. Use this if you ARE using TLS
-            static WSListener CreateListener(
-                unsigned short port,
-                std::string Password,
-                std::string Privatekey_File,
-                std::string Publiccertificate_File,
-                std::string dh_File);
-        };
-        class WSClientImpl;
-        class WSClient {
-            std::shared_ptr<WSClientImpl> Impl_;
-        public: 
-            //when a connection is fully established. If onconnect is called, then a matching onDisconnection is guaranteed
-            void onConnection(std::function<void(WSocket&, const std::unordered_map<std::string, std::string>&)>& handle);
-            //when a connection is fully established.  If onconnect is called, then a matching onDisconnection is guaranteed
-            void onConnection(const std::function<void(WSocket&, const std::unordered_map<std::string, std::string>&)>& handle);
-            //when a message has been received
-            void onMessage(std::function<void(WSocket&, WSReceiveMessage&)>& handle);
-            //when a message has been received
-            void onMessage(const std::function<void(WSocket&, WSReceiveMessage&)>& handle);          
+            void onMessage(const std::function<void(WSocket&, const WSMessage&)>& handle);
             //when a socket is closed down for ANY reason. If onconnect is called, then a matching onDisconnection is guaranteed
             void onDisconnection(std::function<void(WSocket&, unsigned short, const std::string&)>& handle);
             //when a socket is closed down for ANY reason. If onconnect is called, then a matching onDisconnection is guaranteed
@@ -164,13 +100,69 @@ namespace SL {
             //get the current write timeout in seconds
             unsigned int  get_WriteTimeout();
             //send a message to a specific client
-            void send(WSocket& s, WSSendMessage& msg);
+            void send(WSocket& s, WSMessage& msg, bool compressmessage);
             //send a close message and close the socket
-            void close(WSocket& s, unsigned short code= 1000, const std::string& msg ="");
+            void close(WSocket& s, unsigned short code = 1000, const std::string& msg = "");
+            //start the process to listen for clients. This is non-blocking and will return immediatly
+            void startlistening();
+            //factory to create listeners. Use this if you ARE NOT using TLS
+            static WSListener CreateListener(unsigned short port);
+            //factory to create listeners. Use this if you ARE using TLS
+            static WSListener CreateListener(
+                unsigned short port,
+                std::string Password,
+                std::string Privatekey_File,
+                std::string Publiccertificate_File,
+                std::string dh_File);
+        };
+        class WSClientImpl;
+        class WSClient {
+            std::shared_ptr<WSClientImpl> Impl_;
+        public:
+            //when a connection is fully established. If onconnect is called, then a matching onDisconnection is guaranteed
+            void onConnection(std::function<void(WSocket&, const std::unordered_map<std::string, std::string>&)>& handle);
+            //when a connection is fully established.  If onconnect is called, then a matching onDisconnection is guaranteed
+            void onConnection(const std::function<void(WSocket&, const std::unordered_map<std::string, std::string>&)>& handle);
+            //when a message has been received
+            void onMessage(std::function<void(WSocket&, const WSMessage&)>& handle);
+            //when a message has been received
+            void onMessage(const std::function<void(WSocket&, const WSMessage&)>& handle);
+            //when a socket is closed down for ANY reason. If onconnect is called, then a matching onDisconnection is guaranteed
+            void onDisconnection(std::function<void(WSocket&, unsigned short, const std::string&)>& handle);
+            //when a socket is closed down for ANY reason. If onconnect is called, then a matching onDisconnection is guaranteed
+            void onDisconnection(const std::function<void(WSocket&, unsigned short, const std::string&)>& handle);
+            //when a ping is received from a client
+            void onPing(std::function<void(WSocket&, const unsigned char *, size_t)>& handle);
+            //when a ping is received from a client
+            void onPing(const std::function<void(WSocket&, const unsigned char *, size_t)>& handle);
+            //when a pong is received from a client
+            void onPong(std::function<void(WSocket&, const unsigned char *, size_t)>& handle);
+            //when a pong is received from a client
+            void onPong(const std::function<void(WSocket&, const unsigned char *, size_t)>& handle);
+            //before onconnection is called, the conection is upgraded
+            void onHttpUpgrade(std::function<void(WSocket&)>& handle);
+            //before onconnection is called, the conection is upgraded
+            void onHttpUpgrade(const std::function<void(WSocket&)>& handle);
+            //the maximum payload size
+            void set_MaxPayload(size_t bytes);
+            //the maximum payload size
+            unsigned long long int get_MaxPayload();
+            //maximum time in seconds before a client is considered disconnected -- for reads
+            void set_ReadTimeout(unsigned int seconds);
+            //get the current read timeout in seconds
+            unsigned int  get_ReadTimeout();
+            //maximum time in seconds before a client is considered disconnected -- for writes
+            void set_WriteTimeout(unsigned int seconds);
+            //get the current write timeout in seconds
+            unsigned int  get_WriteTimeout();
+            //send a message to a specific client
+            void send(WSocket& s, WSMessage& msg, bool compressmessage);
+            //send a close message and close the socket
+            void close(WSocket& s, unsigned short code = 1000, const std::string& msg = "");
             //connect to an endpoint. This is non-blocking and will return immediatly. If the library is unable to establish a connection, ondisconnection will be called. 
             void connect(const char* host, unsigned short port);
             //factory to create clients. Use this if you ARE NOT using TLS
-            static WSClient CreateClient();           
+            static WSClient CreateClient();
             //factory to create clients. Use this if you ARE using TLS
             static WSClient CreateClient(std::string Publiccertificate_File);
         };
