@@ -100,7 +100,7 @@ namespace SL {
             //get the current write timeout in seconds
             unsigned int  get_WriteTimeout();
             //send a message to a specific client
-            void send(WSocket& s, WSMessage& msg, bool compressmessage);
+            void send(const WSocket& s, WSMessage& msg, bool compressmessage);
             //send a close message and close the socket
             void close(const WSocket& s, unsigned short code = 1000, const std::string& msg = "");
             //start the process to listen for clients. This is non-blocking and will return immediatly
@@ -156,7 +156,7 @@ namespace SL {
             //get the current write timeout in seconds
             unsigned int  get_WriteTimeout();
             //send a message to a specific client
-            void send(WSocket& s, WSMessage& msg, bool compressmessage);
+            void send(const WSocket& s, WSMessage& msg, bool compressmessage);
             //send a close message and close the socket
             void close(const WSocket& s, unsigned short code = 1000, const std::string& msg = "");
             //connect to an endpoint. This is non-blocking and will return immediatly. If the library is unable to establish a connection, ondisconnection will be called. 

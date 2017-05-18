@@ -392,9 +392,9 @@ namespace SL {
         }
         template<class PARENTYPE, class SOCKETTYPE, class SENDBUFFERTYPE>inline void write_end(const PARENTYPE& parent, const std::shared_ptr<WSocketImpl>& websocket, const SOCKETTYPE& socket, const SENDBUFFERTYPE& msg) {
 
-            boost::asio::async_write(*socket, boost::asio::buffer(msg.data, static_cast<size_t>(msg.len)), [parent, websocket, socket, msg](const boost::system::error_code& ec, size_t bytes_transferred) {
-                UNUSED(bytes_transferred);
-                assert(static_cast<size_t>(msg.len) == bytes_transferred);
+            boost::asio::async_write(*socket, boost::asio::buffer(msg.data, msg.len), [parent, websocket, socket, msg](const boost::system::error_code& ec, size_t bytes_transferred) {
+             //   UNUSED(bytes_transferred);
+             //   assert(static_cast<size_t>(msg.len) == bytes_transferred);
                 if (!parent->SendItems.empty()) {
                     parent->SendItems.pop_back();
                 }
@@ -415,7 +415,7 @@ namespace SL {
             std::uniform_int_distribution<unsigned int> dist(0, 255);
             std::random_device rd;
 
-            auto mask(std::shared_ptr<char>(new char[4], [](char* p) { delete[] p; }));
+            auto mask(std::shared_ptr<unsigned char>(new unsigned char[4], [](unsigned char* p) { delete[] p; }));
             auto maskeddata = mask.get();
             for (auto c = 0; c < 4; c++) {
                 maskeddata[c] = static_cast<unsigned char>(dist(rd));
@@ -426,7 +426,7 @@ namespace SL {
             }
 
             boost::asio::async_write(*socket, boost::asio::buffer(mask.get(), 4), [parent, websocket, socket, msg](const boost::system::error_code& ec, size_t bytes_transferred) {
-                UNUSED(bytes_transferred);
+              //  UNUSED(bytes_transferred);
                 assert(bytes_transferred == 4);
 
                 if (ec)
@@ -448,7 +448,7 @@ namespace SL {
         }
 
         template<class PARENTTYPE, class SOCKETTYPE, class SENDBUFFERTYPE>inline void write(const std::shared_ptr<PARENTTYPE>& parent, const std::shared_ptr<WSocketImpl>& websocket, const SOCKETTYPE& socket, const SENDBUFFERTYPE& msg) {
-            size_t sendsize = 16;
+            size_t sendsize = 10;
             auto header(std::shared_ptr<unsigned char>(new unsigned char[sendsize], [](unsigned char* p) { delete[] p; }));
             setFin(header.get(), 0xFF);
             set_MaskBitForSending<PARENTTYPE>(header.get());
@@ -460,16 +460,17 @@ namespace SL {
 
             if (msg.len <= 125) {
                 setpayloadLength1(header.get(), static_cast<unsigned char>(msg.len));
-                sendsize -= 7;
+                sendsize = 2;
             }
             else if (msg.len > USHRT_MAX) {
                 setpayloadLength8(header.get(), msg.len);
                 setpayloadLength1(header.get(), 127);
+                sendsize = 10;
             }
             else {
                 setpayloadLength2(header.get(), static_cast<unsigned short>(msg.len));
                 setpayloadLength1(header.get(), 126);
-                sendsize -= 4;
+                sendsize = 4;
             }
 
             assert(msg.len < UINT32_MAX);

@@ -10,12 +10,17 @@ using namespace std::chrono_literals;
 void wssautobahntest() {
     // auto listener = SL::WS_LITE::WSListener::CreateListener(3001, TEST_CERTIFICATE_PRIVATE_PASSWORD, TEST_CERTIFICATE_PRIVATE_PATH, TEST_CERTIFICATE_PUBLIC_PATH, TEST_DH_PATH);
     auto listener = SL::WS_LITE::WSListener::CreateListener(3001);
-    listener.onHttpUpgrade([](SL::WS_LITE::WSocket socket) {
+    listener.onHttpUpgrade([](const SL::WS_LITE::WSocket& socket) {
         SL_WS_LITE_LOG(SL::WS_LITE::Logging_Levels::INFO_log_level, "listener::onHttpUpgrade");
 
     });
-    listener.onConnection([](SL::WS_LITE::WSocket socket, const std::unordered_map<std::string, std::string>& header) {
+    listener.onConnection([](const SL::WS_LITE::WSocket& socket, const std::unordered_map<std::string, std::string>& header) {
         SL_WS_LITE_LOG(SL::WS_LITE::Logging_Levels::INFO_log_level, "listener::onConnection");
+    });
+    listener.onMessage([&](const SL::WS_LITE::WSocket& socket, const SL::WS_LITE::WSMessage& message) {
+        SL_WS_LITE_LOG(SL::WS_LITE::Logging_Levels::INFO_log_level, "listener::onMessage");
+        SL::WS_LITE::WSMessage msg{nullptr, 0, SL::WS_LITE::OpCode::TEXT };
+        listener.send(socket, msg, false);
     });
     listener.startlistening();
     std::string cmd = "wstest -m fuzzingclient -s ";
@@ -59,7 +64,6 @@ int main(int argc, char* argv[]) {
 //    client.onConnection([&](const SL::WS_LITE::WSocket& socket, const std::unordered_map<std::string, std::string>& header) {
 //        waitingconnection = false;
 //        SL_WS_LITE_LOG(SL::WS_LITE::Logging_Levels::INFO_log_level, "Client::onConnection");
-//        client.close(socket);
 //    });    
 //    client.onDisconnection([](const SL::WS_LITE::WSocket& socket, unsigned short code, const std::string& msg) {
 //        SL_WS_LITE_LOG(SL::WS_LITE::Logging_Levels::INFO_log_level, "client::onDisconnection");

@@ -253,7 +253,7 @@ namespace SL {
             return  Impl_->MaxPayload;
         }
 
-        void WSClient::send(WSocket& s, WSMessage& msg, bool compressmessage) {
+        void WSClient::send(const WSocket& s, WSMessage& msg, bool compressmessage) {
             sendImpl(Impl_, s.WSocketImpl_, msg, compressmessage);
         }
         void WSClient::close(const WSocket& s, unsigned short code, const std::string& msg)
