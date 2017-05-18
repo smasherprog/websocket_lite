@@ -393,8 +393,8 @@ namespace SL {
         template<class PARENTYPE, class SOCKETTYPE, class SENDBUFFERTYPE>inline void write_end(const PARENTYPE& parent, const std::shared_ptr<WSocketImpl>& websocket, const SOCKETTYPE& socket, const SENDBUFFERTYPE& msg) {
 
             boost::asio::async_write(*socket, boost::asio::buffer(msg.data, msg.len), [parent, websocket, socket, msg](const boost::system::error_code& ec, size_t bytes_transferred) {
-             //   UNUSED(bytes_transferred);
-             //   assert(static_cast<size_t>(msg.len) == bytes_transferred);
+                //   UNUSED(bytes_transferred);
+                //   assert(static_cast<size_t>(msg.len) == bytes_transferred);
                 if (!parent->SendItems.empty()) {
                     parent->SendItems.pop_back();
                 }
@@ -415,8 +415,8 @@ namespace SL {
             std::uniform_int_distribution<unsigned int> dist(0, 255);
             std::random_device rd;
 
-            auto mask(std::shared_ptr<unsigned char>(new unsigned char[4], [](unsigned char* p) { delete[] p; }));
-            auto maskeddata = mask.get();
+            unsigned char mask[4];
+            auto maskeddata = mask;
             for (auto c = 0; c < 4; c++) {
                 maskeddata[c] = static_cast<unsigned char>(dist(rd));
             }
@@ -424,68 +424,69 @@ namespace SL {
             for (decltype(msg.len) i = 0; i < msg.len; i++) {
                 *p++ ^= maskeddata[i % 4];
             }
+            boost::system::error_code ec;
+            auto bytes_transferred = boost::asio::write(*socket, boost::asio::buffer(mask, 4), ec);
 
-            boost::asio::async_write(*socket, boost::asio::buffer(mask.get(), 4), [parent, websocket, socket, msg](const boost::system::error_code& ec, size_t bytes_transferred) {
-              //  UNUSED(bytes_transferred);
-                assert(bytes_transferred == 4);
+            //  UNUSED(bytes_transferred);
+            assert(bytes_transferred == 4);
 
-                if (ec)
-                {
-                    if (msg.code == OpCode::CLOSE) {
-                        handleclose(parent, websocket, socket, msg);
-                    }
-                    else {
-                        return closeImpl(parent, websocket, 1002, "write mask failed " + ec.message());
-                    }
+            if (ec)
+            {
+                if (msg.code == OpCode::CLOSE) {
+                    handleclose(parent, websocket, socket, msg);
                 }
                 else {
-                    write_end(parent, websocket, socket, msg);
+                    return closeImpl(parent, websocket, 1002, "write mask failed " + ec.message());
                 }
-            });
+            }
+            else {
+                write_end(parent, websocket, socket, msg);
+            }
         }
         template<class SOCKETTYPE, class SENDBUFFERTYPE>inline void writeend(const std::shared_ptr<WSListenerImpl>& parent, const std::shared_ptr<WSocketImpl>& websocket, const SOCKETTYPE& socket, const SENDBUFFERTYPE& msg) {
             write_end(parent, websocket, socket, msg);
         }
 
         template<class PARENTTYPE, class SOCKETTYPE, class SENDBUFFERTYPE>inline void write(const std::shared_ptr<PARENTTYPE>& parent, const std::shared_ptr<WSocketImpl>& websocket, const SOCKETTYPE& socket, const SENDBUFFERTYPE& msg) {
-            size_t sendsize = 10;
-            auto header(std::shared_ptr<unsigned char>(new unsigned char[sendsize], [](unsigned char* p) { delete[] p; }));
-            setFin(header.get(), 0xFF);
-            set_MaskBitForSending<PARENTTYPE>(header.get());
-            setOpCode(header.get(), msg.code);
-            setrsv1(header.get(), 0x00);
-            setrsv2(header.get(), 0x00);
-            setrsv3(header.get(), 0x00);
+            size_t sendsize = 0;
+            unsigned char header[10];
+
+            setFin(header, 0xFF);
+            set_MaskBitForSending<PARENTTYPE>(header);
+            setOpCode(header, msg.code);
+            setrsv1(header, 0x00);
+            setrsv2(header, 0x00);
+            setrsv3(header, 0x00);
 
 
             if (msg.len <= 125) {
-                setpayloadLength1(header.get(), static_cast<unsigned char>(msg.len));
+                setpayloadLength1(header, static_cast<unsigned char>(msg.len));
                 sendsize = 2;
             }
             else if (msg.len > USHRT_MAX) {
-                setpayloadLength8(header.get(), msg.len);
-                setpayloadLength1(header.get(), 127);
+                setpayloadLength8(header, msg.len);
+                setpayloadLength1(header, 127);
                 sendsize = 10;
             }
             else {
-                setpayloadLength2(header.get(), static_cast<unsigned short>(msg.len));
-                setpayloadLength1(header.get(), 126);
+                setpayloadLength2(header, static_cast<unsigned short>(msg.len));
+                setpayloadLength1(header, 126);
                 sendsize = 4;
             }
 
             assert(msg.len < UINT32_MAX);
             writeexpire_from_now(parent, websocket, socket, parent->WriteTimeout);
-            boost::asio::async_write(*socket, boost::asio::buffer(header.get(), sendsize), [parent, socket, websocket, header, msg, sendsize](const boost::system::error_code& ec, size_t bytes_transferred) {
-                UNUSED(bytes_transferred);
-                if (!ec)
-                {
-                    assert(sendsize == bytes_transferred);
-                    writeend(parent, websocket, socket, msg);
-                }
-                else {
-                    return closeImpl(parent, websocket, 1002, "write header failed   " + ec.message());
-                }
-            });
+            boost::system::error_code ec;
+            auto bytes_transferred = boost::asio::write(*socket, boost::asio::buffer(header, sendsize), ec);
+            if (!ec)
+            {
+                assert(sendsize == bytes_transferred);
+                writeend(parent, websocket, socket, msg);
+            }
+            else {
+                return closeImpl(parent, websocket, 1002, "write header failed   " + ec.message());
+            }
+
         }
         template<class PARENTTYPE>inline void startwrite(const std::shared_ptr<PARENTTYPE>& parent) {
             if (!parent->SendItems.empty()) {
