@@ -36,7 +36,7 @@ namespace SL {
             unsigned char *data;
             size_t len;
             OpCode code;
-            std::shared_ptr<char> Buffer;
+            std::shared_ptr<unsigned char> Buffer;
         };
 
 
@@ -102,7 +102,7 @@ namespace SL {
             //send a message to a specific client
             void send(WSocket& s, WSMessage& msg, bool compressmessage);
             //send a close message and close the socket
-            void close(WSocket& s, unsigned short code = 1000, const std::string& msg = "");
+            void close(const WSocket& s, unsigned short code = 1000, const std::string& msg = "");
             //start the process to listen for clients. This is non-blocking and will return immediatly
             void startlistening();
             //factory to create listeners. Use this if you ARE NOT using TLS
@@ -158,7 +158,7 @@ namespace SL {
             //send a message to a specific client
             void send(WSocket& s, WSMessage& msg, bool compressmessage);
             //send a close message and close the socket
-            void close(WSocket& s, unsigned short code = 1000, const std::string& msg = "");
+            void close(const WSocket& s, unsigned short code = 1000, const std::string& msg = "");
             //connect to an endpoint. This is non-blocking and will return immediatly. If the library is unable to establish a connection, ondisconnection will be called. 
             void connect(const char* host, unsigned short port);
             //factory to create clients. Use this if you ARE NOT using TLS

@@ -80,8 +80,15 @@ namespace SL {
         template<typename SOCKETCREATOR>void Listen(std::shared_ptr<WSListenerImpl> listener, SOCKETCREATOR&& socketcreator) {
 
             auto socket = socketcreator(listener);
+
             listener->acceptor.async_accept(socket->lowest_layer(), [listener, socket, socketcreator](const boost::system::error_code& ec)
             {
+                boost::system::error_code e;
+                socket->lowest_layer().set_option(boost::asio::ip::tcp::no_delay(true), e);
+                if (e) {
+                    SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "set_option error " << e.message());
+                    e.clear();
+                }
                 if (!ec)
                 {
                     async_handshake(listener, socket);
@@ -182,7 +189,7 @@ namespace SL {
         void WSListener::send(WSocket& s, WSMessage& msg, bool compressmessage) {
             sendImpl(Impl_, s.WSocketImpl_, msg, compressmessage);
         }
-        void WSListener::close(WSocket& s, unsigned short code, const std::string& msg)
+        void WSListener::close(const WSocket& s, unsigned short code, const std::string& msg)
         {
             closeImpl(Impl_, s.WSocketImpl_, code, msg);
         }

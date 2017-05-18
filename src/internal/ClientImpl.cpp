@@ -39,8 +39,8 @@ namespace SL {
 
             auto nonce_base64 = Base64encode(nonce);
             request << HTTP_SECWEBSOCKETKEY << HTTP_KEYVALUEDELIM << nonce_base64 << HTTP_ENDLINE;
-            request << "Sec-WebSocket-Version: 13" << HTTP_ENDLINE << HTTP_ENDLINE;
-            request << HTTP_SECWEBSOCKETEXTENSIONS << HTTP_KEYVALUEDELIM << PERMESSAGEDEFLATE << HTTP_ENDLINE;
+            request << "Sec-WebSocket-Version: 13" << HTTP_ENDLINE;
+            request << HTTP_SECWEBSOCKETEXTENSIONS << HTTP_KEYVALUEDELIM << PERMESSAGEDEFLATE << HTTP_ENDLINE << HTTP_ENDLINE;
 
             auto accept_sha1 = SHA1(nonce_base64 + ws_magic_string);
 
@@ -128,10 +128,11 @@ namespace SL {
         template<typename SOCKETCREATOR>void Connect(std::shared_ptr<WSClientImpl> self, const char* host, unsigned short port, SOCKETCREATOR&& socketcreator) {
 
             auto socket = socketcreator(self);
+            boost::system::error_code ec;
             boost::asio::ip::tcp::resolver resolver(self->io_service);
             auto portstr = std::to_string(port);
             boost::asio::ip::tcp::resolver::query query(host, portstr.c_str());
-            boost::system::error_code ec;
+
             auto endpoint = resolver.resolve(query, ec);
 
             if (ec) {
@@ -145,6 +146,12 @@ namespace SL {
             else {
                 boost::asio::async_connect(socket->lowest_layer(), endpoint, [socket, self](const boost::system::error_code& ec, boost::asio::ip::tcp::resolver::iterator)
                 {
+                    boost::system::error_code e;
+                    socket->lowest_layer().set_option(boost::asio::ip::tcp::no_delay(true), e);
+                    if (e) {
+                        SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "set_option error " << e.message());
+                        e.clear();
+                    }
                     if (!ec)
                     {
                         async_handshake(self, socket);
@@ -249,7 +256,7 @@ namespace SL {
         void WSClient::send(WSocket& s, WSMessage& msg, bool compressmessage) {
             sendImpl(Impl_, s.WSocketImpl_, msg, compressmessage);
         }
-        void WSClient::close(WSocket& s, unsigned short code, const std::string& msg)
+        void WSClient::close(const WSocket& s, unsigned short code, const std::string& msg)
         {
             closeImpl(Impl_, s.WSocketImpl_, code, msg);
         }
