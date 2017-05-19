@@ -141,7 +141,7 @@ namespace SL {
             boost::asio::deadline_timer write_deadline;
             unsigned char* ReceiveBuffer = nullptr;
             size_t ReceiveBufferSize = 0;
-            unsigned char ReceiveHeader[16];
+            unsigned char ReceiveHeader[14];
             bool CompressionEnabled = false;
             std::shared_ptr<boost::asio::ip::tcp::socket> Socket;
             std::shared_ptr<boost::asio::ssl::stream<boost::asio::ip::tcp::socket>> TLSSocket;
@@ -296,10 +296,9 @@ namespace SL {
         template<class PARENTTYPE>void closeImpl(const std::shared_ptr<PARENTTYPE>& parent, const std::shared_ptr<WSocketImpl>& websocket, unsigned short code, const std::string& msg) {
             WSMessage ws;
             ws.code = OpCode::CLOSE;
-            auto size = sizeof(code) + msg.size();
-            ws.len = static_cast<unsigned long long int>(size);
-            ws.Buffer = std::shared_ptr<unsigned char>(new unsigned char[size], [](unsigned char* p) { delete[] p; });
-            *reinterpret_cast<unsigned short*>(ws.Buffer.get()) = code;
+            ws.len = sizeof(code) + msg.size();
+            ws.Buffer = std::shared_ptr<unsigned char>(new unsigned char[ws.len], [](unsigned char* p) { delete[] p; });
+            *reinterpret_cast<unsigned short*>(ws.Buffer.get()) = ntoh(code);
             memcpy(ws.Buffer.get() + sizeof(code), msg.c_str(), msg.size());
             ws.data = ws.Buffer.get();
             sendImpl(parent, websocket, ws, false);
@@ -359,7 +358,7 @@ namespace SL {
         };
         struct WSSendMessageInternal {
             unsigned char* data;
-            unsigned long long int  len;
+            size_t len;
             OpCode code;
             //compress the outgoing message?
             bool Compress;
@@ -391,10 +390,10 @@ namespace SL {
             socket->lowest_layer().close(ec);
         }
         template<class PARENTYPE, class SOCKETTYPE, class SENDBUFFERTYPE>inline void write_end(const PARENTYPE& parent, const std::shared_ptr<WSocketImpl>& websocket, const SOCKETTYPE& socket, const SENDBUFFERTYPE& msg) {
-
+        
             boost::asio::async_write(*socket, boost::asio::buffer(msg.data, msg.len), [parent, websocket, socket, msg](const boost::system::error_code& ec, size_t bytes_transferred) {
-                //   UNUSED(bytes_transferred);
-                //   assert(static_cast<size_t>(msg.len) == bytes_transferred);
+                UNUSED(bytes_transferred);
+             //   assert(msg.len == bytes_transferred);
                 if (!parent->SendItems.empty()) {
                     parent->SendItems.pop_back();
                 }
@@ -416,20 +415,16 @@ namespace SL {
             std::random_device rd;
 
             unsigned char mask[4];
-            auto maskeddata = mask;
             for (auto c = 0; c < 4; c++) {
-                maskeddata[c] = static_cast<unsigned char>(dist(rd));
+                mask[c] = static_cast<unsigned char>(dist(rd));
             }
             auto p = reinterpret_cast<unsigned char*>(msg.data);
             for (decltype(msg.len) i = 0; i < msg.len; i++) {
-                *p++ ^= maskeddata[i % 4];
+                *p++ ^= mask[i % 4];
             }
             boost::system::error_code ec;
             auto bytes_transferred = boost::asio::write(*socket, boost::asio::buffer(mask, 4), ec);
-
-            //  UNUSED(bytes_transferred);
             assert(bytes_transferred == 4);
-
             if (ec)
             {
                 if (msg.code == OpCode::CLOSE) {
@@ -449,7 +444,7 @@ namespace SL {
 
         template<class PARENTTYPE, class SOCKETTYPE, class SENDBUFFERTYPE>inline void write(const std::shared_ptr<PARENTTYPE>& parent, const std::shared_ptr<WSocketImpl>& websocket, const SOCKETTYPE& socket, const SENDBUFFERTYPE& msg) {
             size_t sendsize = 0;
-            unsigned char header[10];
+            unsigned char header[10] = {};
 
             setFin(header, 0xFF);
             set_MaskBitForSending<PARENTTYPE>(header);
@@ -569,13 +564,13 @@ namespace SL {
 
             switch (payloadlen) {
             case 2:
-                size = swap_endian(getpayloadLength2(websocket->ReceiveHeader));
+                size = ntoh(getpayloadLength2(websocket->ReceiveHeader));
                 break;
             case 8:
-                if (swap_endian(getpayloadLength8(websocket->ReceiveHeader)) > std::numeric_limits<std::size_t>::max()) {
+                if (ntoh(getpayloadLength8(websocket->ReceiveHeader)) > std::numeric_limits<std::size_t>::max()) {
                     return closeImpl(parent, websocket, 1009, "Payload exceeded MaxPayload size");
                 }
-                size = static_cast<size_t>(swap_endian(getpayloadLength8(websocket->ReceiveHeader)));
+                size = static_cast<size_t>(ntoh(getpayloadLength8(websocket->ReceiveHeader)));
                 break;
             default:
                 size = getpayloadLength1(websocket->ReceiveHeader);

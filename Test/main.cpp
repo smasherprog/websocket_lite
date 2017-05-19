@@ -19,7 +19,12 @@ void wssautobahntest() {
     });
     listener.onMessage([&](const SL::WS_LITE::WSocket& socket, const SL::WS_LITE::WSMessage& message) {
         SL_WS_LITE_LOG(SL::WS_LITE::Logging_Levels::INFO_log_level, "listener::onMessage");
-        SL::WS_LITE::WSMessage msg{nullptr, 0, SL::WS_LITE::OpCode::TEXT };
+        SL::WS_LITE::WSMessage msg;
+        msg.Buffer = std::shared_ptr<unsigned char>(new unsigned char[message.len], [](unsigned char* p) { delete[] p; });
+        msg.len = message.len;
+        msg.code = message.code;
+        msg.data = msg.Buffer.get();
+        memcpy(msg.data, message.data, message.len);
         listener.send(socket, msg, false);
     });
     listener.startlistening();
@@ -27,9 +32,10 @@ void wssautobahntest() {
     cmd += TEST_FUZZING_PATH;
     system(cmd.c_str());
 }
-int main(int argc, char* argv[]) {
 
+int main(int argc, char* argv[]) {
     wssautobahntest();
+
     while (true) {
         std::this_thread::sleep_for(1s);
     }
