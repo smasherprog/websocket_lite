@@ -7,7 +7,7 @@
                  "options": {"version": 18}}
               ],
 
-   "cases": ["3.*"],
+   "cases": ["4.*"],
    "exclude-cases": [],
    "exclude-agent-cases": {}
 }

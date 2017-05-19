@@ -294,6 +294,7 @@ namespace SL {
             });
         }
         template<class PARENTTYPE>void closeImpl(const std::shared_ptr<PARENTTYPE>& parent, const std::shared_ptr<WSocketImpl>& websocket, unsigned short code, const std::string& msg) {
+            SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "closeImpl " << msg);
             WSMessage ws;
             ws.code = OpCode::CLOSE;
             ws.len = sizeof(code) + msg.size();
@@ -572,9 +573,13 @@ namespace SL {
         template <class PARENTTYPE, class SOCKETTYPE>inline void ReadBody(const std::shared_ptr<PARENTTYPE>& parent, const std::shared_ptr<WSocketImpl>& websocket, const SOCKETTYPE& socket) {
 
             readexpire_from_now(parent, websocket, socket, parent->ReadTimeout);
+            auto opcode = getOpCode(websocket->ReceiveHeader);
 
             if (getrsv2(websocket->ReceiveHeader) || getrsv3(websocket->ReceiveHeader) || (getrsv1(websocket->ReceiveHeader) && !websocket->CompressionEnabled)) {
                 return closeImpl(parent, websocket, 1002, "Closing connection. rsv bit set");
+            }   
+            if (opcode != OpCode::CONTINUATION && opcode != OpCode::TEXT && opcode != OpCode::BINARY && opcode != OpCode::CLOSE && opcode != OpCode::PING && opcode != OpCode::PONG) {
+                return closeImpl(parent, websocket, 1002, "Closing connection. nonvalid op code");
             }
             size_t size = getpayloadLength1(websocket->ReceiveHeader);
             switch (size) {
@@ -591,7 +596,7 @@ namespace SL {
                 break;
             }
 
-            auto opcode = getOpCode(websocket->ReceiveHeader);
+      
             SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "ReadBody size " << size << " opcode " << opcode);
 
             if ((opcode == OpCode::PING || opcode == OpCode::PONG || opcode == OpCode::CLOSE) && size > 125) {
