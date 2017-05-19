@@ -117,6 +117,21 @@ namespace SL {
 
             return dest.u;
         }
+        template <typename T>
+        T hton(T u)
+        {
+            static_assert (CHAR_BIT == 8, "CHAR_BIT != 8");
+            union
+            {
+                T u;
+                unsigned char u8[sizeof(T)];
+            } source, dest;
+            source.u = u;
+            for (size_t k = 0; k < sizeof(T); k++)
+                dest.u8[sizeof(T) - k - 1] = source.u8[k];
+
+            return dest.u;
+        }
         inline std::string url_decode(const std::string& in)
         {
             std::string out;
