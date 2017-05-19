@@ -517,12 +517,13 @@ namespace SL {
             msg.code = OpCode::PONG;
             msg.data = msg.Buffer.get();
             memcpy(msg.data, websocket->ReceiveBuffer, websocket->ReceiveBufferSize);
- 
+
             sendImpl(parent, websocket, msg, false);
         }
         template <class PARENTTYPE, class SOCKETTYPE>inline void ProcessBody(const std::shared_ptr<PARENTTYPE>& parent, const std::shared_ptr<WSocketImpl>& websocket, const SOCKETTYPE& socket, size_t payloadlen) {
             UnMaskMessage(parent, websocket, payloadlen);
             auto opcode = getOpCode(websocket->ReceiveHeader);
+
             if (!getFin(websocket->ReceiveHeader)) {//not a final frame.. must be either text, binary or continuation
                 if (opcode == OpCode::CONTINUATION && websocket->ReceiveBufferSize == 0) {
                     return closeImpl(parent, websocket, 1002, "Continuation Received without a previous frame");
@@ -548,7 +549,7 @@ namespace SL {
                     if (parent->onPong) {
                         parent->onPong(wsocket, websocket->ReceiveBuffer, websocket->ReceiveBufferSize);
                     }
-                   // SendPong(parent, websocket);
+                    // SendPong(parent, websocket);
                     break;
                 case OpCode::CLOSE:
                     return closeImpl(parent, websocket, 1000, "");
@@ -572,6 +573,9 @@ namespace SL {
 
             readexpire_from_now(parent, websocket, socket, parent->ReadTimeout);
 
+            if (getrsv2(websocket->ReceiveHeader) || getrsv3(websocket->ReceiveHeader) || (getrsv1(websocket->ReceiveHeader) && !websocket->CompressionEnabled)) {
+                return closeImpl(parent, websocket, 1002, "Closing connection. rsv bit set");
+            }
             size_t size = getpayloadLength1(websocket->ReceiveHeader);
             switch (size) {
             case 126:
