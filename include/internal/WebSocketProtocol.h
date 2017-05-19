@@ -392,7 +392,7 @@ namespace SL {
         template<class PARENTYPE, class SOCKETTYPE, class SENDBUFFERTYPE>inline void write_end(const PARENTYPE& parent, const std::shared_ptr<WSocketImpl>& websocket, const SOCKETTYPE& socket, const SENDBUFFERTYPE& msg) {
 
             boost::asio::async_write(*socket, boost::asio::buffer(msg.data, msg.len), [parent, websocket, socket, msg](const boost::system::error_code& ec, size_t bytes_transferred) {
-                SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "write_end " << msg.len);
+
                 UNUSED(bytes_transferred);
                 //   assert(msg.len == bytes_transferred);
                 if (ec)
@@ -460,7 +460,7 @@ namespace SL {
                 sendsize = 2;
             }
             else if (msg.len > USHRT_MAX) {
-                setpayloadLength8(header, hton(static_cast<unsigned long long int >(msg.len)));
+                setpayloadLength8(header, hton(static_cast<unsigned long long int>(msg.len)));
                 setpayloadLength1(header, 127);
                 sendsize = 10;
             }
@@ -510,6 +510,16 @@ namespace SL {
             UNUSED(websocket);
             UNUSED(size);
         }
+        template <class PARENTTYPE>inline void SendPong(const std::shared_ptr<PARENTTYPE>& parent, const std::shared_ptr<WSocketImpl>& websocket) {
+            WSMessage msg;
+            msg.Buffer = std::shared_ptr<unsigned char>(new unsigned char[websocket->ReceiveBufferSize], [](unsigned char* p) { delete[] p; });
+            msg.len = websocket->ReceiveBufferSize;
+            msg.code = OpCode::PONG;
+            msg.data = msg.Buffer.get();
+            memcpy(msg.data, websocket->ReceiveBuffer, websocket->ReceiveBufferSize);
+ 
+            sendImpl(parent, websocket, msg, false);
+        }
         template <class PARENTTYPE, class SOCKETTYPE>inline void ProcessBody(const std::shared_ptr<PARENTTYPE>& parent, const std::shared_ptr<WSocketImpl>& websocket, const SOCKETTYPE& socket, size_t payloadlen) {
             UnMaskMessage(parent, websocket, payloadlen);
             auto opcode = getOpCode(websocket->ReceiveHeader);
@@ -532,13 +542,13 @@ namespace SL {
                     if (parent->onPing) {
                         parent->onPing(wsocket, websocket->ReceiveBuffer, websocket->ReceiveBufferSize);
                     }
-                    auto sendmessage = WSSendMessageInternal{ websocket->ReceiveBuffer,  websocket->ReceiveBufferSize, OpCode::PONG, false };
-                    SL::WS_LITE::write(parent, websocket, socket, sendmessage);
+                    SendPong(parent, websocket);
                     break;
                 case OpCode::PONG:
                     if (parent->onPong) {
                         parent->onPong(wsocket, websocket->ReceiveBuffer, websocket->ReceiveBufferSize);
                     }
+                   // SendPong(parent, websocket);
                     break;
                 case OpCode::CLOSE:
                     return closeImpl(parent, websocket, 1000, "");
@@ -552,9 +562,9 @@ namespace SL {
                         auto unpacked = WSMessage{ websocket->ReceiveBuffer,  websocket->ReceiveBufferSize, getOpCode(websocket->ReceiveHeader) };
                         parent->onMessage(wsocket, unpacked);
                     }
-                    ReadHeaderStart(parent, websocket, socket);
                     break;
                 }
+                ReadHeaderStart(parent, websocket, socket);
             }
 
         }

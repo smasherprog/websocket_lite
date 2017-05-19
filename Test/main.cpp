@@ -27,6 +27,7 @@ void wssautobahntest() {
         memcpy(msg.data, message.data, message.len);
         listener.send(socket, msg, false);
     });
+
     listener.startlistening();
     std::string cmd = "wstest -m fuzzingclient -s ";
     cmd += TEST_FUZZING_PATH;
