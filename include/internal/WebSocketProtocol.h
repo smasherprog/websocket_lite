@@ -460,7 +460,7 @@ namespace SL {
                 sendsize = 2;
             }
             else if (msg.len > USHRT_MAX) {
-                setpayloadLength8(header, hton(msg.len));
+                setpayloadLength8(header, hton(static_cast<unsigned long long int >(msg.len)));
                 setpayloadLength1(header, 127);
                 sendsize = 10;
             }
