@@ -526,11 +526,6 @@ namespace SL {
                 else if (opcode != OpCode::CONTINUATION) {
                     return closeImpl(parent, websocket, 1002, "Continuation Received without a previous frame");
                 }
-                if (websocket->LastOpCode == OpCode::TEXT) {
-                    if (!isValidUtf8(buffer, size)) {
-                        return closeImpl(parent, websocket, 1007, "Frame not valid utf8");
-                    }
-                }
                 ReadHeaderNext(parent, websocket, socket);
             }
             else {
@@ -542,7 +537,7 @@ namespace SL {
                     return closeImpl(parent, websocket, 1002, "Continuation Received without a previous frame");
                 }
                 else if (websocket->LastOpCode == OpCode::TEXT || opcode == OpCode::TEXT) {
-                    if (!isValidUtf8(buffer, size)) {
+                    if (!isValidUtf8(websocket->ReceiveBuffer, websocket->ReceiveBufferSize )) {
                         return closeImpl(parent, websocket, 1007, "Frame not valid utf8");
                     }
                 }
