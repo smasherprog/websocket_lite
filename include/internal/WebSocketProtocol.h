@@ -514,6 +514,7 @@ namespace SL {
         template <class PARENTTYPE, class SOCKETTYPE>inline void ProcessMessage(const std::shared_ptr<PARENTTYPE>& parent, const std::shared_ptr<WSocketImpl>& websocket, const SOCKETTYPE& socket) {
 
             auto opcode = getOpCode(websocket->ReceiveHeader);
+
             if (websocket->LastOpCode == OpCode::CONTINUATION) {
                 websocket->LastOpCode = opcode;
             }
@@ -543,7 +544,9 @@ namespace SL {
             sendImpl(parent, websocket, msg, false);
         }
         template <class PARENTTYPE, class SOCKETTYPE>inline void ProcessControlMessage(const std::shared_ptr<PARENTTYPE>& parent, const std::shared_ptr<WSocketImpl>& websocket, const SOCKETTYPE& socket, const std::shared_ptr<unsigned char>& buffer, size_t size) {
-
+            if (!getFin(websocket->ReceiveHeader)) {
+                return closeImpl(parent, websocket, 1002, "Closing connection. Control Frames must be Fin");
+            }
             auto opcode = getOpCode(websocket->ReceiveHeader);
 
             WSocket wsocket(websocket);
@@ -599,7 +602,7 @@ namespace SL {
             }
             SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "ReadBody size " << size << " opcode " << opcode);
             size += AdditionalBodyBytesToRead<PARENTTYPE>();
-            if (opcode == OpCode::PING || opcode == OpCode::PONG || opcode == OpCode::CLOSE) {
+            if (opcode == OpCode::PING || opcode == OpCode::PONG || opcode == OpCode::CLOSE ) {
                 if (size - AdditionalBodyBytesToRead<PARENTTYPE>() > CONTROLBUFFERMAXSIZE) {
                     return closeImpl(parent, websocket, 1002, "Payload exceeded for control frames. Size requested " + std::to_string(size));
                 }
