@@ -512,7 +512,7 @@ namespace SL {
             UNUSED(readsize);
             UNUSED(buffer);
         }
-        template <class PARENTTYPE, class SOCKETTYPE>inline void ProcessMessage(const std::shared_ptr<PARENTTYPE>& parent, const std::shared_ptr<WSocketImpl>& websocket, const SOCKETTYPE& socket) {
+        template <class PARENTTYPE, class SOCKETTYPE>inline void ProcessMessage(const std::shared_ptr<PARENTTYPE>& parent, const std::shared_ptr<WSocketImpl>& websocket, const SOCKETTYPE& socket, unsigned char* buffer, size_t size) {
 
             auto opcode = getOpCode(websocket->ReceiveHeader);
 
@@ -523,21 +523,33 @@ namespace SL {
                     }
                     websocket->LastOpCode = opcode;
                 }
-                else if (opcode != OpCode::CONTINUATION || websocket->ReceiveBufferSize == 0) {
+                else if (opcode != OpCode::CONTINUATION) {
                     return closeImpl(parent, websocket, 1002, "Continuation Received without a previous frame");
+                }
+                if (websocket->LastOpCode == OpCode::TEXT) {
+                    if (!isValidUtf8(buffer, size)) {
+                        return closeImpl(parent, websocket, 1007, "Frame not valid utf8");
+                    }
                 }
                 ReadHeaderNext(parent, websocket, socket);
             }
             else {
+
                 if (websocket->LastOpCode != OpCode::INVALID && opcode != OpCode::CONTINUATION) {
                     return closeImpl(parent, websocket, 1002, "Continuation Received without a previous frame");
                 }
                 else if (websocket->LastOpCode == OpCode::INVALID && opcode == OpCode::CONTINUATION) {
                     return closeImpl(parent, websocket, 1002, "Continuation Received without a previous frame");
                 }
-                else if (parent->onMessage) {
+                else if (websocket->LastOpCode == OpCode::TEXT || opcode == OpCode::TEXT) {
+                    if (!isValidUtf8(buffer, size)) {
+                        return closeImpl(parent, websocket, 1007, "Frame not valid utf8");
+                    }
+                }
+                if (parent->onMessage) {
                     WSocket wsocket(websocket);
-                    auto unpacked = WSMessage{ websocket->ReceiveBuffer,  websocket->ReceiveBufferSize, websocket->LastOpCode != OpCode::INVALID ? websocket->LastOpCode : opcode };
+                   
+                    auto unpacked = WSMessage{ websocket->ReceiveBuffer,   websocket->ReceiveBufferSize, websocket->LastOpCode != OpCode::INVALID ? websocket->LastOpCode : opcode };
                     parent->onMessage(wsocket, unpacked);
                 }
                 ReadHeaderStart(parent, websocket, socket);
@@ -625,6 +637,7 @@ namespace SL {
                                 return closeImpl(parent, websocket, 1002, "Did not receive all bytes ... ");
                             }
                             UnMaskMessage(parent, size, buffer.get());
+
                             auto tempsize = size - AdditionalBodyBytesToRead<PARENTTYPE>();
                             ProcessControlMessage(parent, websocket, socket, buffer, tempsize);
                         }
@@ -668,9 +681,10 @@ namespace SL {
                             if (size != bytes_transferred) {
                                 return closeImpl(parent, websocket, 1002, "Did not receive all bytes ... ");
                             }
-                            UnMaskMessage(parent, size, websocket->ReceiveBuffer + websocket->ReceiveBufferSize - size);
+                            auto buffer = websocket->ReceiveBuffer + websocket->ReceiveBufferSize - size;
+                            UnMaskMessage(parent, size, buffer);
                             websocket->ReceiveBufferSize -= AdditionalBodyBytesToRead<PARENTTYPE>();
-                            ProcessMessage(parent, websocket, socket);
+                            ProcessMessage(parent, websocket, socket, buffer, size - AdditionalBodyBytesToRead<PARENTTYPE>());
                         }
                         else {
                             return closeImpl(parent, websocket, 1002, "ReadBody Error " + ec.message());
@@ -678,7 +692,7 @@ namespace SL {
                     });
                 }
                 else {
-                    ProcessMessage(parent, websocket, socket);
+                    ProcessMessage(parent, websocket, socket, websocket->ReceiveBuffer, websocket->ReceiveBufferSize);
                 }
             }
             else {
