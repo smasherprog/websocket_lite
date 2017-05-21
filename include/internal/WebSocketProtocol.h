@@ -532,6 +532,9 @@ namespace SL {
                 if (websocket->LastOpCode != OpCode::INVALID && opcode != OpCode::CONTINUATION) {
                     return closeImpl(parent, websocket, 1002, "Continuation Received without a previous frame");
                 }
+                else if (websocket->LastOpCode == OpCode::INVALID && opcode == OpCode::CONTINUATION) {
+                    return closeImpl(parent, websocket, 1002, "Continuation Received without a previous frame");
+                }
                 else if (parent->onMessage) {
                     WSocket wsocket(websocket);
                     auto unpacked = WSMessage{ websocket->ReceiveBuffer,  websocket->ReceiveBufferSize, websocket->LastOpCode != OpCode::INVALID ? websocket->LastOpCode : opcode };
