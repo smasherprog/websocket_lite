@@ -30,7 +30,8 @@ namespace SL {
             BINARY = 2,
             CLOSE = 8,
             PING = 9,
-            PONG = 10
+            PONG = 10,
+            INVALID = 255
         };
         struct WSMessage {
             unsigned char *data;
