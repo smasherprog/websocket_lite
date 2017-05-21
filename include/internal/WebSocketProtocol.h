@@ -187,9 +187,9 @@ namespace SL {
                 inflateEnd(&inflationStream);
             }
             std::unique_ptr<char[]> inflationBuffer;
-            unsigned int ReadTimeout = 15;
-            unsigned int WriteTimeout = 15;
-            size_t MaxPayload = 1024 * 1024;//1 MB
+            unsigned int ReadTimeout = 100;
+            unsigned int WriteTimeout = 100;
+            size_t MaxPayload = 1024 * 1024*100;//10 MB
             std::deque<SendQueueItem> SendItems;
             z_stream inflationStream = {};
             boost::asio::io_service io_service;
@@ -548,7 +548,7 @@ namespace SL {
                 }
                 if (parent->onMessage) {
                     WSocket wsocket(websocket);
-                   
+
                     auto unpacked = WSMessage{ websocket->ReceiveBuffer,   websocket->ReceiveBufferSize, websocket->LastOpCode != OpCode::INVALID ? websocket->LastOpCode : opcode };
                     parent->onMessage(wsocket, unpacked);
                 }
@@ -566,13 +566,23 @@ namespace SL {
         }
         template <class PARENTTYPE>inline void ProcessClose(const std::shared_ptr<PARENTTYPE>& parent, const std::shared_ptr<WSocketImpl>& websocket, const std::shared_ptr<unsigned char>& buffer, size_t size) {
             if (size >= 2) {
-                auto closecode = *reinterpret_cast<unsigned short*>(buffer.get());
+                auto closecode =hton(*reinterpret_cast<unsigned short*>(buffer.get()));
                 if (size > 2) {
-                    if (!isValidUtf8(buffer.get() +sizeof(closecode), size - sizeof(closecode))) {
+                    if (!isValidUtf8(buffer.get() + sizeof(closecode), size - sizeof(closecode))) {
                         return closeImpl(parent, websocket, 1007, "Frame not valid utf8");
                     }
+                }
+
+                if ((closecode >= 1000 && closecode <= 1011 || closecode >=3000 && closecode <=4999) && closecode != 1004 && closecode != 1005 && closecode != 1006) {
                     return closeImpl(parent, websocket, 1000, "");
                 }
+                else
+                {
+                    return closeImpl(parent, websocket, 1002, "");
+                }
+            }
+            else if (size != 0) {
+                return closeImpl(parent, websocket, 1002, "");
             }
             return closeImpl(parent, websocket, 1000, "");
         }
@@ -581,7 +591,7 @@ namespace SL {
                 return closeImpl(parent, websocket, 1002, "Closing connection. Control Frames must be Fin");
             }
             auto opcode = getOpCode(websocket->ReceiveHeader);
-            
+
             WSocket wsocket(websocket);
             switch (opcode)
             {
@@ -599,7 +609,7 @@ namespace SL {
                 break;
             case OpCode::CLOSE:
                 return ProcessClose(parent, websocket, buffer, size);
-         
+
             default:
                 return closeImpl(parent, websocket, 1002, "Closing connection. nonvalid op code");
             }
@@ -634,7 +644,7 @@ namespace SL {
             default:
                 break;
             }
-            SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "ReadBody size " << size << " opcode " << opcode);
+         
             size += AdditionalBodyBytesToRead<PARENTTYPE>();
             if (opcode == OpCode::PING || opcode == OpCode::PONG || opcode == OpCode::CLOSE) {
                 if (size - AdditionalBodyBytesToRead<PARENTTYPE>() > CONTROLBUFFERMAXSIZE) {
@@ -739,7 +749,7 @@ namespace SL {
                         readbytes = 0;
                     }
 
-                    SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "ReadHeader readbytes " << readbytes);
+                  
                     if (readbytes > 1) {
                         boost::asio::async_read(*socket, boost::asio::buffer(websocket->ReceiveHeader + 2, readbytes), [parent, websocket, socket](const boost::system::error_code& ec, size_t) {
                             if (!ec) {

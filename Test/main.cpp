@@ -22,7 +22,7 @@ void wssautobahntest() {
     });
     listener.onMessage([&](const SL::WS_LITE::WSocket& socket, const SL::WS_LITE::WSMessage& message) {
         lastheard = std::chrono::high_resolution_clock::now();
-        SL_WS_LITE_LOG(SL::WS_LITE::Logging_Levels::INFO_log_level, "listener::onMessage");
+     //   SL_WS_LITE_LOG(SL::WS_LITE::Logging_Levels::INFO_log_level, "listener::onMessage");
         SL::WS_LITE::WSMessage msg;
         msg.Buffer = std::shared_ptr<unsigned char>(new unsigned char[message.len], [](unsigned char* p) { delete[] p; });
         msg.len = message.len;
