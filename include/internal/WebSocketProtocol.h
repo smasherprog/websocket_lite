@@ -564,12 +564,24 @@ namespace SL {
 
             sendImpl(parent, websocket, msg, false);
         }
+        template <class PARENTTYPE>inline void ProcessClose(const std::shared_ptr<PARENTTYPE>& parent, const std::shared_ptr<WSocketImpl>& websocket, const std::shared_ptr<unsigned char>& buffer, size_t size) {
+            if (size >= 2) {
+                auto closecode = *reinterpret_cast<unsigned short*>(buffer.get());
+                if (size > 2) {
+                    if (!isValidUtf8(buffer.get() +sizeof(closecode), size - sizeof(closecode))) {
+                        return closeImpl(parent, websocket, 1007, "Frame not valid utf8");
+                    }
+                    return closeImpl(parent, websocket, 1000, "");
+                }
+            }
+            return closeImpl(parent, websocket, 1000, "");
+        }
         template <class PARENTTYPE, class SOCKETTYPE>inline void ProcessControlMessage(const std::shared_ptr<PARENTTYPE>& parent, const std::shared_ptr<WSocketImpl>& websocket, const SOCKETTYPE& socket, const std::shared_ptr<unsigned char>& buffer, size_t size) {
             if (!getFin(websocket->ReceiveHeader)) {
                 return closeImpl(parent, websocket, 1002, "Closing connection. Control Frames must be Fin");
             }
             auto opcode = getOpCode(websocket->ReceiveHeader);
-
+            
             WSocket wsocket(websocket);
             switch (opcode)
             {
@@ -586,7 +598,8 @@ namespace SL {
                 // SendPong(parent, websocket);
                 break;
             case OpCode::CLOSE:
-                return closeImpl(parent, websocket, 1000, "");
+                return ProcessClose(parent, websocket, buffer, size);
+         
             default:
                 return closeImpl(parent, websocket, 1002, "Closing connection. nonvalid op code");
             }
