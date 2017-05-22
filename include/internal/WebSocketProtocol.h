@@ -428,6 +428,7 @@ namespace SL {
             }
             boost::system::error_code ec;
             auto bytes_transferred = boost::asio::write(*socket, boost::asio::buffer(mask, 4), ec);
+            UNUSED(bytes_transferred);
             assert(bytes_transferred == 4);
             if (ec)
             {
@@ -477,6 +478,7 @@ namespace SL {
             writeexpire_from_now(parent, websocket, socket, parent->WriteTimeout);
             boost::system::error_code ec;
             auto bytes_transferred = boost::asio::write(*socket, boost::asio::buffer(header, sendsize), ec);
+            UNUSED(bytes_transferred);
             if (!ec)
             {
                 assert(sendsize == bytes_transferred);
@@ -512,7 +514,7 @@ namespace SL {
             UNUSED(readsize);
             UNUSED(buffer);
         }
-        template <class PARENTTYPE, class SOCKETTYPE>inline void ProcessMessage(const std::shared_ptr<PARENTTYPE>& parent, const std::shared_ptr<WSocketImpl>& websocket, const SOCKETTYPE& socket, unsigned char* buffer, size_t size) {
+        template <class PARENTTYPE, class SOCKETTYPE>inline void ProcessMessage(const std::shared_ptr<PARENTTYPE>& parent, const std::shared_ptr<WSocketImpl>& websocket, const SOCKETTYPE& socket) {
 
             auto opcode = getOpCode(websocket->ReceiveHeader);
 
@@ -702,7 +704,7 @@ namespace SL {
                             auto buffer = websocket->ReceiveBuffer + websocket->ReceiveBufferSize - size;
                             UnMaskMessage(parent, size, buffer);
                             websocket->ReceiveBufferSize -= AdditionalBodyBytesToRead<PARENTTYPE>();
-                            ProcessMessage(parent, websocket, socket, buffer, size - AdditionalBodyBytesToRead<PARENTTYPE>());
+                            ProcessMessage(parent, websocket, socket);
                         }
                         else {
                             return closeImpl(parent, websocket, 1002, "ReadBody Error " + ec.message());
@@ -710,7 +712,7 @@ namespace SL {
                     });
                 }
                 else {
-                    ProcessMessage(parent, websocket, socket, websocket->ReceiveBuffer, websocket->ReceiveBufferSize);
+                    ProcessMessage(parent, websocket, socket);
                 }
             }
             else {
