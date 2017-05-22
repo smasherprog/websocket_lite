@@ -95,39 +95,6 @@ namespace SL {
             else return true;
         }
 
-        template<class PARENTTYPE, class SOCKETTYPE> void readexpire_from_now(const std::shared_ptr<PARENTTYPE>& parent, const std::shared_ptr<WSocketImpl>& websocket, const SOCKETTYPE& socket, int seconds)
-        {
-
-            boost::system::error_code ec;
-            if (seconds <= 0) websocket->read_deadline.expires_at(boost::posix_time::pos_infin, ec);
-            else  websocket->read_deadline.expires_from_now(boost::posix_time::seconds(seconds), ec);
-            if (ec) {
-                SL_WS_LITE_LOG(Logging_Levels::ERROR_log_level, ec.message());
-            }
-            else if (seconds >= 0) {
-                websocket->read_deadline.async_wait([parent, websocket, socket](const boost::system::error_code& ec) {
-                    if (ec != boost::asio::error::operation_aborted) {
-                        return closeImpl(parent, websocket, 1001, "read timer expired on the socket ");
-                    }
-                });
-            }
-        }
-        template<class PARENTTYPE, class SOCKETTYPE> void writeexpire_from_now(const std::shared_ptr<PARENTTYPE>& parent, const std::shared_ptr<WSocketImpl>& websocket, const SOCKETTYPE& socket, int seconds)
-        {
-            boost::system::error_code ec;
-            if (seconds <= 0) websocket->write_deadline.expires_at(boost::posix_time::pos_infin, ec);
-            else websocket->write_deadline.expires_from_now(boost::posix_time::seconds(seconds), ec);
-            if (ec) {
-                SL_WS_LITE_LOG(Logging_Levels::ERROR_log_level, ec.message());
-            }
-            else if (seconds >= 0) {
-                websocket->write_deadline.async_wait([parent, websocket, socket, seconds](const boost::system::error_code& ec) {
-                    if (ec != boost::asio::error::operation_aborted) {
-                        return closeImpl(parent, websocket, 1001, "write timer expired on the socket ");
-                    }
-                });
-            }
-        }
         struct WSocketImpl
         {
             WSocketImpl(boost::asio::io_service& s) :read_deadline(s), write_deadline(s) {}
@@ -281,6 +248,50 @@ namespace SL {
             }
         };
 
+        template<class PARENTTYPE, class SOCKETTYPE> void readexpire_from_now(const std::shared_ptr<PARENTTYPE>& parent, const std::shared_ptr<WSocketImpl>& websocket, const SOCKETTYPE& socket, int seconds)
+        {
+
+            boost::system::error_code ec;
+            if (seconds <= 0) websocket->read_deadline.expires_at(boost::posix_time::pos_infin, ec);
+            else  websocket->read_deadline.expires_from_now(boost::posix_time::seconds(seconds), ec);
+            if (ec) {
+                SL_WS_LITE_LOG(Logging_Levels::ERROR_log_level, ec.message());
+            }
+            else if (seconds >= 0) {
+                websocket->read_deadline.async_wait([parent, websocket, socket](const boost::system::error_code& ec) {
+                    if (ec != boost::asio::error::operation_aborted) {
+                        return closeImpl(parent, websocket, 1001, "read timer expired on the socket ");
+                    }
+                });
+            }
+        }
+        template<class PARENTTYPE, class SOCKETTYPE> void writeexpire_from_now(const std::shared_ptr<PARENTTYPE>& parent, const std::shared_ptr<WSocketImpl>& websocket, const SOCKETTYPE& socket, int seconds)
+        {
+            boost::system::error_code ec;
+            if (seconds <= 0) websocket->write_deadline.expires_at(boost::posix_time::pos_infin, ec);
+            else websocket->write_deadline.expires_from_now(boost::posix_time::seconds(seconds), ec);
+            if (ec) {
+                SL_WS_LITE_LOG(Logging_Levels::ERROR_log_level, ec.message());
+            }
+            else if (seconds >= 0) {
+                websocket->write_deadline.async_wait([parent, websocket, socket, seconds](const boost::system::error_code& ec) {
+                    if (ec != boost::asio::error::operation_aborted) {
+                        return closeImpl(parent, websocket, 1001, "write timer expired on the socket ");
+                    }
+                });
+            }
+        }
+        template<class PARENTTYPE>inline void startwrite(const std::shared_ptr<PARENTTYPE>& parent) {
+            if (!parent->SendItems.empty()) {
+                auto msg(parent->SendItems.back());
+                if (msg.socket->Socket) {
+                    write(parent, msg.socket, msg.socket->Socket, msg.msg);
+                }
+                else {
+                    write(parent, msg.socket, msg.socket->TLSSocket, msg.msg);
+                }
+            }
+        }
         template<class PARENTTYPE>void sendImpl(const std::shared_ptr<PARENTTYPE>& parent, const std::shared_ptr<WSocketImpl>& websocket, WSMessage& msg, bool compressmessage) {
             if (compressmessage) {
                 assert(msg.code == OpCode::BINARY || msg.code == OpCode::TEXT);
@@ -487,17 +498,6 @@ namespace SL {
             }
 
         }
-        template<class PARENTTYPE>inline void startwrite(const std::shared_ptr<PARENTTYPE>& parent) {
-            if (!parent->SendItems.empty()) {
-                auto msg(parent->SendItems.back());
-                if (msg.socket->Socket) {
-                    write(parent, msg.socket, msg.socket->Socket, msg.msg);
-                }
-                else {
-                    write(parent, msg.socket, msg.socket->TLSSocket, msg.msg);
-                }
-            }
-        }
         inline void UnMaskMessage(const std::shared_ptr<WSListenerImpl>& parent, size_t readsize, unsigned char* buffer) {
             UNUSED(parent);
             auto startp = buffer;
@@ -568,7 +568,7 @@ namespace SL {
                     }
                 }
 
-                if ((closecode >= 1000 && closecode <= 1011 || closecode >=3000 && closecode <=4999) && closecode != 1004 && closecode != 1005 && closecode != 1006) {
+                if (((closecode >= 1000 && closecode <= 1011 )|| (closecode >=3000 && closecode <=4999)) && closecode != 1004 && closecode != 1005 && closecode != 1006) {
                     return closeImpl(parent, websocket, 1000, "");
                 }
                 else
