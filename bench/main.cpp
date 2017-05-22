@@ -88,29 +88,27 @@ bool nextConnection(int tid)
 
 int main(int argc, char **argv)
 {
-#if WIN32
-    WSADATA wsaData;
-    WSAStartup(MAKEWORD(2, 2), &wsaData);
-#endif
-
-    auto startPoint = high_resolution_clock::now();
-    vector<thread *> threads;
-    for (int i = 0; i < THREADS; i++) {
-        threads.push_back(new thread([i] {
-            while (nextConnection(i));
-        }));
-    }
-
-    for (thread *t : threads) {
-        t->join();
-    }
-
-    double connectionsPerMs = double(connections) / duration_cast<milliseconds>(high_resolution_clock::now() - startPoint).count();
-    cout << "Connection performance: " << connectionsPerMs << " connections/ms" << endl;
-#if WIN32
-    WSACleanup();
-#endif
-    int t;
-    cin >> t;
+//#if WIN32
+//    WSADATA wsaData;
+//    WSAStartup(MAKEWORD(2, 2), &wsaData);
+//#endif
+//
+//    auto startPoint = high_resolution_clock::now();
+//    vector<thread *> threads;
+//    for (int i = 0; i < THREADS; i++) {
+//        threads.push_back(new thread([i] {
+//            while (nextConnection(i));
+//        }));
+//    }
+//
+//    for (thread *t : threads) {
+//        t->join();
+//    }
+//
+//    double connectionsPerMs = double(connections) / duration_cast<milliseconds>(high_resolution_clock::now() - startPoint).count();
+//    cout << "Connection performance: " << connectionsPerMs << " connections/ms" << endl;
+//#if WIN32
+//    WSACleanup();
+//#endif
     return 0;
 }
