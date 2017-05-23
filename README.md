@@ -10,6 +10,9 @@
 Cross-platform:Windows desktop, windows phone, Linux, Andriod, Mac desktop, iphone
 </li>
 <li>
+<h2>No External Dependencies</h2>
+</li>
+<li>
 Performance 
 </li>
 <li>
