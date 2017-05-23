@@ -11,15 +11,17 @@ using namespace std::chrono_literals;
 void wssautobahntest() {
     // auto listener = SL::WS_LITE::WSListener::CreateListener(3001, TEST_CERTIFICATE_PRIVATE_PASSWORD, TEST_CERTIFICATE_PRIVATE_PATH, TEST_CERTIFICATE_PUBLIC_PATH, TEST_DH_PATH);
     auto listener = SL::WS_LITE::WSListener::CreateListener(3001);
-    listener.onHttpUpgrade([](const SL::WS_LITE::WSocket& socket) {
+    auto lastheard = std::chrono::high_resolution_clock::now();
+    listener.onHttpUpgrade([&](const SL::WS_LITE::WSocket& socket) { 
+        lastheard = std::chrono::high_resolution_clock::now();
         SL_WS_LITE_LOG(SL::WS_LITE::Logging_Levels::INFO_log_level, "listener::onHttpUpgrade");
-
     });
-    listener.onConnection([](const SL::WS_LITE::WSocket& socket, const std::unordered_map<std::string, std::string>& header) {
+    listener.onConnection([&](const SL::WS_LITE::WSocket& socket, const std::unordered_map<std::string, std::string>& header) {
+        lastheard = std::chrono::high_resolution_clock::now();
         SL_WS_LITE_LOG(SL::WS_LITE::Logging_Levels::INFO_log_level, "listener::onConnection");
     });
     listener.onMessage([&](const SL::WS_LITE::WSocket& socket, const SL::WS_LITE::WSMessage& message) {
-        //   SL_WS_LITE_LOG(SL::WS_LITE::Logging_Levels::INFO_log_level, "listener::onMessage");
+        lastheard = std::chrono::high_resolution_clock::now();
         SL::WS_LITE::WSMessage msg;
         msg.Buffer = std::shared_ptr<unsigned char>(new unsigned char[message.len], [](unsigned char* p) { delete[] p; });
         msg.len = message.len;
@@ -33,7 +35,9 @@ void wssautobahntest() {
     std::string cmd = "wstest -m fuzzingclient -s ";
     cmd += TEST_FUZZING_PATH;
     system(cmd.c_str());
-
+    while (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - lastheard).count() < 2000) {
+        std::this_thread::sleep_for(200ms);
+    }
     SL_WS_LITE_LOG(SL::WS_LITE::Logging_Levels::INFO_log_level, "Exiting autobahn test...");
 }
 void generaltest() {
