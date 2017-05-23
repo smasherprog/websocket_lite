@@ -85,6 +85,7 @@ void generaltest() {
 }
 int main(int argc, char* argv[]) {
     wssautobahntest();
+    std::this_thread::sleep_for(1s);
     generaltest();
     return 0;
 }
