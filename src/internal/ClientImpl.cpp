@@ -8,7 +8,7 @@
 namespace SL {
     namespace WS_LITE {
 
-        bool verify_certificate(bool preverified, boost::asio::ssl::verify_context& ctx)
+        bool verify_certificate(bool preverified, asio::ssl::verify_context& ctx)
         {
             char subject_name[256];
             X509* cert = X509_STORE_CTX_get_current_cert(ctx.native_handle());
@@ -20,7 +20,7 @@ namespace SL {
 
 
         template<class SOCKETTYPE>void ConnectHandshake(std::shared_ptr<WSClientImpl> self, SOCKETTYPE& socket) {
-            auto write_buffer(std::make_shared<boost::asio::streambuf>());
+            auto write_buffer(std::make_shared<asio::streambuf>());
             std::ostream request(write_buffer.get());
 
             request << "GET /rdpenpoint/ HTTP/1.1" << HTTP_ENDLINE;
@@ -44,12 +44,12 @@ namespace SL {
 
             auto accept_sha1 = SHA1(nonce_base64 + ws_magic_string);
 
-            boost::asio::async_write(*socket, *write_buffer, [write_buffer, accept_sha1, socket, self](const boost::system::error_code& ec, size_t bytes_transferred) {
+            asio::async_write(*socket, *write_buffer, [write_buffer, accept_sha1, socket, self](const std::error_code& ec, size_t bytes_transferred) {
                 UNUSED(bytes_transferred);
                 if (!ec) {
                     SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "Sent Handshake bytes " << bytes_transferred);
-                    auto read_buffer(std::make_shared<boost::asio::streambuf>());
-                    boost::asio::async_read_until(*socket, *read_buffer, "\r\n\r\n", [read_buffer, accept_sha1, socket, self](const boost::system::error_code& ec, size_t bytes_transferred) {
+                    auto read_buffer(std::make_shared<asio::streambuf>());
+                    asio::async_read_until(*socket, *read_buffer, "\r\n\r\n", [read_buffer, accept_sha1, socket, self](const std::error_code& ec, size_t bytes_transferred) {
                         if (!ec) {
                             SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "Read Handshake bytes " << bytes_transferred);
                             std::istream stream(read_buffer.get());
@@ -106,11 +106,11 @@ namespace SL {
             });
 
         }
-        void async_handshake(std::shared_ptr<WSClientImpl> self, std::shared_ptr<boost::asio::ip::tcp::socket> socket) {
+        void async_handshake(std::shared_ptr<WSClientImpl> self, std::shared_ptr<asio::ip::tcp::socket> socket) {
             ConnectHandshake(self, socket);
         }
-        void async_handshake(std::shared_ptr<WSClientImpl> self, std::shared_ptr<boost::asio::ssl::stream<boost::asio::ip::tcp::socket>> socket) {
-            socket->async_handshake(boost::asio::ssl::stream_base::client, [socket, self](const boost::system::error_code& ec) {
+        void async_handshake(std::shared_ptr<WSClientImpl> self, std::shared_ptr<asio::ssl::stream<asio::ip::tcp::socket>> socket) {
+            socket->async_handshake(asio::ssl::stream_base::client, [socket, self](const std::error_code& ec) {
                 if (!ec)
                 {
                     ConnectHandshake(self, socket);
@@ -128,10 +128,10 @@ namespace SL {
         template<typename SOCKETCREATOR>void Connect(std::shared_ptr<WSClientImpl> self, const char* host, unsigned short port, SOCKETCREATOR&& socketcreator) {
 
             auto socket = socketcreator(self);
-            boost::system::error_code ec;
-            boost::asio::ip::tcp::resolver resolver(self->io_service);
+            std::error_code ec;
+            asio::ip::tcp::resolver resolver(self->io_service);
             auto portstr = std::to_string(port);
-            boost::asio::ip::tcp::resolver::query query(host, portstr.c_str());
+            asio::ip::tcp::resolver::query query(host, portstr.c_str());
 
             auto endpoint = resolver.resolve(query, ec);
 
@@ -144,10 +144,10 @@ namespace SL {
                 }
             }
             else {
-                boost::asio::async_connect(socket->lowest_layer(), endpoint, [socket, self](const boost::system::error_code& ec, boost::asio::ip::tcp::resolver::iterator)
+                asio::async_connect(socket->lowest_layer(), endpoint, [socket, self](const std::error_code& ec, asio::ip::tcp::resolver::iterator)
                 {
-                    boost::system::error_code e;
-                    socket->lowest_layer().set_option(boost::asio::ip::tcp::no_delay(true), e);
+                    std::error_code e;
+                    socket->lowest_layer().set_option(asio::ip::tcp::no_delay(true), e);
                     if (e) {
                         SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "set_option error " << e.message());
                         e.clear();
@@ -182,8 +182,8 @@ namespace SL {
         void WSClient::connect(const char* host, unsigned short port) {
             if (Impl_->sslcontext) {
                 auto createsocket = [](auto c) {
-                    auto socket = std::make_shared<boost::asio::ssl::stream<boost::asio::ip::tcp::socket>>(c->io_service, *c->sslcontext);
-                    socket->set_verify_mode(boost::asio::ssl::verify_peer);
+                    auto socket = std::make_shared<asio::ssl::stream<asio::ip::tcp::socket>>(c->io_service, *c->sslcontext);
+                    socket->set_verify_mode(asio::ssl::verify_peer);
                     socket->set_verify_callback(std::bind(&verify_certificate, std::placeholders::_1, std::placeholders::_2));
                     return socket;
 
@@ -192,7 +192,7 @@ namespace SL {
             }
             else {
                 auto createsocket = [](auto c) {
-                    return std::make_shared<boost::asio::ip::tcp::socket>(c->io_service);
+                    return std::make_shared<asio::ip::tcp::socket>(c->io_service);
                 };
                 Connect(Impl_, host, port, createsocket);
             }

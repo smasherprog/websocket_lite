@@ -13,10 +13,9 @@
 #include <thread>
 #include <random>
 #include <deque>
-
-#include <boost/asio.hpp>
-#include <boost/asio/ssl.hpp>
-#include <boost/asio/deadline_timer.hpp>
+#include <asio.hpp>
+#include <asio/ssl.hpp>
+#include <asio/deadline_timer.hpp>
 
 #include <zlib.h>
 
@@ -61,35 +60,35 @@ namespace SL {
 
         template<class T>std::string get_address(T& _socket)
         {
-            boost::system::error_code ec;
+            std::error_code ec;
             auto rt(_socket->lowest_layer().remote_endpoint(ec));
             if (!ec) return rt.address().to_string();
             else return "";
         }
         template<class T> unsigned short get_port(T& _socket)
         {
-            boost::system::error_code ec;
+            std::error_code ec;
             auto rt(_socket->lowest_layer().remote_endpoint(ec));
             if (!ec) return rt.port();
             else return static_cast<unsigned short>(-1);
         }
         template<class T> bool is_v4(T& _socket)
         {
-            boost::system::error_code ec;
+            std::error_code ec;
             auto rt(_socket->lowest_layer().remote_endpoint(ec));
             if (!ec) return rt.address().is_v4();
             else return true;
         }
         template<class T> bool is_v6(T& _socket)
         {
-            boost::system::error_code ec;
+            std::error_code ec;
             auto rt(_socket->lowest_layer().remote_endpoint(ec));
             if (!ec) return rt.address().is_v6();
             else return true;
         }
         template<class T> bool is_loopback(T& _socket)
         {
-            boost::system::error_code ec;
+            std::error_code ec;
             auto rt(_socket->lowest_layer().remote_endpoint(ec));
             if (!ec) return rt.address().is_loopback();
             else return true;
@@ -97,32 +96,32 @@ namespace SL {
 
         struct WSocketImpl
         {
-            WSocketImpl(boost::asio::io_service& s) :read_deadline(s), write_deadline(s) {}
+            WSocketImpl(asio::io_service& s) :read_deadline(s), write_deadline(s) {}
             ~WSocketImpl() {
                 canceltimers();
                 if (ReceiveBuffer) {
                     free(ReceiveBuffer);
                 }
             }
-            boost::asio::deadline_timer read_deadline;
-            boost::asio::deadline_timer write_deadline;
+            asio::basic_waitable_timer<std::chrono::steady_clock> read_deadline;
+            asio::basic_waitable_timer<std::chrono::steady_clock> write_deadline;
             unsigned char* ReceiveBuffer = nullptr;
             size_t ReceiveBufferSize = 0;
             unsigned char ReceiveHeader[14];
             bool CompressionEnabled = false;
 
             OpCode LastOpCode = OpCode::INVALID;
-            std::shared_ptr<boost::asio::ip::tcp::socket> Socket;
-            std::shared_ptr<boost::asio::ssl::stream<boost::asio::ip::tcp::socket>> TLSSocket;
+            std::shared_ptr<asio::ip::tcp::socket> Socket;
+            std::shared_ptr<asio::ssl::stream<asio::ip::tcp::socket>> TLSSocket;
             void canceltimers() {
                 read_deadline.cancel();
                 write_deadline.cancel();
             }
         };
-        inline void set_Socket(std::shared_ptr<WSocketImpl>& ws, std::shared_ptr<boost::asio::ssl::stream<boost::asio::ip::tcp::socket>> s) {
+        inline void set_Socket(std::shared_ptr<WSocketImpl>& ws, std::shared_ptr<asio::ssl::stream<asio::ip::tcp::socket>> s) {
             ws->TLSSocket = s;
         }
-        inline void set_Socket(std::shared_ptr<WSocketImpl>& ws, std::shared_ptr<boost::asio::ip::tcp::socket>  s) {
+        inline void set_Socket(std::shared_ptr<WSocketImpl>& ws, std::shared_ptr<asio::ip::tcp::socket>  s) {
             ws->Socket = s;
         }
 
@@ -134,11 +133,11 @@ namespace SL {
         const auto CONTROLBUFFERMAXSIZE = 125;
         struct WSContext {
             WSContext() :
-                work(std::make_unique<boost::asio::io_service::work>(io_service)) {
+                work(std::make_unique<asio::io_service::work>(io_service)) {
                 inflationBuffer = std::make_unique<char[]>(LARGE_BUFFER_SIZE);
                 inflateInit2(&inflationStream, -MAX_WBITS);
                 io_servicethread = std::thread([&]() {
-                    boost::system::error_code ec;
+                    std::error_code ec;
                     io_service.run(ec);
                 });
 
@@ -159,10 +158,10 @@ namespace SL {
             size_t MaxPayload = 1024 * 1024*100;//10 MB
             std::deque<SendQueueItem> SendItems;
             z_stream inflationStream = {};
-            boost::asio::io_service io_service;
+            asio::io_service io_service;
             std::thread io_servicethread;
-            std::unique_ptr<boost::asio::io_service::work> work;
-            std::unique_ptr<boost::asio::ssl::context> sslcontext;
+            std::unique_ptr<asio::io_service::work> work;
+            std::unique_ptr<asio::ssl::context> sslcontext;
 
             std::function<void(WSocket&, const std::unordered_map<std::string, std::string>&)> onConnection;
             std::function<void(WSocket&, const WSMessage&)> onMessage;
@@ -177,14 +176,14 @@ namespace SL {
         public:
             WSClientImpl(std::string Publiccertificate_File)
             {
-                sslcontext = std::make_unique<boost::asio::ssl::context>(boost::asio::ssl::context::tlsv11);
+                sslcontext = std::make_unique<asio::ssl::context>(asio::ssl::context::tlsv11);
                 std::ifstream file(Publiccertificate_File, std::ios::binary);
                 assert(file);
                 std::vector<char> buf;
                 buf.resize(static_cast<size_t>(filesize(Publiccertificate_File)));
                 file.read(buf.data(), buf.size());
-                boost::asio::const_buffer cert(buf.data(), buf.size());
-                boost::system::error_code ec;
+                asio::const_buffer cert(buf.data(), buf.size());
+                std::error_code ec;
                 sslcontext->add_certificate_authority(cert, ec);
                 ec.clear();
                 sslcontext->set_default_verify_paths(ec);
@@ -197,7 +196,7 @@ namespace SL {
         class WSListenerImpl : public WSContext {
         public:
 
-            boost::asio::ip::tcp::acceptor acceptor;
+            asio::ip::tcp::acceptor acceptor;
 
             WSListenerImpl(unsigned short port,
                 std::string Password,
@@ -206,13 +205,13 @@ namespace SL {
                 std::string dh_File) :
                 WSListenerImpl(port)
             {
-                sslcontext = std::make_unique<boost::asio::ssl::context>(boost::asio::ssl::context::tlsv11);
+                sslcontext = std::make_unique<asio::ssl::context>(asio::ssl::context::tlsv11);
                 sslcontext->set_options(
-                    boost::asio::ssl::context::default_workarounds
-                    | boost::asio::ssl::context::no_sslv2 | boost::asio::ssl::context::no_sslv3
-                    | boost::asio::ssl::context::single_dh_use);
-                boost::system::error_code ec;
-                sslcontext->set_password_callback([Password](std::size_t, boost::asio::ssl::context::password_purpose) { return Password; }, ec);
+                    asio::ssl::context::default_workarounds
+                    | asio::ssl::context::no_sslv2 | asio::ssl::context::no_sslv3
+                    | asio::ssl::context::single_dh_use);
+                std::error_code ec;
+                sslcontext->set_password_callback([Password](std::size_t, asio::ssl::context::password_purpose) { return Password; }, ec);
                 if (ec) {
                     SL_WS_LITE_LOG(Logging_Levels::ERROR_log_level, "set_password_callback " << ec.message());
                     ec.clear();
@@ -232,7 +231,7 @@ namespace SL {
                     SL_WS_LITE_LOG(Logging_Levels::ERROR_log_level, "set_default_verify_paths " << ec.message());
                     ec.clear();
                 }
-                sslcontext->use_private_key_file(Privatekey_File, boost::asio::ssl::context::pem, ec);
+                sslcontext->use_private_key_file(Privatekey_File, asio::ssl::context::pem, ec);
                 if (ec) {
                     SL_WS_LITE_LOG(Logging_Levels::ERROR_log_level, "use_private_key_file " << ec.message());
                     ec.clear();
@@ -240,10 +239,10 @@ namespace SL {
 
             }
 
-            WSListenerImpl(unsigned short port) :acceptor(io_service, boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), port)) { }
+            WSListenerImpl(unsigned short port) :acceptor(io_service, asio::ip::tcp::endpoint(asio::ip::tcp::v4(), port)) { }
 
             ~WSListenerImpl() {
-                boost::system::error_code ec;
+                std::error_code ec;
                 acceptor.close(ec);
             }
         };
@@ -251,15 +250,15 @@ namespace SL {
         template<class PARENTTYPE, class SOCKETTYPE> void readexpire_from_now(const std::shared_ptr<PARENTTYPE>& parent, const std::shared_ptr<WSocketImpl>& websocket, const SOCKETTYPE& socket, int seconds)
         {
 
-            boost::system::error_code ec;
-            if (seconds <= 0) websocket->read_deadline.expires_at(boost::posix_time::pos_infin, ec);
-            else  websocket->read_deadline.expires_from_now(boost::posix_time::seconds(seconds), ec);
+            std::error_code ec;
+            if (seconds <= 0) websocket->read_deadline.cancel(ec);
+            else  websocket->read_deadline.expires_from_now(std::chrono::seconds(seconds), ec);
             if (ec) {
                 SL_WS_LITE_LOG(Logging_Levels::ERROR_log_level, ec.message());
             }
             else if (seconds >= 0) {
-                websocket->read_deadline.async_wait([parent, websocket, socket](const boost::system::error_code& ec) {
-                    if (ec != boost::asio::error::operation_aborted) {
+                websocket->read_deadline.async_wait([parent, websocket, socket](const std::error_code& ec) {
+                    if (ec != asio::error::operation_aborted) {
                         return closeImpl(parent, websocket, 1001, "read timer expired on the socket ");
                     }
                 });
@@ -267,15 +266,15 @@ namespace SL {
         }
         template<class PARENTTYPE, class SOCKETTYPE> void writeexpire_from_now(const std::shared_ptr<PARENTTYPE>& parent, const std::shared_ptr<WSocketImpl>& websocket, const SOCKETTYPE& socket, int seconds)
         {
-            boost::system::error_code ec;
-            if (seconds <= 0) websocket->write_deadline.expires_at(boost::posix_time::pos_infin, ec);
-            else websocket->write_deadline.expires_from_now(boost::posix_time::seconds(seconds), ec);
+            std::error_code ec;
+            if (seconds <= 0) websocket->write_deadline.cancel(ec);
+            else websocket->write_deadline.expires_from_now(std::chrono::seconds(seconds), ec);
             if (ec) {
                 SL_WS_LITE_LOG(Logging_Levels::ERROR_log_level, ec.message());
             }
             else if (seconds >= 0) {
-                websocket->write_deadline.async_wait([parent, websocket, socket, seconds](const boost::system::error_code& ec) {
-                    if (ec != boost::asio::error::operation_aborted) {
+                websocket->write_deadline.async_wait([parent, websocket, socket, seconds](const std::error_code& ec) {
+                    if (ec != asio::error::operation_aborted) {
                         return closeImpl(parent, websocket, 1001, "write timer expired on the socket ");
                     }
                 });
@@ -366,8 +365,8 @@ namespace SL {
         inline void setrsv1(unsigned char *frame, unsigned char val) { frame[0] = (val & 64) | (~64 & frame[0]); }
 
         struct HandshakeContainer {
-            boost::asio::streambuf Read;
-            boost::asio::streambuf Write;
+            asio::streambuf Read;
+            asio::streambuf Write;
             std::unordered_map<std::string, std::string> Header;
         };
         struct WSSendMessageInternal {
@@ -398,14 +397,14 @@ namespace SL {
 
             }
             websocket->canceltimers();
-            boost::system::error_code ec;
-            socket->lowest_layer().shutdown(boost::asio::ip::tcp::socket::shutdown_both, ec);
+            std::error_code ec;
+            socket->lowest_layer().shutdown(asio::ip::tcp::socket::shutdown_both, ec);
             ec.clear();
             socket->lowest_layer().close(ec);
         }
         template<class PARENTYPE, class SOCKETTYPE, class SENDBUFFERTYPE>inline void write_end(const PARENTYPE& parent, const std::shared_ptr<WSocketImpl>& websocket, const SOCKETTYPE& socket, const SENDBUFFERTYPE& msg) {
 
-            boost::asio::async_write(*socket, boost::asio::buffer(msg.data, msg.len), [parent, websocket, socket, msg](const boost::system::error_code& ec, size_t bytes_transferred) {
+            asio::async_write(*socket, asio::buffer(msg.data, msg.len), [parent, websocket, socket, msg](const std::error_code& ec, size_t bytes_transferred) {
 
                 UNUSED(bytes_transferred);
                 //   assert(msg.len == bytes_transferred);
@@ -437,8 +436,8 @@ namespace SL {
             for (decltype(msg.len) i = 0; i < msg.len; i++) {
                 *p++ ^= mask[i % 4];
             }
-            boost::system::error_code ec;
-            auto bytes_transferred = boost::asio::write(*socket, boost::asio::buffer(mask, 4), ec);
+            std::error_code ec;
+            auto bytes_transferred = asio::write(*socket, asio::buffer(mask, 4), ec);
             UNUSED(bytes_transferred);
             assert(bytes_transferred == 4);
             if (ec)
@@ -487,8 +486,8 @@ namespace SL {
 
             assert(msg.len < UINT32_MAX);
             writeexpire_from_now(parent, websocket, socket, parent->WriteTimeout);
-            boost::system::error_code ec;
-            auto bytes_transferred = boost::asio::write(*socket, boost::asio::buffer(header, sendsize), ec);
+            std::error_code ec;
+            auto bytes_transferred = asio::write(*socket, asio::buffer(header, sendsize), ec);
             UNUSED(bytes_transferred);
             if (!ec)
             {
@@ -649,7 +648,7 @@ namespace SL {
                 }
                 else if (size > 0) {
                     auto buffer = std::shared_ptr<unsigned char>(new unsigned char[size], [](auto p) { delete[] p; });
-                    boost::asio::async_read(*socket, boost::asio::buffer(buffer.get(), size), [parent, websocket, socket, buffer, size](const boost::system::error_code& ec, size_t bytes_transferred) {
+                    asio::async_read(*socket, asio::buffer(buffer.get(), size), [parent, websocket, socket, buffer, size](const std::error_code& ec, size_t bytes_transferred) {
 
                         if (!ec) {
                             assert(size == bytes_transferred);
@@ -694,7 +693,7 @@ namespace SL {
                         SL_WS_LITE_LOG(Logging_Levels::ERROR_log_level, "MEMORY ALLOCATION ERROR!!!");
                         return closeImpl(parent, websocket, 1009, "Payload exceeded MaxPayload size");
                     }
-                    boost::asio::async_read(*socket, boost::asio::buffer(websocket->ReceiveBuffer + websocket->ReceiveBufferSize - size, size), [parent, websocket, socket, size](const boost::system::error_code& ec, size_t bytes_transferred) {
+                    asio::async_read(*socket, asio::buffer(websocket->ReceiveBuffer + websocket->ReceiveBufferSize - size, size), [parent, websocket, socket, size](const std::error_code& ec, size_t bytes_transferred) {
 
                         if (!ec) {
                             assert(size == bytes_transferred);
@@ -729,7 +728,7 @@ namespace SL {
         }
         template <class PARENTTYPE, class SOCKETTYPE>inline void ReadHeaderNext(const std::shared_ptr<PARENTTYPE>& parent, const std::shared_ptr<WSocketImpl>& websocket, const SOCKETTYPE& socket) {
             readexpire_from_now(parent, websocket, socket, parent->ReadTimeout);
-            boost::asio::async_read(*socket, boost::asio::buffer(websocket->ReceiveHeader, 2), [parent, websocket, socket](const boost::system::error_code& ec, size_t bytes_transferred) {
+            asio::async_read(*socket, asio::buffer(websocket->ReceiveHeader, 2), [parent, websocket, socket](const std::error_code& ec, size_t bytes_transferred) {
                 UNUSED(bytes_transferred);
                 if (!ec) {
                     assert(bytes_transferred == 2);
@@ -748,7 +747,7 @@ namespace SL {
 
                   
                     if (readbytes > 1) {
-                        boost::asio::async_read(*socket, boost::asio::buffer(websocket->ReceiveHeader + 2, readbytes), [parent, websocket, socket](const boost::system::error_code& ec, size_t) {
+                        asio::async_read(*socket, asio::buffer(websocket->ReceiveHeader + 2, readbytes), [parent, websocket, socket](const std::error_code& ec, size_t) {
                             if (!ec) {
                                 ReadBody(parent, websocket, socket);
                             }

@@ -7,7 +7,7 @@ namespace SL {
 
         template<class SOCKETTYPE>void read_handshake(std::shared_ptr<WSListenerImpl> listener, SOCKETTYPE& socket) {
             auto handshakecontainer(std::make_shared<HandshakeContainer>());
-            boost::asio::async_read_until(*socket, handshakecontainer->Read, "\r\n\r\n", [listener, socket, handshakecontainer](const boost::system::error_code& ec, size_t bytes_transferred) {
+            asio::async_read_until(*socket, handshakecontainer->Read, "\r\n\r\n", [listener, socket, handshakecontainer](const std::error_code& ec, size_t bytes_transferred) {
                 UNUSED(bytes_transferred);
                 if (!ec) {
                     SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "Read Handshake bytes " << bytes_transferred);
@@ -35,7 +35,7 @@ namespace SL {
                             listener->onHttpUpgrade(websocket);
                         }
 
-                        boost::asio::async_write(*socket, handshakecontainer->Write, [listener, sock, socket, handshakecontainer](const boost::system::error_code& ec, size_t bytes_transferred) {
+                        asio::async_write(*socket, handshakecontainer->Write, [listener, sock, socket, handshakecontainer](const std::error_code& ec, size_t bytes_transferred) {
                             UNUSED(bytes_transferred);
                             WSocket websocket(sock);
                             if (!ec) {
@@ -60,12 +60,12 @@ namespace SL {
             });
 
         }
-        void async_handshake(std::shared_ptr<WSListenerImpl> listener, std::shared_ptr<boost::asio::ip::tcp::socket> socket) {
+        void async_handshake(std::shared_ptr<WSListenerImpl> listener, std::shared_ptr<asio::ip::tcp::socket> socket) {
             read_handshake(listener, socket);
         }
-        void async_handshake(std::shared_ptr<WSListenerImpl> listener, std::shared_ptr<boost::asio::ssl::stream<boost::asio::ip::tcp::socket>> socket) {
+        void async_handshake(std::shared_ptr<WSListenerImpl> listener, std::shared_ptr<asio::ssl::stream<asio::ip::tcp::socket>> socket) {
 
-            socket->async_handshake(boost::asio::ssl::stream_base::server, [listener, socket](const boost::system::error_code& ec) {
+            socket->async_handshake(asio::ssl::stream_base::server, [listener, socket](const std::error_code& ec) {
 
                 if (!ec) {
                     read_handshake(listener, socket);
@@ -81,10 +81,10 @@ namespace SL {
 
             auto socket = socketcreator(listener);
 
-            listener->acceptor.async_accept(socket->lowest_layer(), [listener, socket, socketcreator](const boost::system::error_code& ec)
+            listener->acceptor.async_accept(socket->lowest_layer(), [listener, socket, socketcreator](const std::error_code& ec)
             {
-                boost::system::error_code e;
-                socket->lowest_layer().set_option(boost::asio::ip::tcp::no_delay(true), e);
+                std::error_code e;
+                socket->lowest_layer().set_option(asio::ip::tcp::no_delay(true), e);
                 if (e) {
                     SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "set_option error " << e.message());
                     e.clear();
@@ -120,13 +120,13 @@ namespace SL {
         {
             if (Impl_->sslcontext) {
                 auto createsocket = [](auto c) {
-                    return std::make_shared<boost::asio::ssl::stream<boost::asio::ip::tcp::socket>>(c->io_service, *c->sslcontext);
+                    return std::make_shared<asio::ssl::stream<asio::ip::tcp::socket>>(c->io_service, *c->sslcontext);
                 };
                 Listen(Impl_, createsocket);
             }
             else {
                 auto createsocket = [](auto c) {
-                    return std::make_shared<boost::asio::ip::tcp::socket>(c->io_service);
+                    return std::make_shared<asio::ip::tcp::socket>(c->io_service);
                 };
                 Listen(Impl_, createsocket);
             }
