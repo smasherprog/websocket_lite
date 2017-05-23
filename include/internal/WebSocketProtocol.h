@@ -238,7 +238,9 @@ namespace SL {
 
             }
 
-            WSListenerImpl(unsigned short port) :acceptor(io_service, asio::ip::tcp::endpoint(asio::ip::tcp::v4(), port)) { }
+            WSListenerImpl(unsigned short port) :acceptor(io_service, asio::ip::tcp::endpoint(asio::ip::tcp::v4(), port)) { 
+            
+            }
 
             ~WSListenerImpl() {
                 std::error_code ec;
