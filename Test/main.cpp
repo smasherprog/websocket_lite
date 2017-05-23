@@ -42,6 +42,7 @@ void wssautobahntest() {
     std::cout << "Exiting autobahn test..." << std::endl;
 }
 void generaltest() {
+    std::cout << "Starting General test..." << std::endl;
     //auto listener = SL::WS_LITE::WSListener::CreateListener(3001, TEST_CERTIFICATE_PRIVATE_PASSWORD, TEST_CERTIFICATE_PRIVATE_PATH, TEST_CERTIFICATE_PUBLIC_PATH, TEST_DH_PATH);
     auto listener = SL::WS_LITE::WSListener::CreateListener(3001);
     auto lastheard = std::chrono::high_resolution_clock::now();
