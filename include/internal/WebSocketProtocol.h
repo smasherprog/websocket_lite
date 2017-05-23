@@ -140,7 +140,6 @@ namespace SL {
                     std::error_code ec;
                     io_service.run(ec);
                 });
-
             }
             ~WSContext() {
                 SendItems.clear();
@@ -153,9 +152,9 @@ namespace SL {
                 inflateEnd(&inflationStream);
             }
             std::unique_ptr<char[]> inflationBuffer;
-            unsigned int ReadTimeout = 100;
-            unsigned int WriteTimeout = 100;
-            size_t MaxPayload = 1024 * 1024*100;//10 MB
+            unsigned int ReadTimeout = 30;
+            unsigned int WriteTimeout = 30;
+            size_t MaxPayload = 1024 * 1024*20;//20 MB
             std::deque<SendQueueItem> SendItems;
             z_stream inflationStream = {};
             asio::io_service io_service;
