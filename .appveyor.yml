@@ -16,6 +16,7 @@ platform:
 - x86
 
 install:  
+  - pip install autobahntestsuite
   - ps: If ($env:Platform -Match "x86"){ $env:CMAKE_ARCH="" } Else { $env:CMAKE_ARCH=" Win64"}
   - cd c:\projects
   - IF NOT EXIST c:\projects\build mkdir build
