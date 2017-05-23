@@ -12,6 +12,8 @@ using namespace std::chrono_literals;
 void wssautobahntest() {
     // auto listener = SL::WS_LITE::WSListener::CreateListener(3001, TEST_CERTIFICATE_PRIVATE_PASSWORD, TEST_CERTIFICATE_PRIVATE_PATH, TEST_CERTIFICATE_PUBLIC_PATH, TEST_DH_PATH);
     auto listener = SL::WS_LITE::WSListener::CreateListener(3001);
+    listener.set_ReadTimeout(100);
+    listener.set_WriteTimeout(100);
     auto lastheard = std::chrono::high_resolution_clock::now();
     listener.onHttpUpgrade([&](const SL::WS_LITE::WSocket& socket) { 
         lastheard = std::chrono::high_resolution_clock::now();

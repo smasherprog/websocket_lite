@@ -80,15 +80,15 @@ namespace SL {
         template<typename SOCKETCREATOR>void Listen(std::shared_ptr<WSListenerImpl> listener, SOCKETCREATOR&& socketcreator) {
 
             auto socket = socketcreator(listener);
-            std::error_code e;
-            socket->lowest_layer().set_option(asio::socket_base::reuse_address(true), e);
-            if (e) {
-                SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "set_option reuse_address error " << e.message());
-                e.clear();
-            }
+         
             listener->acceptor.async_accept(socket->lowest_layer(), [listener, socket, socketcreator](const std::error_code& ec)
-            {
+            {   
                 std::error_code e;
+                socket->lowest_layer().set_option(asio::socket_base::reuse_address(true), e);
+                if (e) {
+                    SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "set_option reuse_address error " << e.message());
+                    e.clear();
+                }
                 socket->lowest_layer().set_option(asio::ip::tcp::no_delay(true), e);
                 if (e) {
                     SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "set_option no_delay error " << e.message());

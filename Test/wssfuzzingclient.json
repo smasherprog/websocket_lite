@@ -1,6 +1,6 @@
 {
    "options": {"failByDrop": false},
-   "outdir": "./wss/autobahn",
+   "outdir": "../../Test/autobahn",
    "servers": [
                 {"agent": "WebSockets SSL",
                  "url": "ws://localhost:3001",
