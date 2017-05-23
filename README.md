@@ -40,7 +40,6 @@ https://github.com/smasherprog/websocket_lite/blob/master/Test/main.cpp#L44
     });
     listener.startlistening();
 
-    //auto client = SL::WS_LITE::WSClient::CreateClient(TEST_CERTIFICATE_PUBLIC_PATH);
     auto client = SL::WS_LITE::WSClient::CreateClient();
     client.onHttpUpgrade([](const SL::WS_LITE::WSocket& socket) {
         SL_WS_LITE_LOG(SL::WS_LITE::Logging_Levels::INFO_log_level, "Client::onHttpUpgrade");
