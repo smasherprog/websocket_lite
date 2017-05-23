@@ -5,10 +5,7 @@ configuration:
   
 clone_folder: c:\projects\proj
 
-cache:		
-  - c:\projects\build1\vcpkg\scripts -> appveyor.yml		
-  - c:\projects\build1\vcpkg\installed -> appveyor.yml
- 
+
 platform:
 - x86
 
