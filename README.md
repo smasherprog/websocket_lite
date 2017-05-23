@@ -5,12 +5,10 @@
 <p>Windows <img src="https://ci.appveyor.com/api/projects/status/kqa94n7p8se05vi9/branch/master?svg=true"/><p>
 
 <p>This library is intended to be a fully compliant websocket implementation <a href="http://htmlpreview.github.io/?https://github.com/smasherprog/websocket_lite/blob/master/Test/autobahn/index.html">Autobahn complete</a>, but with a few design goals:
+<h2>No External Dependencies</h2>
 <ul>
 <li>
 Cross-platform:Windows desktop, windows phone, Linux, Andriod, Mac desktop, iphone
-</li>
-<li>
-<h2>No External Dependencies</h2>
 </li>
 <li>
 Performance 
