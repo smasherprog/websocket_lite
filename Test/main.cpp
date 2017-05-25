@@ -127,8 +127,8 @@ void multithreadtest() {
     });
     listener.startlistening();
     std::vector<SL::WS_LITE::WSClient> clients;
-    clients.reserve(50);
-    for (auto i = 0; i < 50; i++) {
+    clients.reserve(25);
+    for (auto i = 0; i < 25; i++) {
         clients.push_back(SL::WS_LITE::WSClient::CreateClient(thrdcount));
         clients[i].onHttpUpgrade([&](const SL::WS_LITE::WSocket& socket) {
             lastheard = std::chrono::high_resolution_clock::now();

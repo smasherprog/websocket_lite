@@ -143,8 +143,8 @@ namespace SL {
         class WSContext {
         public:
             WSContext(ThreadCount threadcount) :
-                sslcontext(asio::ssl::context::tlsv11),
-                work(std::make_unique<asio::io_service::work>(io_service)) {
+                work(std::make_unique<asio::io_service::work>(io_service)) ,
+                sslcontext(asio::ssl::context::tlsv11){
                 Threads.resize(threadcount.value);
                 for (auto& ctx : Threads) {
                     inflateInit2(&ctx.inflationStream, -MAX_WBITS);
@@ -258,8 +258,9 @@ namespace SL {
 
             WSListenerImpl(
                 ThreadCount threadcount,
-                PortNumber port) :
-                acceptor(io_service, asio::ip::tcp::endpoint(asio::ip::tcp::v4(), port.value)), WSContext(threadcount) {
+                PortNumber port) : 
+                WSContext(threadcount),
+                acceptor(io_service, asio::ip::tcp::endpoint(asio::ip::tcp::v4(), port.value)){
 
             }
 
