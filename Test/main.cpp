@@ -49,7 +49,7 @@ void generaltest() {
     std::cout << "Starting General test..." << std::endl;
     //auto listener = SL::WS_LITE::WSListener::CreateListener(3002, TEST_CERTIFICATE_PRIVATE_PASSWORD, TEST_CERTIFICATE_PRIVATE_PATH, TEST_CERTIFICATE_PUBLIC_PATH, TEST_DH_PATH);
     SL::WS_LITE::ThreadCount thrdcount(1);
-    SL::WS_LITE::PortNumber port(3001);
+    SL::WS_LITE::PortNumber port(3002);
     auto listener = SL::WS_LITE::WSListener::CreateListener(thrdcount, port);
     auto lastheard = std::chrono::high_resolution_clock::now();
     listener.onHttpUpgrade([&](const SL::WS_LITE::WSocket& socket) {
@@ -83,7 +83,7 @@ void generaltest() {
         lastheard = std::chrono::high_resolution_clock::now();
         SL_WS_LITE_LOG(SL::WS_LITE::Logging_Levels::INFO_log_level, "client::onDisconnection");
     });
-    client.connect("localhost", 3002);
+    client.connect("localhost", port);
 
     while (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - lastheard).count() < 2000) {
         std::this_thread::sleep_for(200ms);
