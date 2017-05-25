@@ -6,6 +6,7 @@
 #include <string>
 #include <cstring>
 #include <iostream>
+#include <vector>
 
 using namespace std::chrono_literals;
 
