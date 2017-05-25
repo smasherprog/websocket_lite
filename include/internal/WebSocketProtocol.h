@@ -169,8 +169,8 @@ namespace SL {
                 }
                 Threads.clear();
             }
-            unsigned int ReadTimeout = 30;
-            unsigned int WriteTimeout = 30;
+            std::chrono::seconds ReadTimeout = std::chrono::seconds(30);
+            std::chrono::seconds WriteTimeout = std::chrono::seconds(30);
             size_t MaxPayload = 1024 * 1024 * 20;//20 MB
             asio::io_service io_service;
             std::vector<ThreadContext> Threads;
@@ -270,16 +270,16 @@ namespace SL {
             }
         };
 
-        template<class PARENTTYPE, class SOCKETTYPE> void readexpire_from_now(const std::shared_ptr<PARENTTYPE>& parent, const std::shared_ptr<WSocketImpl>& websocket, const SOCKETTYPE& socket, int seconds)
+        template<class PARENTTYPE, class SOCKETTYPE> void readexpire_from_now(const std::shared_ptr<PARENTTYPE>& parent, const std::shared_ptr<WSocketImpl>& websocket, const SOCKETTYPE& socket, std::chrono::seconds secs)
         {
 
             std::error_code ec;
-            if (seconds <= 0) websocket->read_deadline.cancel(ec);
-            else  websocket->read_deadline.expires_from_now(std::chrono::seconds(seconds), ec);
+            if (secs.count() <= 0) websocket->read_deadline.cancel(ec);
+            else  websocket->read_deadline.expires_from_now(secs, ec);
             if (ec) {
                 SL_WS_LITE_LOG(Logging_Levels::ERROR_log_level, ec.message());
             }
-            else if (seconds >= 0) {
+            else if (secs.count() >= 0) {
                 websocket->read_deadline.async_wait([parent, websocket, socket](const std::error_code& ec) {
                     if (ec != asio::error::operation_aborted) {
                         return closeImpl(parent, websocket, 1001, "read timer expired on the socket ");
@@ -287,16 +287,16 @@ namespace SL {
                 });
             }
         }
-        template<class PARENTTYPE, class SOCKETTYPE> void writeexpire_from_now(const std::shared_ptr<PARENTTYPE>& parent, const std::shared_ptr<WSocketImpl>& websocket, const SOCKETTYPE& socket, int seconds)
+        template<class PARENTTYPE, class SOCKETTYPE> void writeexpire_from_now(const std::shared_ptr<PARENTTYPE>& parent, const std::shared_ptr<WSocketImpl>& websocket, const SOCKETTYPE& socket, std::chrono::seconds secs)
         {
             std::error_code ec;
-            if (seconds <= 0) websocket->write_deadline.cancel(ec);
-            else websocket->write_deadline.expires_from_now(std::chrono::seconds(seconds), ec);
+            if (secs.count() <= 0) websocket->write_deadline.cancel(ec);
+            else websocket->write_deadline.expires_from_now(secs, ec);
             if (ec) {
                 SL_WS_LITE_LOG(Logging_Levels::ERROR_log_level, ec.message());
             }
-            else if (seconds >= 0) {
-                websocket->write_deadline.async_wait([parent, websocket, socket, seconds](const std::error_code& ec) {
+            else if (secs.count() >= 0) {
+                websocket->write_deadline.async_wait([parent, websocket, socket](const std::error_code& ec) {
                     if (ec != asio::error::operation_aborted) {
                         return closeImpl(parent, websocket, 1001, "write timer expired on the socket ");
                     }
@@ -638,12 +638,10 @@ namespace SL {
                 return closeImpl(parent, websocket, 1002, "Closing connection because mask requirement not met");
             }
 
-            if (getrsv2(websocket->ReceiveHeader) || getrsv3(websocket->ReceiveHeader)) {
+            if (getrsv2(websocket->ReceiveHeader) || getrsv3(websocket->ReceiveHeader) ||(getrsv1(websocket->ReceiveHeader) && !websocket->CompressionEnabled)) {
                 return closeImpl(parent, websocket, 1002, "Closing connection. rsv bit set");
             }
-            if ((getrsv1(websocket->ReceiveHeader) && !websocket->CompressionEnabled)) {
-                return closeImpl(parent, websocket, 1002, "Closing connection. rsv bit set");
-            }
+
             auto opcode = getOpCode(websocket->ReceiveHeader);
 
             size_t size = getpayloadLength1(websocket->ReceiveHeader);

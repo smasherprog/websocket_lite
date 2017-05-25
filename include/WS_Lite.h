@@ -3,6 +3,7 @@
 #include <string>
 #include <functional>
 #include <unordered_map>
+#include <chrono>
 
 namespace SL {
     namespace WS_LITE {
@@ -108,13 +109,13 @@ namespace SL {
             //the maximum payload size
             unsigned long long int get_MaxPayload();
             //maximum time in seconds before a client is considered disconnected -- for reads
-            void set_ReadTimeout(unsigned int seconds);
+            void set_ReadTimeout(std::chrono::seconds seconds);
             //get the current read timeout in seconds
-            unsigned int  get_ReadTimeout();
+            std::chrono::seconds get_ReadTimeout();
             //maximum time in seconds before a client is considered disconnected -- for writes
-            void set_WriteTimeout(unsigned int seconds);
+            void set_WriteTimeout(std::chrono::seconds seconds);
             //get the current write timeout in seconds
-            unsigned int  get_WriteTimeout();
+            std::chrono::seconds get_WriteTimeout();
             //send a message to a specific client
             void send(const WSocket& s, WSMessage& msg, bool compressmessage);
             //send a close message and close the socket
@@ -165,13 +166,13 @@ namespace SL {
             //the maximum payload size
             unsigned long long int get_MaxPayload();
             //maximum time in seconds before a client is considered disconnected -- for reads
-            void set_ReadTimeout(unsigned int seconds);
+            void set_ReadTimeout(std::chrono::seconds seconds);
             //get the current read timeout in seconds
-            unsigned int  get_ReadTimeout();
+            std::chrono::seconds get_ReadTimeout();
             //maximum time in seconds before a client is considered disconnected -- for writes
-            void set_WriteTimeout(unsigned int seconds);
+            void set_WriteTimeout(std::chrono::seconds seconds);
             //get the current write timeout in seconds
-            unsigned int  get_WriteTimeout();
+            std::chrono::seconds get_WriteTimeout();
             //send a message to a specific client
             void send(const WSocket& s, WSMessage& msg, bool compressmessage);
             //send a close message and close the socket

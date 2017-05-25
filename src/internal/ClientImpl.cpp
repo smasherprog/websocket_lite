@@ -234,16 +234,16 @@ namespace SL {
         void WSClient::onHttpUpgrade(const std::function<void(WSocket&)>& handle) {
             Impl_->onHttpUpgrade = handle;
         }
-        void WSClient::set_ReadTimeout(unsigned int seconds) {
+        void WSClient::set_ReadTimeout(std::chrono::seconds seconds) {
             Impl_->ReadTimeout = seconds;
         }
-        unsigned int WSClient::get_ReadTimeout() {
+        std::chrono::seconds WSClient::get_ReadTimeout() {
             return  Impl_->ReadTimeout;
         }
-        void WSClient::set_WriteTimeout(unsigned int seconds) {
+        void WSClient::set_WriteTimeout(std::chrono::seconds seconds) {
             Impl_->WriteTimeout = seconds;
         }
-        unsigned int WSClient::get_WriteTimeout() {
+        std::chrono::seconds WSClient::get_WriteTimeout() {
             return  Impl_->WriteTimeout;
         }
         void WSClient::set_MaxPayload(size_t bytes) {

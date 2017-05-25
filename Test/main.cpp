@@ -15,8 +15,8 @@ void wssautobahntest() {
     SL::WS_LITE::ThreadCount thrdcount(1);
     SL::WS_LITE::PortNumber port(3001);
     auto listener = SL::WS_LITE::WSListener::CreateListener(thrdcount, port);
-    listener.set_ReadTimeout(100);
-    listener.set_WriteTimeout(100);
+    listener.set_ReadTimeout(std::chrono::seconds(100));
+    listener.set_WriteTimeout(std::chrono::seconds(100));
     auto lastheard = std::chrono::high_resolution_clock::now();
     listener.onHttpUpgrade([&](const SL::WS_LITE::WSocket& socket) {
         lastheard = std::chrono::high_resolution_clock::now();
