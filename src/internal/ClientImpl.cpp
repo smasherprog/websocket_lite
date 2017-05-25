@@ -125,12 +125,12 @@ namespace SL {
                 }
             });
         }
-        template<typename SOCKETCREATOR>void Connect(std::shared_ptr<WSClientImpl> self, const char* host, unsigned short port, SOCKETCREATOR&& socketcreator) {
+        template<typename SOCKETCREATOR>void Connect(std::shared_ptr<WSClientImpl> self, const char* host, PortNumber port, SOCKETCREATOR&& socketcreator) {
 
             auto socket = socketcreator(self);
             std::error_code ec;
             asio::ip::tcp::resolver resolver(self->io_service);
-            auto portstr = std::to_string(port);
+            auto portstr = std::to_string(port.value);
             asio::ip::tcp::resolver::query query(host, portstr.c_str());
 
             auto endpoint = resolver.resolve(query, ec);
@@ -169,20 +169,20 @@ namespace SL {
 
         }
 
-        WSClient WSClient::CreateClient(std::string Publiccertificate_File) {
+        WSClient WSClient::CreateClient(ThreadCount threadcount, std::string Publiccertificate_File) {
             WSClient c;
-            c.Impl_ = std::make_shared<WSClientImpl>(Publiccertificate_File);
+            c.Impl_ = std::make_shared<WSClientImpl>(threadcount, Publiccertificate_File);
             return c;
         }
-        WSClient WSClient::CreateClient() {
+        WSClient WSClient::CreateClient(ThreadCount threadcount) {
             WSClient c;
-            c.Impl_ = std::make_shared<WSClientImpl>();
+            c.Impl_ = std::make_shared<WSClientImpl>(threadcount);
             return c;
         }
-        void WSClient::connect(const char* host, unsigned short port) {
-            if (Impl_->sslcontext) {
+        void WSClient::connect(const char* host, PortNumber port) {
+            if (Impl_->TLSEnabled) {
                 auto createsocket = [](auto c) {
-                    auto socket = std::make_shared<asio::ssl::stream<asio::ip::tcp::socket>>(c->io_service, *c->sslcontext);
+                    auto socket = std::make_shared<asio::ssl::stream<asio::ip::tcp::socket>>(c->io_service, c->sslcontext);
                     socket->set_verify_mode(asio::ssl::verify_peer);
                     socket->set_verify_callback(std::bind(&verify_certificate, std::placeholders::_1, std::placeholders::_2));
                     return socket;

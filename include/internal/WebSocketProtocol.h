@@ -13,6 +13,8 @@
 #include <thread>
 #include <random>
 #include <deque>
+#include <mutex>
+
 #include "asio.hpp"
 #include "asio/ssl.hpp"
 #include "asio/deadline_timer.hpp"
@@ -93,10 +95,13 @@ namespace SL {
             if (!ec) return rt.address().is_loopback();
             else return true;
         }
-
+     struct SendQueueItem {
+            WSMessage msg;
+            bool compressmessage;
+        };
         struct WSocketImpl
         {
-            WSocketImpl(asio::io_service& s) :read_deadline(s), write_deadline(s) {}
+            WSocketImpl(asio::io_service& s) :read_deadline(s), write_deadline(s), strand(s) {}
             ~WSocketImpl() {
                 canceltimers();
                 if (ReceiveBuffer) {
@@ -113,6 +118,9 @@ namespace SL {
             OpCode LastOpCode = OpCode::INVALID;
             std::shared_ptr<asio::ip::tcp::socket> Socket;
             std::shared_ptr<asio::ssl::stream<asio::ip::tcp::socket>> TLSSocket;
+            asio::strand strand;
+            std::deque<SendQueueItem> SendMessageQueue;
+
             void canceltimers() {
                 read_deadline.cancel();
                 write_deadline.cancel();
@@ -125,42 +133,50 @@ namespace SL {
             ws->Socket = s;
         }
 
-        struct SendQueueItem {
-            std::shared_ptr<WSocketImpl> socket;
-            WSMessage msg;
-            bool compressmessage;
+   
+        struct ThreadContext {
+            std::unique_ptr<char[]> inflationBuffer;
+            z_stream inflationStream = {};
+            std::thread Thread;
         };
         const auto CONTROLBUFFERMAXSIZE = 125;
-        struct WSContext {
-            WSContext() :
+        class WSContext {
+        public:
+            WSContext(ThreadCount threadcount) :
+                sslcontext(asio::ssl::context::tlsv11),
                 work(std::make_unique<asio::io_service::work>(io_service)) {
-                inflationBuffer = std::make_unique<char[]>(LARGE_BUFFER_SIZE);
-                inflateInit2(&inflationStream, -MAX_WBITS);
-                io_servicethread = std::thread([&]() {
-                    std::error_code ec;
-                    io_service.run(ec);
-                });
+                Threads.resize(threadcount.value);
+                for (auto& ctx : Threads) {
+                    ctx.Thread = std::thread([&]() {
+                        std::error_code ec;
+                        io_service.run(ec);
+                    });
+                    inflateInit2(&ctx.inflationStream, -MAX_WBITS);
+                    ctx.inflationBuffer = std::make_unique<char[]>(LARGE_BUFFER_SIZE);
+                }
             }
             ~WSContext() {
-                SendItems.clear();
                 work.reset();
                 io_service.stop();
                 while (!io_service.stopped()) {
                     std::this_thread::sleep_for(std::chrono::milliseconds(5));
                 }
-                if (io_servicethread.joinable()) io_servicethread.join();
-                inflateEnd(&inflationStream);
+                for (auto& t : Threads) {
+                    inflateEnd(&t.inflationStream);
+                    if (t.Thread.joinable()) {
+                        t.Thread.join();
+                    }
+                }
+                Threads.clear();
             }
-            std::unique_ptr<char[]> inflationBuffer;
             unsigned int ReadTimeout = 30;
             unsigned int WriteTimeout = 30;
-            size_t MaxPayload = 1024 * 1024*20;//20 MB
-            std::deque<SendQueueItem> SendItems;
-            z_stream inflationStream = {};
+            size_t MaxPayload = 1024 * 1024 * 20;//20 MB
             asio::io_service io_service;
-            std::thread io_servicethread;
+            std::vector<ThreadContext> Threads;
             std::unique_ptr<asio::io_service::work> work;
-            std::unique_ptr<asio::ssl::context> sslcontext;
+            asio::ssl::context sslcontext;
+            bool TLSEnabled = false;
 
             std::function<void(WSocket&, const std::unordered_map<std::string, std::string>&)> onConnection;
             std::function<void(WSocket&, const WSMessage&)> onMessage;
@@ -173,9 +189,9 @@ namespace SL {
 
         class WSClientImpl : public WSContext {
         public:
-            WSClientImpl(std::string Publiccertificate_File)
+            WSClientImpl(ThreadCount threadcount, std::string Publiccertificate_File) : WSClientImpl(threadcount)
             {
-                sslcontext = std::make_unique<asio::ssl::context>(asio::ssl::context::tlsv11);
+                TLSEnabled = true;
                 std::ifstream file(Publiccertificate_File, std::ios::binary);
                 assert(file);
                 std::vector<char> buf;
@@ -183,12 +199,12 @@ namespace SL {
                 file.read(buf.data(), buf.size());
                 asio::const_buffer cert(buf.data(), buf.size());
                 std::error_code ec;
-                sslcontext->add_certificate_authority(cert, ec);
+                sslcontext.add_certificate_authority(cert, ec);
                 ec.clear();
-                sslcontext->set_default_verify_paths(ec);
+                sslcontext.set_default_verify_paths(ec);
 
             }
-            WSClientImpl() {  }
+            WSClientImpl(ThreadCount threadcount) :WSContext(threadcount) {  }
             ~WSClientImpl() {}
         };
 
@@ -197,40 +213,42 @@ namespace SL {
 
             asio::ip::tcp::acceptor acceptor;
 
-            WSListenerImpl(unsigned short port,
+            WSListenerImpl(
+                ThreadCount threadcount,
+                PortNumber port,
                 std::string Password,
                 std::string Privatekey_File,
                 std::string Publiccertificate_File,
                 std::string dh_File) :
-                WSListenerImpl(port)
+                WSListenerImpl(threadcount, port)
             {
-                sslcontext = std::make_unique<asio::ssl::context>(asio::ssl::context::tlsv11);
-                sslcontext->set_options(
+                TLSEnabled = true;
+                sslcontext.set_options(
                     asio::ssl::context::default_workarounds
                     | asio::ssl::context::no_sslv2 | asio::ssl::context::no_sslv3
                     | asio::ssl::context::single_dh_use);
                 std::error_code ec;
-                sslcontext->set_password_callback([Password](std::size_t, asio::ssl::context::password_purpose) { return Password; }, ec);
+                sslcontext.set_password_callback([Password](std::size_t, asio::ssl::context::password_purpose) { return Password; }, ec);
                 if (ec) {
                     SL_WS_LITE_LOG(Logging_Levels::ERROR_log_level, "set_password_callback " << ec.message());
                     ec.clear();
                 }
-                sslcontext->use_tmp_dh_file(dh_File, ec);
+                sslcontext.use_tmp_dh_file(dh_File, ec);
                 if (ec) {
                     SL_WS_LITE_LOG(Logging_Levels::ERROR_log_level, "use_tmp_dh_file " << ec.message());
                     ec.clear();
                 }
-                sslcontext->use_certificate_chain_file(Publiccertificate_File, ec);
+                sslcontext.use_certificate_chain_file(Publiccertificate_File, ec);
                 if (ec) {
                     SL_WS_LITE_LOG(Logging_Levels::ERROR_log_level, "use_certificate_chain_file " << ec.message());
                     ec.clear();
                 }
-                sslcontext->set_default_verify_paths(ec);
+                sslcontext.set_default_verify_paths(ec);
                 if (ec) {
                     SL_WS_LITE_LOG(Logging_Levels::ERROR_log_level, "set_default_verify_paths " << ec.message());
                     ec.clear();
                 }
-                sslcontext->use_private_key_file(Privatekey_File, asio::ssl::context::pem, ec);
+                sslcontext.use_private_key_file(Privatekey_File, asio::ssl::context::pem, ec);
                 if (ec) {
                     SL_WS_LITE_LOG(Logging_Levels::ERROR_log_level, "use_private_key_file " << ec.message());
                     ec.clear();
@@ -238,8 +256,11 @@ namespace SL {
 
             }
 
-            WSListenerImpl(unsigned short port) :acceptor(io_service, asio::ip::tcp::endpoint(asio::ip::tcp::v4(), port)) { 
-            
+            WSListenerImpl(
+                ThreadCount threadcount,
+                PortNumber port) :
+                acceptor(io_service, asio::ip::tcp::endpoint(asio::ip::tcp::v4(), port.value)), WSContext(threadcount) {
+
             }
 
             ~WSListenerImpl() {
@@ -281,14 +302,14 @@ namespace SL {
                 });
             }
         }
-        template<class PARENTTYPE>inline void startwrite(const std::shared_ptr<PARENTTYPE>& parent) {
-            if (!parent->SendItems.empty()) {
-                auto msg(parent->SendItems.back());
-                if (msg.socket->Socket) {
-                    write(parent, msg.socket, msg.socket->Socket, msg.msg);
+        template<class PARENTTYPE>inline void startwrite(const std::shared_ptr<PARENTTYPE>& parent, const std::shared_ptr<WSocketImpl>& websocket) {
+            if (!websocket->SendMessageQueue.empty()) {
+                auto msg(websocket->SendMessageQueue.back());
+                if (websocket->Socket) {
+                    write(parent, websocket, websocket->Socket, msg.msg);
                 }
                 else {
-                    write(parent, msg.socket, msg.socket->TLSSocket, msg.msg);
+                    write(parent, websocket, websocket->TLSSocket, msg.msg);
                 }
             }
         }
@@ -296,13 +317,10 @@ namespace SL {
             if (compressmessage) {
                 assert(msg.code == OpCode::BINARY || msg.code == OpCode::TEXT);
             }
-            parent->io_service.post([websocket, msg, parent, compressmessage]() {
-                if (parent->SendItems.empty()) {
-                    parent->SendItems.push_front(SendQueueItem{ websocket, msg, compressmessage });
-                    SL::WS_LITE::startwrite(parent);
-                }
-                else {
-                    parent->SendItems.push_front(SendQueueItem{ websocket, msg , compressmessage });
+            websocket->strand.post([websocket, msg, parent, compressmessage]() {
+                websocket->SendMessageQueue.emplace_back(SendQueueItem{ msg, compressmessage });
+                if (websocket->SendMessageQueue.size()==1) {
+                    SL::WS_LITE::startwrite(parent, websocket);
                 }
             });
         }
@@ -405,7 +423,7 @@ namespace SL {
         }
         template<class PARENTYPE, class SOCKETTYPE, class SENDBUFFERTYPE>inline void write_end(const PARENTYPE& parent, const std::shared_ptr<WSocketImpl>& websocket, const SOCKETTYPE& socket, const SENDBUFFERTYPE& msg) {
 
-            asio::async_write(*socket, asio::buffer(msg.data, msg.len), [parent, websocket, socket, msg](const std::error_code& ec, size_t bytes_transferred) {
+            asio::async_write(*socket, asio::buffer(msg.data, msg.len), websocket->strand.wrap([parent, websocket, socket, msg](const std::error_code& ec, size_t bytes_transferred) {
 
                 UNUSED(bytes_transferred);
                 //   assert(msg.len == bytes_transferred);
@@ -413,16 +431,16 @@ namespace SL {
                 {
                     return closeImpl(parent, websocket, 1002, "write header failed " + ec.message());
                 }
-                else if (!parent->SendItems.empty()) {
-                    parent->SendItems.pop_back();
+                else if (!websocket->SendMessageQueue.empty()) {
+                    websocket->SendMessageQueue.pop_back();
                 }
                 if (msg.code == OpCode::CLOSE) {
                     handleclose(parent, websocket, socket, msg);
                 }
                 else {
-                    startwrite(parent);
+                    startwrite(parent, websocket);
                 }
-            });
+            }));
         }
 
         template<class SOCKETTYPE, class SENDBUFFERTYPE>inline void writeend(const std::shared_ptr<WSClientImpl>& parent, const std::shared_ptr<WSocketImpl>& websocket, const SOCKETTYPE& socket, const SENDBUFFERTYPE& msg) {
@@ -539,7 +557,7 @@ namespace SL {
                     return closeImpl(parent, websocket, 1002, "Continuation Received without a previous frame");
                 }
                 else if (websocket->LastOpCode == OpCode::TEXT || opcode == OpCode::TEXT) {
-                    if (!isValidUtf8(websocket->ReceiveBuffer, websocket->ReceiveBufferSize )) {
+                    if (!isValidUtf8(websocket->ReceiveBuffer, websocket->ReceiveBufferSize)) {
                         return closeImpl(parent, websocket, 1007, "Frame not valid utf8");
                     }
                 }
@@ -563,14 +581,14 @@ namespace SL {
         }
         template <class PARENTTYPE>inline void ProcessClose(const std::shared_ptr<PARENTTYPE>& parent, const std::shared_ptr<WSocketImpl>& websocket, const std::shared_ptr<unsigned char>& buffer, size_t size) {
             if (size >= 2) {
-                auto closecode =hton(*reinterpret_cast<unsigned short*>(buffer.get()));
+                auto closecode = hton(*reinterpret_cast<unsigned short*>(buffer.get()));
                 if (size > 2) {
                     if (!isValidUtf8(buffer.get() + sizeof(closecode), size - sizeof(closecode))) {
                         return closeImpl(parent, websocket, 1007, "Frame not valid utf8");
                     }
                 }
 
-                if (((closecode >= 1000 && closecode <= 1011 )|| (closecode >=3000 && closecode <=4999)) && closecode != 1004 && closecode != 1005 && closecode != 1006) {
+                if (((closecode >= 1000 && closecode <= 1011) || (closecode >= 3000 && closecode <= 4999)) && closecode != 1004 && closecode != 1005 && closecode != 1006) {
                     return closeImpl(parent, websocket, 1000, "");
                 }
                 else
@@ -641,7 +659,7 @@ namespace SL {
             default:
                 break;
             }
-         
+
             size += AdditionalBodyBytesToRead<PARENTTYPE>();
             if (opcode == OpCode::PING || opcode == OpCode::PONG || opcode == OpCode::CLOSE) {
                 if (size - AdditionalBodyBytesToRead<PARENTTYPE>() > CONTROLBUFFERMAXSIZE) {
@@ -746,7 +764,7 @@ namespace SL {
                         readbytes = 0;
                     }
 
-                  
+
                     if (readbytes > 1) {
                         asio::async_read(*socket, asio::buffer(websocket->ReceiveHeader + 2, readbytes), [parent, websocket, socket](const std::error_code& ec, size_t) {
                             if (!ec) {

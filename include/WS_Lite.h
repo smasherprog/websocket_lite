@@ -6,6 +6,21 @@
 
 namespace SL {
     namespace WS_LITE {
+        template <typename T, typename Meaning>
+        struct Explicit
+        {
+            Explicit() { }
+            Explicit(T value) : value(value) { }
+            inline operator T () const { return value; }
+            T value;
+        };
+        namespace INTERNAL {
+            struct PorNumbertTag { };
+            struct ThreadCountTag { };
+        }
+
+        typedef Explicit<unsigned short, INTERNAL::PorNumbertTag> PortNumber;
+        typedef Explicit<unsigned short, INTERNAL::ThreadCountTag> ThreadCount;
 
         const auto HTTP_METHOD = "Method";
         const auto HTTP_PATH = "Path";
@@ -47,7 +62,8 @@ namespace SL {
         struct WSocketImpl;
         struct WSocket {
             std::shared_ptr<WSocketImpl> WSocketImpl_;
-
+            WSocket(const std::shared_ptr<WSocketImpl>& s) :WSocketImpl_(s){}
+            WSocket() {}
             //can be used to compare two WSocket objects
             bool operator=(const WSocket& s) { return s.WSocketImpl_ == WSocketImpl_; }
             bool is_open();
@@ -57,8 +73,7 @@ namespace SL {
             bool is_v6();
             bool is_loopback();
             operator bool() const { return WSocketImpl_.operator bool(); }
-            friend WSListener;
-            friend WSClient;
+
         };
         class WSListenerImpl;
         class WSListener {
@@ -107,10 +122,11 @@ namespace SL {
             //start the process to listen for clients. This is non-blocking and will return immediatly
             void startlistening();
             //factory to create listeners. Use this if you ARE NOT using TLS
-            static WSListener CreateListener(unsigned short port);
+            static WSListener CreateListener(ThreadCount threadcount, PortNumber port);
             //factory to create listeners. Use this if you ARE using TLS
             static WSListener CreateListener(
-                unsigned short port,
+                ThreadCount threadcount,
+                PortNumber port,
                 std::string Password,
                 std::string Privatekey_File,
                 std::string Publiccertificate_File,
@@ -161,11 +177,11 @@ namespace SL {
             //send a close message and close the socket
             void close(const WSocket& s, unsigned short code = 1000, const std::string& msg = "");
             //connect to an endpoint. This is non-blocking and will return immediatly. If the library is unable to establish a connection, ondisconnection will be called. 
-            void connect(const char* host, unsigned short port);
+            void connect(const char* host, PortNumber port);
             //factory to create clients. Use this if you ARE NOT using TLS
-            static WSClient CreateClient();
+            static WSClient CreateClient(ThreadCount threadcount);
             //factory to create clients. Use this if you ARE using TLS
-            static WSClient CreateClient(std::string Publiccertificate_File);
+            static WSClient CreateClient(ThreadCount threadcount,std::string Publiccertificate_File);
         };
     }
 }

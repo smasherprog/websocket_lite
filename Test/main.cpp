@@ -11,7 +11,9 @@ using namespace std::chrono_literals;
 
 void wssautobahntest() {
     // auto listener = SL::WS_LITE::WSListener::CreateListener(3001, TEST_CERTIFICATE_PRIVATE_PASSWORD, TEST_CERTIFICATE_PRIVATE_PATH, TEST_CERTIFICATE_PUBLIC_PATH, TEST_DH_PATH);
-    auto listener = SL::WS_LITE::WSListener::CreateListener(3001);
+    SL::WS_LITE::ThreadCount thrdcount(1);
+    SL::WS_LITE::PortNumber port(3001);
+    auto listener = SL::WS_LITE::WSListener::CreateListener(thrdcount, port);
     listener.set_ReadTimeout(100);
     listener.set_WriteTimeout(100);
     auto lastheard = std::chrono::high_resolution_clock::now();
@@ -46,7 +48,9 @@ void wssautobahntest() {
 void generaltest() {
     std::cout << "Starting General test..." << std::endl;
     //auto listener = SL::WS_LITE::WSListener::CreateListener(3002, TEST_CERTIFICATE_PRIVATE_PASSWORD, TEST_CERTIFICATE_PRIVATE_PATH, TEST_CERTIFICATE_PUBLIC_PATH, TEST_DH_PATH);
-    auto listener = SL::WS_LITE::WSListener::CreateListener(3002);
+    SL::WS_LITE::ThreadCount thrdcount(1);
+    SL::WS_LITE::PortNumber port(3001);
+    auto listener = SL::WS_LITE::WSListener::CreateListener(thrdcount, port);
     auto lastheard = std::chrono::high_resolution_clock::now();
     listener.onHttpUpgrade([&](const SL::WS_LITE::WSocket& socket) {
         lastheard = std::chrono::high_resolution_clock::now();
@@ -65,7 +69,7 @@ void generaltest() {
     listener.startlistening();
 
     //auto client = SL::WS_LITE::WSClient::CreateClient(TEST_CERTIFICATE_PUBLIC_PATH);
-    auto client = SL::WS_LITE::WSClient::CreateClient();
+    auto client = SL::WS_LITE::WSClient::CreateClient(thrdcount);
     client.onHttpUpgrade([&](const SL::WS_LITE::WSocket& socket) {
         lastheard = std::chrono::high_resolution_clock::now();
         SL_WS_LITE_LOG(SL::WS_LITE::Logging_Levels::INFO_log_level, "Client::onHttpUpgrade");

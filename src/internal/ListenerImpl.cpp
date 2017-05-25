@@ -102,15 +102,16 @@ namespace SL {
             });
 
         }
-        WSListener  WSListener::CreateListener(unsigned short port)
+        WSListener  WSListener::CreateListener(ThreadCount threadcount, PortNumber port)
         {
             WSListener tmp;
-            tmp.Impl_ = std::make_shared<WSListenerImpl>(port);
+            tmp.Impl_ = std::make_shared<WSListenerImpl>(threadcount, port);
             return tmp;
         }
 
         WSListener  WSListener::CreateListener(
-            unsigned short port,
+            ThreadCount threadcount, 
+            PortNumber port,
             std::string Password,
             std::string Privatekey_File,
             std::string Publiccertificate_File,
@@ -118,14 +119,14 @@ namespace SL {
         {
 
             WSListener tmp;
-            tmp.Impl_ = std::make_shared<WSListenerImpl>(port, Password, Privatekey_File, Publiccertificate_File, dh_File);
+            tmp.Impl_ = std::make_shared<WSListenerImpl>(threadcount, port, Password, Privatekey_File, Publiccertificate_File, dh_File);
             return tmp;
         }
         void WSListener::startlistening()
         {
-            if (Impl_->sslcontext) {
+            if (Impl_->TLSEnabled) {
                 auto createsocket = [](auto c) {
-                    return std::make_shared<asio::ssl::stream<asio::ip::tcp::socket>>(c->io_service, *c->sslcontext);
+                    return std::make_shared<asio::ssl::stream<asio::ip::tcp::socket>>(c->io_service, c->sslcontext);
                 };
                 Listen(Impl_, createsocket);
             }
