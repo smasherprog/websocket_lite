@@ -147,10 +147,10 @@ namespace SL {
                 work(std::make_unique<asio::io_service::work>(io_service)) {
                 Threads.resize(threadcount.value);
                 for (auto& ctx : Threads) {
-                    ctx.Thread = std::thread([&]() {
+                    ctx.Thread = std::move(std::thread([&]() {
                         std::error_code ec;
                         io_service.run(ec);
-                    });
+                    }));
                     inflateInit2(&ctx.inflationStream, -MAX_WBITS);
                     ctx.inflationBuffer = std::make_unique<char[]>(LARGE_BUFFER_SIZE);
                 }
