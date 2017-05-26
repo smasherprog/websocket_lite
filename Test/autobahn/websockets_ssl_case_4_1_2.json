@@ -8,7 +8,7 @@
    "createWirelog": true,
    "description": "Send frame with reserved non-control <b>Opcode = 4</b> and non-empty payload.",
    "droppedByMe": false,
-   "duration": 32,
+   "duration": 17,
    "expectation": "The connection is failed immediately.",
    "expected": {
       "OK": []
@@ -21,8 +21,8 @@
       "requireClean": false
    },
    "failedByMe": false,
-   "httpRequest": "GET / HTTP/1.1\r\nUser-Agent: AutobahnTestSuite/0.7.6-0.10.9\r\nHost: localhost:3001\r\nUpgrade: WebSocket\r\nConnection: Upgrade\r\nPragma: no-cache\r\nCache-Control: no-cache\r\nSec-WebSocket-Key: CONp1t5oVi3FmQrK7mysFQ==\r\nSec-WebSocket-Version: 13\r\n\r\n",
-   "httpResponse": "HTTP/1.1 101 Web Socket Protocol Handshake\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: q4j9YnrwmQ3lSFz7F/msgEbh6cg=\r\n\r\n",
+   "httpRequest": "GET / HTTP/1.1\r\nUser-Agent: AutobahnTestSuite/0.7.6-0.10.9\r\nHost: localhost:3001\r\nUpgrade: WebSocket\r\nConnection: Upgrade\r\nPragma: no-cache\r\nCache-Control: no-cache\r\nSec-WebSocket-Key: 12sw17uIFP3ODS6BgBK8hw==\r\nSec-WebSocket-Version: 13\r\n\r\n",
+   "httpResponse": "HTTP/1.1 101 Web Socket Protocol Handshake\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: HJCcFbhs/ESHty9AWgCKMOVAtnU=\r\n\r\n",
    "id": "4.1.2",
    "isServer": false,
    "localCloseCode": 1000,
@@ -41,7 +41,7 @@
       "40": 1,
       "139": 1
    },
-   "started": "2017-05-23T04:49:25.363Z",
+   "started": "2017-05-26T02:41:12.533Z",
    "trafficStats": null,
    "txFrameStats": {
       "4": 1,
@@ -82,7 +82,7 @@
          4,
          true,
          0,
-         "eb4cd70e",
+         "a73c1b9e",
          null,
          null,
          false
@@ -91,7 +91,7 @@
          "TO",
          [
             29,
-            "8497eb4cd70e9929a46b993ab26acb23a76d8428b22e9b2dae62842db3"
+            "8497a73c1b9ed55968fbd54a7efa87536bfdc8587ebed75d62f2c85d7f"
          ],
          false
       ],
@@ -127,7 +127,7 @@
          8,
          true,
          0,
-         "acc501de",
+         "207a2916",
          null,
          null,
          false
@@ -136,7 +136,7 @@
          "TO",
          [
             8,
-            "8882acc501deaf2d"
+            "8882207a29162392"
          ],
          false
       ]

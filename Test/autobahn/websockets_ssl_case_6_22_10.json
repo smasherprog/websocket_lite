@@ -8,7 +8,7 @@
    "createWirelog": true,
    "description": "Send a text message with payload which is valid UTF-8 in one fragment.<br><br>Payload: 0xf18fbfbf",
    "droppedByMe": false,
-   "duration": 10,
+   "duration": 14,
    "expectation": "The message is echo'ed back to us.",
    "expected": {
       "OK": [
@@ -27,8 +27,8 @@
       "requireClean": true
    },
    "failedByMe": false,
-   "httpRequest": "GET / HTTP/1.1\r\nUser-Agent: AutobahnTestSuite/0.7.6-0.10.9\r\nHost: localhost:3001\r\nUpgrade: WebSocket\r\nConnection: Upgrade\r\nPragma: no-cache\r\nCache-Control: no-cache\r\nSec-WebSocket-Key: kiJ+igiVPyYqtwDVWeYA8A==\r\nSec-WebSocket-Version: 13\r\n\r\n",
-   "httpResponse": "HTTP/1.1 101 Web Socket Protocol Handshake\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: /H5tdTu3ErtYRQfyTqvUP9iRUxw=\r\n\r\n",
+   "httpRequest": "GET / HTTP/1.1\r\nUser-Agent: AutobahnTestSuite/0.7.6-0.10.9\r\nHost: localhost:3001\r\nUpgrade: WebSocket\r\nConnection: Upgrade\r\nPragma: no-cache\r\nCache-Control: no-cache\r\nSec-WebSocket-Key: 88VWHhp+TZmFns37Ud5/CQ==\r\nSec-WebSocket-Version: 13\r\n\r\n",
+   "httpResponse": "HTTP/1.1 101 Web Socket Protocol Handshake\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: i+dE2S3+gslIE98KzbcRGY9IigM=\r\n\r\n",
    "id": "6.22.10",
    "isServer": false,
    "localCloseCode": 1000,
@@ -51,11 +51,11 @@
       "8": 1
    },
    "rxOctetStats": {
-      "2": 1,
-      "4": 2,
+      "2": 3,
+      "4": 1,
       "139": 1
    },
-   "started": "2017-05-23T04:49:41.527Z",
+   "started": "2017-05-26T02:41:26.205Z",
    "trafficStats": null,
    "txFrameStats": {
       "1": 1,
@@ -96,7 +96,7 @@
          1,
          true,
          0,
-         "ee9f51c4",
+         "c567358e",
          null,
          null,
          false
@@ -105,7 +105,7 @@
          "TO",
          [
             10,
-            "8184ee9f51c41f10ee7b"
+            "8184c567358e34e88a31"
          ],
          false
       ],
@@ -148,7 +148,7 @@
          8,
          true,
          0,
-         "aa3059a8",
+         "2ee3d8c7",
          null,
          null,
          false
@@ -157,15 +157,22 @@
          "TO",
          [
             8,
-            "8882aa3059a8a9d8"
+            "88822ee3d8c72d0b"
          ],
          false
       ],
       [
          "RO",
          [
-            4,
-            "880203e8"
+            2,
+            "8802"
+         ]
+      ],
+      [
+         "RO",
+         [
+            2,
+            "03e8"
          ]
       ],
       [

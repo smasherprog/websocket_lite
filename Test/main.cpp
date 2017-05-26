@@ -168,9 +168,9 @@ void multithreadtest() {
 }
 int main(int argc, char* argv[]) {
     wssautobahntest();
-    std::this_thread::sleep_for(1s);
-    generaltest();
-    std::this_thread::sleep_for(1s);
-    multithreadtest();
+    //std::this_thread::sleep_for(1s);
+    //generaltest();
+    //std::this_thread::sleep_for(1s);
+    //multithreadtest();
     return 0;
 }

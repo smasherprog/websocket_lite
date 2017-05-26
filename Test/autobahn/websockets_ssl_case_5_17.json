@@ -8,7 +8,7 @@
    "createWirelog": true,
    "description": "Repeated 2x: Continuation Frame with FIN = true (where there is nothing to continue), then text Message fragmented into 2 fragments.",
    "droppedByMe": false,
-   "duration": 11,
+   "duration": 13,
    "expectation": "The connection is failed immediately, since there is no message to continue.",
    "expected": {
       "OK": []
@@ -21,8 +21,8 @@
       "requireClean": false
    },
    "failedByMe": false,
-   "httpRequest": "GET / HTTP/1.1\r\nUser-Agent: AutobahnTestSuite/0.7.6-0.10.9\r\nHost: localhost:3001\r\nUpgrade: WebSocket\r\nConnection: Upgrade\r\nPragma: no-cache\r\nCache-Control: no-cache\r\nSec-WebSocket-Key: E9OlFAWjOU3qNjkVtBREUA==\r\nSec-WebSocket-Version: 13\r\n\r\n",
-   "httpResponse": "HTTP/1.1 101 Web Socket Protocol Handshake\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: EPKmoRZJHYenB08adhfRPtSXzZ0=\r\n\r\n",
+   "httpRequest": "GET / HTTP/1.1\r\nUser-Agent: AutobahnTestSuite/0.7.6-0.10.9\r\nHost: localhost:3001\r\nUpgrade: WebSocket\r\nConnection: Upgrade\r\nPragma: no-cache\r\nCache-Control: no-cache\r\nSec-WebSocket-Key: b+a+iHfHwM+Wh1YivCYaVA==\r\nSec-WebSocket-Version: 13\r\n\r\n",
+   "httpResponse": "HTTP/1.1 101 Web Socket Protocol Handshake\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: YD6XMyedYfhKFHZOEm6Y1N2gtTI=\r\n\r\n",
    "id": "5.17",
    "isServer": false,
    "localCloseCode": 1000,
@@ -38,11 +38,10 @@
       "8": 1
    },
    "rxOctetStats": {
-      "2": 1,
-      "48": 1,
+      "50": 1,
       "139": 1
    },
-   "started": "2017-05-23T04:49:28.177Z",
+   "started": "2017-05-26T02:41:13.273Z",
    "trafficStats": null,
    "txFrameStats": {
       "0": 4,
@@ -84,7 +83,7 @@
          0,
          true,
          0,
-         "5317cdbb",
+         "f5eacf65",
          null,
          null,
          false
@@ -93,7 +92,7 @@
          "TO",
          [
             15,
-            "80895317cdbb3565acdc3e72a3cf62"
+            "8089f5eacf659398ae02988fa111c4"
          ],
          false
       ],
@@ -106,7 +105,7 @@
          1,
          false,
          0,
-         "76bedb42",
+         "dd69aabd",
          null,
          null,
          false
@@ -115,7 +114,7 @@
          "TO",
          [
             15,
-            "018976bedb4210ccba251bdbb53644"
+            "0189dd69aabdbb1bcbdab00cc4c9ef"
          ],
          false
       ],
@@ -128,7 +127,7 @@
          0,
          true,
          0,
-         "7d6beb50",
+         "bfc8c282",
          null,
          null,
          false
@@ -137,7 +136,7 @@
          "TO",
          [
             15,
-            "80897d6beb501b198a37100e85244e"
+            "8089bfc8c282d9baa3e5d2adacf68c"
          ],
          false
       ],
@@ -150,7 +149,7 @@
          0,
          true,
          0,
-         "2f4c7da5",
+         "d0fdf412",
          null,
          null,
          false
@@ -159,7 +158,7 @@
          "TO",
          [
             15,
-            "80892f4c7da5493e1cc2422913d11e"
+            "8089d0fdf412b68f9575bd989a66e1"
          ],
          false
       ],
@@ -172,7 +171,7 @@
          1,
          false,
          0,
-         "59e5a690",
+         "ee56ed08",
          null,
          null,
          false
@@ -181,7 +180,7 @@
          "TO",
          [
             15,
-            "018959e5a6903f97c7f73480c8e46b"
+            "0189ee56ed0888248c6f8333837cdc"
          ],
          false
       ],
@@ -194,7 +193,7 @@
          0,
          true,
          0,
-         "9f60213f",
+         "04ce6bf3",
          null,
          null,
          false
@@ -203,7 +202,7 @@
          "TO",
          [
             15,
-            "80899f60213ff9124058f2054f4bac"
+            "808904ce6bf362bc0a9469ab058737"
          ],
          false
       ],
@@ -214,15 +213,8 @@
       [
          "RO",
          [
-            2,
-            "8830"
-         ]
-      ],
-      [
-         "RO",
-         [
-            48,
-            "03ea436f6e74696e756174696f6e20526563656976656420776974686f757420612070726576696f7573206672616d65"
+            50,
+            "883003ea436f6e74696e756174696f6e20526563656976656420776974686f757420612070726576696f7573206672616d65"
          ]
       ],
       [
@@ -246,7 +238,7 @@
          8,
          true,
          0,
-         "8cd155c5",
+         "2644bc09",
          null,
          null,
          false
@@ -255,7 +247,7 @@
          "TO",
          [
             8,
-            "88828cd155c58f39"
+            "88822644bc0925ac"
          ],
          false
       ]

@@ -8,7 +8,7 @@
    "createWirelog": true,
    "description": "Send Ping with <b>RSV = 6</b>.",
    "droppedByMe": false,
-   "duration": 27,
+   "duration": 55,
    "expectation": "The connection is failed immediately, since RSV must be 0.",
    "expected": {
       "OK": []
@@ -21,8 +21,8 @@
       "requireClean": false
    },
    "failedByMe": false,
-   "httpRequest": "GET / HTTP/1.1\r\nUser-Agent: AutobahnTestSuite/0.7.6-0.10.9\r\nHost: localhost:3001\r\nUpgrade: WebSocket\r\nConnection: Upgrade\r\nPragma: no-cache\r\nCache-Control: no-cache\r\nSec-WebSocket-Key: cGupniUZWL35Ndjs+CCGbg==\r\nSec-WebSocket-Version: 13\r\n\r\n",
-   "httpResponse": "HTTP/1.1 101 Web Socket Protocol Handshake\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: Kt81cSBDvAnu7TUAWXIg2NvYzZs=\r\n\r\n",
+   "httpRequest": "GET / HTTP/1.1\r\nUser-Agent: AutobahnTestSuite/0.7.6-0.10.9\r\nHost: localhost:3001\r\nUpgrade: WebSocket\r\nConnection: Upgrade\r\nPragma: no-cache\r\nCache-Control: no-cache\r\nSec-WebSocket-Key: 6AluMADC/Cu4BFMhyZhNUQ==\r\nSec-WebSocket-Version: 13\r\n\r\n",
+   "httpResponse": "HTTP/1.1 101 Web Socket Protocol Handshake\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: 9EE9DhxkPEOBnaBzGsviI9e0zSs=\r\n\r\n",
    "id": "3.6",
    "isServer": false,
    "localCloseCode": 1000,
@@ -41,7 +41,7 @@
       "35": 1,
       "139": 1
    },
-   "started": "2017-05-23T04:49:25.187Z",
+   "started": "2017-05-26T02:41:12.422Z",
    "trafficStats": null,
    "txFrameStats": {
       "2": 1,
@@ -82,7 +82,7 @@
          2,
          true,
          6,
-         "3eb54ae4",
+         "6fcf8141",
          null,
          null,
          false
@@ -91,7 +91,7 @@
          "TO",
          [
             19,
-            "e28d3eb54ae476d0268851996a9351c726801f"
+            "e28d6fcf814127aaed2d00e3a13600bded254e"
          ],
          false
       ],
@@ -127,7 +127,7 @@
          8,
          true,
          0,
-         "b49dba82",
+         "fa68e22f",
          null,
          null,
          false
@@ -136,7 +136,7 @@
          "TO",
          [
             8,
-            "8882b49dba82b775"
+            "8882fa68e22ff980"
          ],
          false
       ]

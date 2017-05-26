@@ -8,7 +8,7 @@
    "createWirelog": true,
    "description": "Send binary message with payload 0.",
    "droppedByMe": false,
-   "duration": 31,
+   "duration": 15,
    "expectation": "Receive echo'ed binary message (with empty payload). Clean close with normal code.",
    "expected": {
       "OK": [
@@ -27,8 +27,8 @@
       "requireClean": true
    },
    "failedByMe": false,
-   "httpRequest": "GET / HTTP/1.1\r\nUser-Agent: AutobahnTestSuite/0.7.6-0.10.9\r\nHost: localhost:3001\r\nUpgrade: WebSocket\r\nConnection: Upgrade\r\nPragma: no-cache\r\nCache-Control: no-cache\r\nSec-WebSocket-Key: +nnxB2KFx4zQbYu1BzMGtA==\r\nSec-WebSocket-Version: 13\r\n\r\n",
-   "httpResponse": "HTTP/1.1 101 Web Socket Protocol Handshake\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: ttID8GBb6dVaHoo75PuXN+AXOwA=\r\n\r\n",
+   "httpRequest": "GET / HTTP/1.1\r\nUser-Agent: AutobahnTestSuite/0.7.6-0.10.9\r\nHost: localhost:3001\r\nUpgrade: WebSocket\r\nConnection: Upgrade\r\nPragma: no-cache\r\nCache-Control: no-cache\r\nSec-WebSocket-Key: RdC3t3jNYDMgrfp+DeprIg==\r\nSec-WebSocket-Version: 13\r\n\r\n",
+   "httpResponse": "HTTP/1.1 101 Web Socket Protocol Handshake\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: oqiBmME1dB6JR99Ej37uVRyV+CU=\r\n\r\n",
    "id": "1.2.1",
    "isServer": false,
    "localCloseCode": 1000,
@@ -51,10 +51,11 @@
       "8": 1
    },
    "rxOctetStats": {
-      "2": 3,
+      "2": 1,
+      "4": 1,
       "139": 1
    },
-   "started": "2017-05-23T04:49:20.961Z",
+   "started": "2017-05-26T02:41:11.379Z",
    "trafficStats": null,
    "txFrameStats": {
       "2": 1,
@@ -95,7 +96,7 @@
          2,
          true,
          0,
-         "063c9288",
+         "941a144b",
          null,
          null,
          false
@@ -104,7 +105,7 @@
          "TO",
          [
             6,
-            "8280063c9288"
+            "8280941a144b"
          ],
          false
       ],
@@ -140,7 +141,7 @@
          8,
          true,
          0,
-         "0c8a0987",
+         "3bf5b74a",
          null,
          null,
          false
@@ -149,22 +150,15 @@
          "TO",
          [
             8,
-            "88820c8a09870f62"
+            "88823bf5b74a381d"
          ],
          false
       ],
       [
          "RO",
          [
-            2,
-            "8802"
-         ]
-      ],
-      [
-         "RO",
-         [
-            2,
-            "03e8"
+            4,
+            "880203e8"
          ]
       ],
       [

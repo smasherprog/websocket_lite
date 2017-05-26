@@ -8,7 +8,7 @@
    "createWirelog": true,
    "description": "Same as Case 6.4.1, but in 2nd frame, we send only up to and including the octet making the complete payload invalid.\n<br><br>MESSAGE PARTS:<br>\nPART1 = cebae1bdb9cf83cebcceb5f4<br>\nPART2 = 90<br>\nPART3 = 8080656469746564<br>\n",
    "droppedByMe": false,
-   "duration": 2024,
+   "duration": 2029,
    "expectation": "The first frame is accepted, we expect to timeout on the first wait. The 2nd frame should be rejected immediately (fail fast on UTF-8). If we timeout, we expect the connection is failed at least then, since the complete message payload is not valid UTF-8.",
    "expected": {
       "NON-STRICT": [
@@ -37,8 +37,8 @@
       "requireClean": false
    },
    "failedByMe": false,
-   "httpRequest": "GET / HTTP/1.1\r\nUser-Agent: AutobahnTestSuite/0.7.6-0.10.9\r\nHost: localhost:3001\r\nUpgrade: WebSocket\r\nConnection: Upgrade\r\nPragma: no-cache\r\nCache-Control: no-cache\r\nSec-WebSocket-Key: HhWngdIgfCW9YlMj4SzNow==\r\nSec-WebSocket-Version: 13\r\n\r\n",
-   "httpResponse": "HTTP/1.1 101 Web Socket Protocol Handshake\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: jnzaRl73PLyPdH8YLDWA88BybCw=\r\n\r\n",
+   "httpRequest": "GET / HTTP/1.1\r\nUser-Agent: AutobahnTestSuite/0.7.6-0.10.9\r\nHost: localhost:3001\r\nUpgrade: WebSocket\r\nConnection: Upgrade\r\nPragma: no-cache\r\nCache-Control: no-cache\r\nSec-WebSocket-Key: wLpgAHq6S2sK7HQ4urU1gA==\r\nSec-WebSocket-Version: 13\r\n\r\n",
+   "httpResponse": "HTTP/1.1 101 Web Socket Protocol Handshake\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: Z7Yt7mwwDHZptvJIR1yCUrauYOo=\r\n\r\n",
    "id": "6.4.2",
    "isServer": false,
    "localCloseCode": 1000,
@@ -63,11 +63,10 @@
       "8": 1
    },
    "rxOctetStats": {
-      "2": 1,
-      "22": 1,
+      "24": 1,
       "139": 1
    },
-   "started": "2017-05-23T04:49:32.854Z",
+   "started": "2017-05-26T02:41:17.673Z",
    "trafficStats": null,
    "txFrameStats": {
       "0": 2,
@@ -111,7 +110,7 @@
          1,
          false,
          0,
-         "540a0ced",
+         "4127c1d6",
          null,
          null,
          false
@@ -120,7 +119,7 @@
          "TO",
          [
             18,
-            "018c540a0ced9ab0ed50edc58f23e8c4b919"
+            "018c4127c1d68f9d206bf8e84218fde97422"
          ],
          false
       ],
@@ -142,7 +141,7 @@
          0,
          false,
          0,
-         "6567ad42",
+         "61c992e1",
          null,
          null,
          false
@@ -151,7 +150,7 @@
          "TO",
          [
             7,
-            "00816567ad42f5"
+            "008161c992e1f1"
          ],
          false
       ],
@@ -173,7 +172,7 @@
          0,
          true,
          0,
-         "d0fb6634",
+         "9e2e07ea",
          null,
          null,
          false
@@ -182,7 +181,7 @@
          "TO",
          [
             14,
-            "8088d0fb6634507b0350b98f0350"
+            "80889e2e07ea1eae628ef75a628e"
          ],
          false
       ],
@@ -193,15 +192,8 @@
       [
          "RO",
          [
-            2,
-            "8816"
-         ]
-      ],
-      [
-         "RO",
-         [
-            22,
-            "03ef4672616d65206e6f742076616c69642075746638"
+            24,
+            "881603ef4672616d65206e6f742076616c69642075746638"
          ]
       ],
       [
@@ -225,7 +217,7 @@
          8,
          true,
          0,
-         "c5e6ff99",
+         "d9b643cc",
          null,
          null,
          false
@@ -234,7 +226,7 @@
          "TO",
          [
             8,
-            "8882c5e6ff99c60e"
+            "8882d9b643ccda5e"
          ],
          false
       ]

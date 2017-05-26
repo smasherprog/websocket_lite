@@ -8,7 +8,7 @@
    "createWirelog": true,
    "description": "Send frame with reserved non-control <b>Opcode = 3</b>.",
    "droppedByMe": false,
-   "duration": 25,
+   "duration": 17,
    "expectation": "The connection is failed immediately.",
    "expected": {
       "OK": []
@@ -21,8 +21,8 @@
       "requireClean": false
    },
    "failedByMe": false,
-   "httpRequest": "GET / HTTP/1.1\r\nUser-Agent: AutobahnTestSuite/0.7.6-0.10.9\r\nHost: localhost:3001\r\nUpgrade: WebSocket\r\nConnection: Upgrade\r\nPragma: no-cache\r\nCache-Control: no-cache\r\nSec-WebSocket-Key: ShaHdFEyZx1TuUeoSCN6og==\r\nSec-WebSocket-Version: 13\r\n\r\n",
-   "httpResponse": "HTTP/1.1 101 Web Socket Protocol Handshake\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: qG4WcG9AMZQ4xnadSCSf/Yg3vjg=\r\n\r\n",
+   "httpRequest": "GET / HTTP/1.1\r\nUser-Agent: AutobahnTestSuite/0.7.6-0.10.9\r\nHost: localhost:3001\r\nUpgrade: WebSocket\r\nConnection: Upgrade\r\nPragma: no-cache\r\nCache-Control: no-cache\r\nSec-WebSocket-Key: j3PWA9clfh88yc20IE9xVg==\r\nSec-WebSocket-Version: 13\r\n\r\n",
+   "httpResponse": "HTTP/1.1 101 Web Socket Protocol Handshake\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: sViV9eXGw2ySPFpK9uulGpMcDY8=\r\n\r\n",
    "id": "4.1.1",
    "isServer": false,
    "localCloseCode": 1000,
@@ -38,11 +38,10 @@
       "8": 1
    },
    "rxOctetStats": {
-      "2": 1,
-      "38": 1,
+      "40": 1,
       "139": 1
    },
-   "started": "2017-05-23T04:49:25.301Z",
+   "started": "2017-05-26T02:41:12.510Z",
    "trafficStats": null,
    "txFrameStats": {
       "3": 1,
@@ -83,7 +82,7 @@
          3,
          true,
          0,
-         "08d35e7c",
+         "dd875731",
          null,
          null,
          false
@@ -92,7 +91,7 @@
          "TO",
          [
             6,
-            "838008d35e7c"
+            "8380dd875731"
          ],
          false
       ],
@@ -103,15 +102,8 @@
       [
          "RO",
          [
-            2,
-            "8826"
-         ]
-      ],
-      [
-         "RO",
-         [
-            38,
-            "03ea436c6f73696e6720636f6e6e656374696f6e2e206e6f6e76616c6964206f7020636f6465"
+            40,
+            "882603ea436c6f73696e6720636f6e6e656374696f6e2e206e6f6e76616c6964206f7020636f6465"
          ]
       ],
       [
@@ -135,7 +127,7 @@
          8,
          true,
          0,
-         "936accf1",
+         "64070120",
          null,
          null,
          false
@@ -144,7 +136,7 @@
          "TO",
          [
             8,
-            "8882936accf19082"
+            "88826407012067ef"
          ],
          false
       ]

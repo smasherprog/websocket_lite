@@ -263,7 +263,7 @@ namespace SL {
             }
 
             WSListenerImpl(std::shared_ptr<WSContextImpl>& p, PortNumber port) :
-                acceptor(p->io_service, asio::ip::tcp::endpoint(asio::ip::tcp::v4(), port.value)) ,  
+                acceptor(p->io_service, asio::ip::tcp::endpoint(asio::ip::tcp::v4(), port.value)),
                 WSInternal(p) {
 
             }
@@ -309,7 +309,7 @@ namespace SL {
         }
         template<class PARENTTYPE>inline void startwrite(const std::shared_ptr<PARENTTYPE>& parent, const std::shared_ptr<WSocketImpl>& websocket) {
             if (!websocket->SendMessageQueue.empty()) {
-                auto msg(websocket->SendMessageQueue.back());
+                auto msg(websocket->SendMessageQueue.front());
                 if (websocket->Socket) {
                     write(parent, websocket, websocket->Socket, msg.msg);
                 }
@@ -429,16 +429,16 @@ namespace SL {
         template<class PARENTYPE, class SOCKETTYPE, class SENDBUFFERTYPE>inline void write_end(const PARENTYPE& parent, const std::shared_ptr<WSocketImpl>& websocket, const SOCKETTYPE& socket, const SENDBUFFERTYPE& msg) {
 
             asio::async_write(*socket, asio::buffer(msg.data, msg.len), websocket->strand.wrap([parent, websocket, socket, msg](const std::error_code& ec, size_t bytes_transferred) {
-
+                if (!websocket->SendMessageQueue.empty()) {
+                    websocket->SendMessageQueue.pop_front();
+                }
                 UNUSED(bytes_transferred);
                 //   assert(msg.len == bytes_transferred);
                 if (ec)
                 {
                     return closeImpl(parent, websocket, 1002, "write header failed " + ec.message());
                 }
-                else if (!websocket->SendMessageQueue.empty()) {
-                    websocket->SendMessageQueue.pop_back();
-                }
+
                 if (msg.code == OpCode::CLOSE) {
                     handleclose(parent, websocket, socket, msg);
                 }

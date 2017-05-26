@@ -8,7 +8,7 @@
    "createWirelog": true,
    "description": "Send text message after sending a close frame.",
    "droppedByMe": false,
-   "duration": 10,
+   "duration": 12,
    "expectation": "Clean close with normal code. Text message ignored.",
    "expected": {
       "OK": []
@@ -21,8 +21,8 @@
       "requireClean": true
    },
    "failedByMe": false,
-   "httpRequest": "GET / HTTP/1.1\r\nUser-Agent: AutobahnTestSuite/0.7.6-0.10.9\r\nHost: localhost:3001\r\nUpgrade: WebSocket\r\nConnection: Upgrade\r\nPragma: no-cache\r\nCache-Control: no-cache\r\nSec-WebSocket-Key: fn8GONeNLyXQ2YL04SY2VA==\r\nSec-WebSocket-Version: 13\r\n\r\n",
-   "httpResponse": "HTTP/1.1 101 Web Socket Protocol Handshake\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: 0jljAdOCN4Mo6NbrpQde8uMoH9s=\r\n\r\n",
+   "httpRequest": "GET / HTTP/1.1\r\nUser-Agent: AutobahnTestSuite/0.7.6-0.10.9\r\nHost: localhost:3001\r\nUpgrade: WebSocket\r\nConnection: Upgrade\r\nPragma: no-cache\r\nCache-Control: no-cache\r\nSec-WebSocket-Key: z06YbLfhBRmTsG0EIYz86w==\r\nSec-WebSocket-Version: 13\r\n\r\n",
+   "httpResponse": "HTTP/1.1 101 Web Socket Protocol Handshake\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: /Apu4KP84b/Q3sPP2Q3AfDLTgn4=\r\n\r\n",
    "id": "7.1.4",
    "isServer": false,
    "localCloseCode": 1000,
@@ -38,10 +38,10 @@
       "8": 1
    },
    "rxOctetStats": {
-      "2": 2,
+      "4": 1,
       "139": 1
    },
-   "started": "2017-05-23T04:49:42.390Z",
+   "started": "2017-05-26T02:41:27.008Z",
    "trafficStats": null,
    "txFrameStats": {
       "1": 1,
@@ -82,7 +82,7 @@
          8,
          true,
          0,
-         "18623f95",
+         "a357a6c9",
          null,
          null,
          false
@@ -91,7 +91,7 @@
          "TO",
          [
             8,
-            "888218623f951b8a"
+            "8882a357a6c9a0bf"
          ],
          false
       ],
@@ -104,7 +104,7 @@
          1,
          true,
          0,
-         "e9455f86",
+         "c02c6e41",
          null,
          null,
          false
@@ -113,7 +113,7 @@
          "TO",
          [
             18,
-            "818ce9455f86a12033ea866508e99b293ba7"
+            "818cc02c6e418849022daf0c392eb2400a60"
          ],
          false
       ],
@@ -124,15 +124,8 @@
       [
          "RO",
          [
-            2,
-            "8802"
-         ]
-      ],
-      [
-         "RO",
-         [
-            2,
-            "03e8"
+            4,
+            "880203e8"
          ]
       ],
       [

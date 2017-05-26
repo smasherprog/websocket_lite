@@ -8,7 +8,7 @@
    "createWirelog": true,
    "description": "Send a text message with payload which is not valid UTF-8 in one fragment.<br><br>Payload: 0xf020f120f220f320f420f520f620",
    "droppedByMe": false,
-   "duration": 14,
+   "duration": 12,
    "expectation": "The connection is failed immediately, since the payload is not valid UTF-8.",
    "expected": {
       "OK": []
@@ -22,8 +22,8 @@
       "requireClean": false
    },
    "failedByMe": false,
-   "httpRequest": "GET / HTTP/1.1\r\nUser-Agent: AutobahnTestSuite/0.7.6-0.10.9\r\nHost: localhost:3001\r\nUpgrade: WebSocket\r\nConnection: Upgrade\r\nPragma: no-cache\r\nCache-Control: no-cache\r\nSec-WebSocket-Key: xt4AJlIdlDqpcbZcKwDxgQ==\r\nSec-WebSocket-Version: 13\r\n\r\n",
-   "httpResponse": "HTTP/1.1 101 Web Socket Protocol Handshake\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: JTkHPjEb68T6o1WAMlek6QdvK/A=\r\n\r\n",
+   "httpRequest": "GET / HTTP/1.1\r\nUser-Agent: AutobahnTestSuite/0.7.6-0.10.9\r\nHost: localhost:3001\r\nUpgrade: WebSocket\r\nConnection: Upgrade\r\nPragma: no-cache\r\nCache-Control: no-cache\r\nSec-WebSocket-Key: XQ2RtJbYkrQULCmbRHcV0w==\r\nSec-WebSocket-Version: 13\r\n\r\n",
+   "httpResponse": "HTTP/1.1 101 Web Socket Protocol Handshake\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: c3LYguqXzUdjd+viLA/MB6dS+6o=\r\n\r\n",
    "id": "6.13.3",
    "isServer": false,
    "localCloseCode": 1000,
@@ -43,7 +43,7 @@
       "22": 1,
       "139": 1
    },
-   "started": "2017-05-23T04:49:40.145Z",
+   "started": "2017-05-26T02:41:24.838Z",
    "trafficStats": null,
    "txFrameStats": {
       "1": 1,
@@ -84,7 +84,7 @@
          1,
          true,
          0,
-         "59e3f02c",
+         "a00a250a",
          null,
          null,
          false
@@ -93,7 +93,7 @@
          "TO",
          [
             20,
-            "818e59e3f02ca9c3010cabc3030cadc3050cafc3"
+            "818ea00a250a502ad42a522ad62a542ad02a562a"
          ],
          false
       ],
@@ -136,7 +136,7 @@
          8,
          true,
          0,
-         "189b6ef5",
+         "43921572",
          null,
          null,
          false
@@ -145,7 +145,7 @@
          "TO",
          [
             8,
-            "8882189b6ef51b73"
+            "888243921572407a"
          ],
          false
       ]

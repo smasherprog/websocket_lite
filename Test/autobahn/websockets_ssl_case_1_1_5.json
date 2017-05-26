@@ -8,7 +8,7 @@
    "createWirelog": true,
    "description": "Send text message message with payload of length 128.",
    "droppedByMe": false,
-   "duration": 14,
+   "duration": 15,
    "expectation": "Receive echo'ed text message (with payload as sent). Clean close with normal code.",
    "expected": {
       "OK": [
@@ -27,8 +27,8 @@
       "requireClean": true
    },
    "failedByMe": false,
-   "httpRequest": "GET / HTTP/1.1\r\nUser-Agent: AutobahnTestSuite/0.7.6-0.10.9\r\nHost: localhost:3001\r\nUpgrade: WebSocket\r\nConnection: Upgrade\r\nPragma: no-cache\r\nCache-Control: no-cache\r\nSec-WebSocket-Key: rvJB5hTxfU7Pw4K3y4zoyA==\r\nSec-WebSocket-Version: 13\r\n\r\n",
-   "httpResponse": "HTTP/1.1 101 Web Socket Protocol Handshake\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: FV9QKjhoJzbIISy28n5SOIBhCak=\r\n\r\n",
+   "httpRequest": "GET / HTTP/1.1\r\nUser-Agent: AutobahnTestSuite/0.7.6-0.10.9\r\nHost: localhost:3001\r\nUpgrade: WebSocket\r\nConnection: Upgrade\r\nPragma: no-cache\r\nCache-Control: no-cache\r\nSec-WebSocket-Key: ujREBoFKA6O1aJz+AsjZJA==\r\nSec-WebSocket-Version: 13\r\n\r\n",
+   "httpResponse": "HTTP/1.1 101 Web Socket Protocol Handshake\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: B7NRVsFdjz+xmi+jiyAzxqvEFXs=\r\n\r\n",
    "id": "1.1.5",
    "isServer": false,
    "localCloseCode": 1000,
@@ -51,11 +51,11 @@
       "8": 1
    },
    "rxOctetStats": {
-      "2": 2,
+      "4": 1,
       "132": 1,
       "139": 1
    },
-   "started": "2017-05-23T04:49:20.300Z",
+   "started": "2017-05-26T02:41:11.228Z",
    "trafficStats": null,
    "txFrameStats": {
       "1": 1,
@@ -96,7 +96,7 @@
          1,
          true,
          0,
-         "87a2b15f",
+         "c251a4b7",
          null,
          null,
          false
@@ -105,7 +105,7 @@
          "TO",
          [
             136,
-            "81fe008087a2b15fad889b75ad889b75ad889b75ad889b75ad889b75ad889b75ad889b75ad889b75ad889b75ad889b75ad889b75ad889b75ad889b75ad889b75 ..."
+            "81fe0080c251a4b7e87b8e9de87b8e9de87b8e9de87b8e9de87b8e9de87b8e9de87b8e9de87b8e9de87b8e9de87b8e9de87b8e9de87b8e9de87b8e9de87b8e9d ..."
          ],
          false
       ],
@@ -141,7 +141,7 @@
          8,
          true,
          0,
-         "d043b9c9",
+         "6aa7c996",
          null,
          null,
          false
@@ -150,22 +150,15 @@
          "TO",
          [
             8,
-            "8882d043b9c9d3ab"
+            "88826aa7c996694f"
          ],
          false
       ],
       [
          "RO",
          [
-            2,
-            "8802"
-         ]
-      ],
-      [
-         "RO",
-         [
-            2,
-            "03e8"
+            4,
+            "880203e8"
          ]
       ],
       [

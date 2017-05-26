@@ -8,7 +8,7 @@
    "createWirelog": true,
    "description": "Send binary message message with payload of length 128.",
    "droppedByMe": false,
-   "duration": 31,
+   "duration": 14,
    "expectation": "Receive echo'ed binary message (with payload as sent). Clean close with normal code.",
    "expected": {
       "OK": [
@@ -27,8 +27,8 @@
       "requireClean": true
    },
    "failedByMe": false,
-   "httpRequest": "GET / HTTP/1.1\r\nUser-Agent: AutobahnTestSuite/0.7.6-0.10.9\r\nHost: localhost:3001\r\nUpgrade: WebSocket\r\nConnection: Upgrade\r\nPragma: no-cache\r\nCache-Control: no-cache\r\nSec-WebSocket-Key: vsXF23NTNkymWjW1AhGuLQ==\r\nSec-WebSocket-Version: 13\r\n\r\n",
-   "httpResponse": "HTTP/1.1 101 Web Socket Protocol Handshake\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: 9f0m7osXn2THCuFYNATMuj736V4=\r\n\r\n",
+   "httpRequest": "GET / HTTP/1.1\r\nUser-Agent: AutobahnTestSuite/0.7.6-0.10.9\r\nHost: localhost:3001\r\nUpgrade: WebSocket\r\nConnection: Upgrade\r\nPragma: no-cache\r\nCache-Control: no-cache\r\nSec-WebSocket-Key: 5G6W0JO5q2ZX7h53RxB5Hw==\r\nSec-WebSocket-Version: 13\r\n\r\n",
+   "httpResponse": "HTTP/1.1 101 Web Socket Protocol Handshake\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: k90uncaaf/GoLxFyYLVIMD82uQ0=\r\n\r\n",
    "id": "1.2.5",
    "isServer": false,
    "localCloseCode": 1000,
@@ -51,11 +51,11 @@
       "8": 1
    },
    "rxOctetStats": {
-      "4": 2,
-      "128": 1,
+      "2": 2,
+      "132": 1,
       "139": 1
    },
-   "started": "2017-05-23T04:49:21.198Z",
+   "started": "2017-05-26T02:41:11.473Z",
    "trafficStats": null,
    "txFrameStats": {
       "2": 1,
@@ -96,7 +96,7 @@
          2,
          true,
          0,
-         "eaae847b",
+         "9dc73394",
          null,
          null,
          false
@@ -105,7 +105,7 @@
          "TO",
          [
             136,
-            "82fe0080eaae847b14507a8514507a8514507a8514507a8514507a8514507a8514507a8514507a8514507a8514507a8514507a8514507a8514507a8514507a85 ..."
+            "82fe00809dc733946339cd6a6339cd6a6339cd6a6339cd6a6339cd6a6339cd6a6339cd6a6339cd6a6339cd6a6339cd6a6339cd6a6339cd6a6339cd6a6339cd6a ..."
          ],
          false
       ],
@@ -116,15 +116,8 @@
       [
          "RO",
          [
-            4,
-            "827e0080"
-         ]
-      ],
-      [
-         "RO",
-         [
-            128,
-            "fefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefe ..."
+            132,
+            "827e0080fefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefe ..."
          ]
       ],
       [
@@ -148,7 +141,7 @@
          8,
          true,
          0,
-         "cebcdfb7",
+         "c9b9d9f9",
          null,
          null,
          false
@@ -157,15 +150,22 @@
          "TO",
          [
             8,
-            "8882cebcdfb7cd54"
+            "8882c9b9d9f9ca51"
          ],
          false
       ],
       [
          "RO",
          [
-            4,
-            "880203e8"
+            2,
+            "8802"
+         ]
+      ],
+      [
+         "RO",
+         [
+            2,
+            "03e8"
          ]
       ],
       [
