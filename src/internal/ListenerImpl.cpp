@@ -25,7 +25,7 @@ namespace SL {
 
                     std::ostream handshake(&handshakecontainer->Write);
                     if (Generate_Handshake(handshakecontainer->Header, handshake)) {
-                        auto sock = std::make_shared<WSocketImpl>(listener->io_service);
+                        auto sock = std::make_shared<WSocketImpl>(listener->WSContextImpl_->io_service);
                         WSocket websocket(sock);
                         if (handshakecontainer->Header.find(PERMESSAGEDEFLATE) != handshakecontainer->Header.end()) {
                             sock->CompressionEnabled = true;
@@ -102,37 +102,18 @@ namespace SL {
             });
 
         }
-        WSListener  WSListener::CreateListener(ThreadCount threadcount, PortNumber port)
-        {
-            WSListener tmp;
-            tmp.Impl_ = std::make_shared<WSListenerImpl>(threadcount, port);
-            return tmp;
-        }
 
-        WSListener  WSListener::CreateListener(
-            ThreadCount threadcount, 
-            PortNumber port,
-            std::string Password,
-            std::string Privatekey_File,
-            std::string Publiccertificate_File,
-            std::string dh_File)
-        {
-
-            WSListener tmp;
-            tmp.Impl_ = std::make_shared<WSListenerImpl>(threadcount, port, Password, Privatekey_File, Publiccertificate_File, dh_File);
-            return tmp;
-        }
         void WSListener::startlistening()
         {
             if (Impl_->TLSEnabled) {
                 auto createsocket = [](auto c) {
-                    return std::make_shared<asio::ssl::stream<asio::ip::tcp::socket>>(c->io_service, c->sslcontext);
+                    return std::make_shared<asio::ssl::stream<asio::ip::tcp::socket>>(c->WSContextImpl_->io_service, c->sslcontext);
                 };
                 Listen(Impl_, createsocket);
             }
             else {
                 auto createsocket = [](auto c) {
-                    return std::make_shared<asio::ip::tcp::socket>(c->io_service);
+                    return std::make_shared<asio::ip::tcp::socket>(c->WSContextImpl_->io_service);
                 };
                 Listen(Impl_, createsocket);
             }
@@ -198,6 +179,27 @@ namespace SL {
         void WSListener::close(const WSocket& s, unsigned short code, const std::string& msg)
         {
             closeImpl(Impl_, s.WSocketImpl_, code, msg);
+        }
+        WSListener WSContext::CreateListener(PortNumber port)
+        {
+            WSListener tmp;
+            tmp.Impl_ = std::make_shared<WSListenerImpl>(Impl_, port);
+            return tmp;
+        }
+
+        WSListener WSContext::CreateListener(
+            PortNumber port,
+            std::string Password,
+            std::string Privatekey_File,
+            std::string Publiccertificate_File,
+            std::string dh_File)
+        {
+            WSListener tmp;
+            tmp.Impl_ = std::make_shared<WSListenerImpl>(Impl_, port, Password, Privatekey_File, Publiccertificate_File, dh_File);
+            return tmp;
+        }
+        WSContext::WSContext(ThreadCount threadcount) {
+            Impl_ = std::make_shared<WSContextImpl>(threadcount);
         }
     }
 }

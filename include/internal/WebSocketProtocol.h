@@ -95,7 +95,7 @@ namespace SL {
             if (!ec) return rt.address().is_loopback();
             else return true;
         }
-     struct SendQueueItem {
+        struct SendQueueItem {
             WSMessage msg;
             bool compressmessage;
         };
@@ -133,18 +133,16 @@ namespace SL {
             ws->Socket = s;
         }
 
-   
+
         struct ThreadContext {
             std::unique_ptr<char[]> inflationBuffer;
             z_stream inflationStream = {};
             std::thread Thread;
         };
         const auto CONTROLBUFFERMAXSIZE = 125;
-        class WSContext {
+        class WSContextImpl {
         public:
-            WSContext(ThreadCount threadcount) :
-                work(std::make_unique<asio::io_service::work>(io_service)) ,
-                sslcontext(asio::ssl::context::tlsv11){
+            WSContextImpl(ThreadCount threadcount) : work(std::make_unique<asio::io_service::work>(io_service)) {
                 Threads.resize(threadcount.value);
                 for (auto& ctx : Threads) {
                     inflateInit2(&ctx.inflationStream, -MAX_WBITS);
@@ -155,7 +153,7 @@ namespace SL {
                     });
                 }
             }
-            ~WSContext() {
+            ~WSContextImpl() {
                 work.reset();
                 io_service.stop();
                 while (!io_service.stopped()) {
@@ -169,13 +167,20 @@ namespace SL {
                 }
                 Threads.clear();
             }
-            std::chrono::seconds ReadTimeout = std::chrono::seconds(30);
-            std::chrono::seconds WriteTimeout = std::chrono::seconds(30);
-            size_t MaxPayload = 1024 * 1024 * 20;//20 MB
+
             asio::io_service io_service;
             std::vector<ThreadContext> Threads;
             std::unique_ptr<asio::io_service::work> work;
+
+        };
+
+        struct WSInternal {
+            WSInternal(std::shared_ptr<WSContextImpl>& p) :sslcontext(asio::ssl::context::tlsv11), WSContextImpl_(p) {}
+            std::shared_ptr<WSContextImpl> WSContextImpl_;
             asio::ssl::context sslcontext;
+            std::chrono::seconds ReadTimeout = std::chrono::seconds(30);
+            std::chrono::seconds WriteTimeout = std::chrono::seconds(30);
+            size_t MaxPayload = 1024 * 1024 * 20;//20 MB
             bool TLSEnabled = false;
 
             std::function<void(WSocket&, const std::unordered_map<std::string, std::string>&)> onConnection;
@@ -186,10 +191,9 @@ namespace SL {
             std::function<void(WSocket&)> onHttpUpgrade;
 
         };
-
-        class WSClientImpl : public WSContext {
+        class WSClientImpl : public WSInternal {
         public:
-            WSClientImpl(ThreadCount threadcount, std::string Publiccertificate_File) : WSClientImpl(threadcount)
+            WSClientImpl(std::shared_ptr<WSContextImpl>& p, std::string Publiccertificate_File) : WSClientImpl(p)
             {
                 TLSEnabled = true;
                 std::ifstream file(Publiccertificate_File, std::ios::binary);
@@ -204,23 +208,25 @@ namespace SL {
                 sslcontext.set_default_verify_paths(ec);
 
             }
-            WSClientImpl(ThreadCount threadcount) :WSContext(threadcount) {  }
+            WSClientImpl(std::shared_ptr<WSContextImpl>& p) :WSInternal(p)
+            {
+            }
             ~WSClientImpl() {}
         };
 
-        class WSListenerImpl : public WSContext {
+        class WSListenerImpl : public WSInternal {
         public:
 
             asio::ip::tcp::acceptor acceptor;
 
             WSListenerImpl(
-                ThreadCount threadcount,
+                std::shared_ptr<WSContextImpl>& p,
                 PortNumber port,
                 std::string Password,
                 std::string Privatekey_File,
                 std::string Publiccertificate_File,
                 std::string dh_File) :
-                WSListenerImpl(threadcount, port)
+                WSListenerImpl(p, port)
             {
                 TLSEnabled = true;
                 sslcontext.set_options(
@@ -256,11 +262,9 @@ namespace SL {
 
             }
 
-            WSListenerImpl(
-                ThreadCount threadcount,
-                PortNumber port) : 
-                WSContext(threadcount),
-                acceptor(io_service, asio::ip::tcp::endpoint(asio::ip::tcp::v4(), port.value)){
+            WSListenerImpl(std::shared_ptr<WSContextImpl>& p, PortNumber port) :
+                acceptor(p->io_service, asio::ip::tcp::endpoint(asio::ip::tcp::v4(), port.value)) ,  
+                WSInternal(p) {
 
             }
 
@@ -320,7 +324,7 @@ namespace SL {
             }
             websocket->strand.post([websocket, msg, parent, compressmessage]() {
                 websocket->SendMessageQueue.emplace_back(SendQueueItem{ msg, compressmessage });
-                if (websocket->SendMessageQueue.size()==1) {
+                if (websocket->SendMessageQueue.size() == 1) {
                     SL::WS_LITE::startwrite(parent, websocket);
                 }
             });
@@ -638,7 +642,7 @@ namespace SL {
                 return closeImpl(parent, websocket, 1002, "Closing connection because mask requirement not met");
             }
 
-            if (getrsv2(websocket->ReceiveHeader) || getrsv3(websocket->ReceiveHeader) ||(getrsv1(websocket->ReceiveHeader) && !websocket->CompressionEnabled)) {
+            if (getrsv2(websocket->ReceiveHeader) || getrsv3(websocket->ReceiveHeader) || (getrsv1(websocket->ReceiveHeader) && !websocket->CompressionEnabled)) {
                 return closeImpl(parent, websocket, 1002, "Closing connection. rsv bit set");
             }
 

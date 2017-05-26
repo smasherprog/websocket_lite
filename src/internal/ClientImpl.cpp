@@ -59,7 +59,7 @@ namespace SL {
 
 
                                 SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "Connected ");
-                                auto websocket = std::make_shared<WSocketImpl>(self->io_service);
+                                auto websocket = std::make_shared<WSocketImpl>(self->WSContextImpl_->io_service);
                                 if (header.find(PERMESSAGEDEFLATE) != header.end()) {
                                     websocket->CompressionEnabled = true;
                                 }
@@ -129,7 +129,7 @@ namespace SL {
 
             auto socket = socketcreator(self);
             std::error_code ec;
-            asio::ip::tcp::resolver resolver(self->io_service);
+            asio::ip::tcp::resolver resolver(self->WSContextImpl_->io_service);
             auto portstr = std::to_string(port.value);
             asio::ip::tcp::resolver::query query(host, portstr.c_str());
 
@@ -169,20 +169,10 @@ namespace SL {
 
         }
 
-        WSClient WSClient::CreateClient(ThreadCount threadcount, std::string Publiccertificate_File) {
-            WSClient c;
-            c.Impl_ = std::make_shared<WSClientImpl>(threadcount, Publiccertificate_File);
-            return c;
-        }
-        WSClient WSClient::CreateClient(ThreadCount threadcount) {
-            WSClient c;
-            c.Impl_ = std::make_shared<WSClientImpl>(threadcount);
-            return c;
-        }
         void WSClient::connect(const char* host, PortNumber port) {
             if (Impl_->TLSEnabled) {
                 auto createsocket = [](auto c) {
-                    auto socket = std::make_shared<asio::ssl::stream<asio::ip::tcp::socket>>(c->io_service, c->sslcontext);
+                    auto socket = std::make_shared<asio::ssl::stream<asio::ip::tcp::socket>>(c->WSContextImpl_->io_service, c->sslcontext);
                     socket->set_verify_mode(asio::ssl::verify_peer);
                     socket->set_verify_callback(std::bind(&verify_certificate, std::placeholders::_1, std::placeholders::_2));
                     return socket;
@@ -192,7 +182,7 @@ namespace SL {
             }
             else {
                 auto createsocket = [](auto c) {
-                    return std::make_shared<asio::ip::tcp::socket>(c->io_service);
+                    return std::make_shared<asio::ip::tcp::socket>(c->WSContextImpl_->io_service);
                 };
                 Connect(Impl_, host, port, createsocket);
             }
@@ -287,6 +277,16 @@ namespace SL {
         {
             if (WSocketImpl_->Socket) return SL::WS_LITE::is_loopback(WSocketImpl_->Socket);
             else  return SL::WS_LITE::is_loopback(WSocketImpl_->TLSSocket);
+        }
+        WSClient WSContext::CreateClient(std::string Publiccertificate_File) {
+            WSClient c;
+            c.Impl_ = std::make_shared<WSClientImpl>(Impl_, Publiccertificate_File);
+            return c;
+        }
+        WSClient WSContext::CreateClient() {
+            WSClient c;
+            c.Impl_ = std::make_shared<WSClientImpl>(Impl_);
+            return c;
         }
     }
 }

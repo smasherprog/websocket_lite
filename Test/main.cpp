@@ -12,9 +12,11 @@ using namespace std::chrono_literals;
 
 void wssautobahntest() {
     // auto listener = SL::WS_LITE::WSListener::CreateListener(3001, TEST_CERTIFICATE_PRIVATE_PASSWORD, TEST_CERTIFICATE_PRIVATE_PATH, TEST_CERTIFICATE_PUBLIC_PATH, TEST_DH_PATH);
-    SL::WS_LITE::ThreadCount thrdcount(1);
+
     SL::WS_LITE::PortNumber port(3001);
-    auto listener = SL::WS_LITE::WSListener::CreateListener(thrdcount, port);
+    SL::WS_LITE::WSContext ctx(SL::WS_LITE::ThreadCount(1));
+
+    auto listener = ctx.CreateListener(port);
     listener.set_ReadTimeout(std::chrono::seconds(100));
     listener.set_WriteTimeout(std::chrono::seconds(100));
     auto lastheard = std::chrono::high_resolution_clock::now();
@@ -49,9 +51,10 @@ void wssautobahntest() {
 void generaltest() {
     std::cout << "Starting General test..." << std::endl;
     //auto listener = SL::WS_LITE::WSListener::CreateListener(3002, TEST_CERTIFICATE_PRIVATE_PASSWORD, TEST_CERTIFICATE_PRIVATE_PATH, TEST_CERTIFICATE_PUBLIC_PATH, TEST_DH_PATH);
-    SL::WS_LITE::ThreadCount thrdcount(1);
+
     SL::WS_LITE::PortNumber port(3002);
-    auto listener = SL::WS_LITE::WSListener::CreateListener(thrdcount, port);
+    SL::WS_LITE::WSContext ctx(SL::WS_LITE::ThreadCount(1));
+    auto listener = ctx.CreateListener(port);
     auto lastheard = std::chrono::high_resolution_clock::now();
     listener.onHttpUpgrade([&](const SL::WS_LITE::WSocket& socket) {
         lastheard = std::chrono::high_resolution_clock::now();
@@ -80,7 +83,8 @@ void generaltest() {
     listener.startlistening();
 
     //auto client = SL::WS_LITE::WSClient::CreateClient(TEST_CERTIFICATE_PUBLIC_PATH);
-    auto client = SL::WS_LITE::WSClient::CreateClient(thrdcount);
+
+    auto client = ctx.CreateClient();
     client.onHttpUpgrade([&](const SL::WS_LITE::WSocket& socket) {
         lastheard = std::chrono::high_resolution_clock::now();
         SL_WS_LITE_LOG(SL::WS_LITE::Logging_Levels::INFO_log_level, "Client::onHttpUpgrade");
@@ -102,9 +106,11 @@ void generaltest() {
 }
 void multithreadtest() {
     std::cout << "Starting Multi threaded test..." << std::endl;
-    SL::WS_LITE::ThreadCount thrdcount(4);
+
     SL::WS_LITE::PortNumber port(3003);
-    auto listener = SL::WS_LITE::WSListener::CreateListener(thrdcount, port);
+    SL::WS_LITE::WSContext ctx(SL::WS_LITE::ThreadCount(4));
+
+    auto listener = ctx.CreateListener(port);
     auto lastheard = std::chrono::high_resolution_clock::now();
     listener.onHttpUpgrade([&](const SL::WS_LITE::WSocket& socket) {
         lastheard = std::chrono::high_resolution_clock::now();
@@ -127,9 +133,10 @@ void multithreadtest() {
     });
     listener.startlistening();
     std::vector<SL::WS_LITE::WSClient> clients;
-    clients.reserve(25);
-    for (auto i = 0; i < 25; i++) {
-        clients.push_back(SL::WS_LITE::WSClient::CreateClient(thrdcount));
+    clients.reserve(100);
+    for (auto i = 0; i < 100; i++) {
+
+        clients.push_back(ctx.CreateClient());
         clients[i].onHttpUpgrade([&](const SL::WS_LITE::WSocket& socket) {
             lastheard = std::chrono::high_resolution_clock::now();
         });

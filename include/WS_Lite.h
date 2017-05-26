@@ -56,10 +56,7 @@ namespace SL {
             std::shared_ptr<unsigned char> Buffer;
         };
 
-
-
-        class WSListener;
-        class WSClient;
+  
         struct WSocketImpl;
         struct WSocket {
             std::shared_ptr<WSocketImpl> WSocketImpl_;
@@ -76,6 +73,7 @@ namespace SL {
             operator bool() const { return WSocketImpl_.operator bool(); }
 
         };
+        class WSContext;
         class WSListenerImpl;
         class WSListener {
             std::shared_ptr<WSListenerImpl> Impl_;
@@ -122,16 +120,7 @@ namespace SL {
             void close(const WSocket& s, unsigned short code = 1000, const std::string& msg = "");
             //start the process to listen for clients. This is non-blocking and will return immediatly
             void startlistening();
-            //factory to create listeners. Use this if you ARE NOT using TLS
-            static WSListener CreateListener(ThreadCount threadcount, PortNumber port);
-            //factory to create listeners. Use this if you ARE using TLS
-            static WSListener CreateListener(
-                ThreadCount threadcount,
-                PortNumber port,
-                std::string Password,
-                std::string Privatekey_File,
-                std::string Publiccertificate_File,
-                std::string dh_File);
+            friend WSContext;
         };
         class WSClientImpl;
         class WSClient {
@@ -179,10 +168,28 @@ namespace SL {
             void close(const WSocket& s, unsigned short code = 1000, const std::string& msg = "");
             //connect to an endpoint. This is non-blocking and will return immediatly. If the library is unable to establish a connection, ondisconnection will be called. 
             void connect(const char* host, PortNumber port);
+            friend WSContext;
+        };
+        class WSContextImpl;
+        class WSContext {
+            std::shared_ptr<WSContextImpl> Impl_;
+        public:
+            WSContext(ThreadCount threadcount);
+
+            //Use this if you ARE NOT using TLS
+            WSListener CreateListener(PortNumber port);
+            //Use this if you ARE using TLS
+            WSListener CreateListener(
+                PortNumber port,
+                std::string Password,
+                std::string Privatekey_File,
+                std::string Publiccertificate_File,
+                std::string dh_File);
             //factory to create clients. Use this if you ARE NOT using TLS
-            static WSClient CreateClient(ThreadCount threadcount);
+            WSClient CreateClient();
             //factory to create clients. Use this if you ARE using TLS
-            static WSClient CreateClient(ThreadCount threadcount,std::string Publiccertificate_File);
+            WSClient CreateClient(std::string Publiccertificate_File);
+
         };
     }
 }
