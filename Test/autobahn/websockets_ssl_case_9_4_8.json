@@ -8,7 +8,7 @@
    "createWirelog": true,
    "description": "Send fragmented binary message message with message payload of length 4 * 2**20 (4M). Sent out in fragments of 1M.",
    "droppedByMe": false,
-   "duration": 70,
+   "duration": 379,
    "expectation": "Receive echo'ed binary message (with payload as sent).",
    "expected": {},
    "expectedClose": {
@@ -19,8 +19,8 @@
       "requireClean": true
    },
    "failedByMe": false,
-   "httpRequest": "GET / HTTP/1.1\r\nUser-Agent: AutobahnTestSuite/0.7.6-0.10.9\r\nHost: localhost:3001\r\nUpgrade: WebSocket\r\nConnection: Upgrade\r\nPragma: no-cache\r\nCache-Control: no-cache\r\nSec-WebSocket-Key: 6ee9jIq+TNc3OG13TL41RA==\r\nSec-WebSocket-Version: 13\r\n\r\n",
-   "httpResponse": "HTTP/1.1 101 Web Socket Protocol Handshake\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: Pc81+KM42VLbwa73z+zlIWQUbcs=\r\n\r\n",
+   "httpRequest": "GET / HTTP/1.1\r\nUser-Agent: AutobahnTestSuite/0.7.6-0.10.9\r\nHost: localhost:3001\r\nUpgrade: WebSocket\r\nConnection: Upgrade\r\nPragma: no-cache\r\nCache-Control: no-cache\r\nSec-WebSocket-Key: jaLydhRODgTukq5hFGzCQw==\r\nSec-WebSocket-Version: 13\r\n\r\n",
+   "httpResponse": "HTTP/1.1 101 Web Socket Protocol Handshake\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: 94gbsqNdLihsibscRGetSJjS5Gs=\r\n\r\n",
    "id": "9.4.8",
    "isServer": false,
    "localCloseCode": 1000,
@@ -40,15 +40,9 @@
       "2": 2,
       "10": 1,
       "139": 1,
-      "14436": 1,
-      "18816": 50,
-      "30496": 1,
-      "35040": 1,
-      "46720": 50,
-      "51100": 1,
-      "65536": 12
+      "16384": 256
    },
-   "started": "2017-05-26T02:41:44.141Z",
+   "started": "2017-05-27T01:42:04.038Z",
    "trafficStats": null,
    "txFrameStats": {
       "0": 4,
@@ -95,7 +89,7 @@
          8,
          true,
          0,
-         "9213f824",
+         "6ea4b343",
          null,
          null,
          false
@@ -104,7 +98,7 @@
          "TO",
          [
             8,
-            "88829213f82491fb"
+            "88826ea4b3436d4c"
          ],
          false
       ],

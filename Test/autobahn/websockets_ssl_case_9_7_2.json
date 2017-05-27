@@ -8,7 +8,7 @@
    "createWirelog": true,
    "description": "Send 1000 text messages of payload size 16 to measure implementation/network RTT (round trip time) / latency.",
    "droppedByMe": false,
-   "duration": 257,
+   "duration": 488,
    "expectation": "Receive echo'ed text messages (with payload as sent). Timeout case after 60 secs.",
    "expected": {},
    "expectedClose": {
@@ -19,8 +19,8 @@
       "requireClean": true
    },
    "failedByMe": false,
-   "httpRequest": "GET / HTTP/1.1\r\nUser-Agent: AutobahnTestSuite/0.7.6-0.10.9\r\nHost: localhost:3001\r\nUpgrade: WebSocket\r\nConnection: Upgrade\r\nPragma: no-cache\r\nCache-Control: no-cache\r\nSec-WebSocket-Key: WSRuCZ3dqQW6wn3kLYbsTA==\r\nSec-WebSocket-Version: 13\r\n\r\n",
-   "httpResponse": "HTTP/1.1 101 Web Socket Protocol Handshake\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: JQXLmQ1gnjE4A3Fzo0u7VVCMdk0=\r\n\r\n",
+   "httpRequest": "GET / HTTP/1.1\r\nUser-Agent: AutobahnTestSuite/0.7.6-0.10.9\r\nHost: localhost:3001\r\nUpgrade: WebSocket\r\nConnection: Upgrade\r\nPragma: no-cache\r\nCache-Control: no-cache\r\nSec-WebSocket-Key: wN/mF7tBMZibRcdbQk3D4Q==\r\nSec-WebSocket-Version: 13\r\n\r\n",
+   "httpResponse": "HTTP/1.1 101 Web Socket Protocol Handshake\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: Ad4AsOmRT2+HPEUwrhOjFRkwn38=\r\n\r\n",
    "id": "9.7.2",
    "isServer": false,
    "localCloseCode": 1000,
@@ -37,13 +37,11 @@
       "8": 1
    },
    "rxOctetStats": {
-      "2": 617,
-      "4": 1,
-      "16": 617,
-      "18": 383,
+      "2": 1002,
+      "16": 1000,
       "139": 1
    },
-   "started": "2017-05-26T02:42:49.645Z",
+   "started": "2017-05-27T01:43:16.066Z",
    "trafficStats": null,
    "txFrameStats": {
       "1": 1000,
@@ -96,7 +94,7 @@
          8,
          true,
          0,
-         "332bf029",
+         "9d486d30",
          null,
          null,
          false
@@ -105,15 +103,22 @@
          "TO",
          [
             8,
-            "8882332bf02930c3"
+            "88829d486d309ea0"
          ],
          false
       ],
       [
          "RO",
          [
-            4,
-            "880203e8"
+            2,
+            "8802"
+         ]
+      ],
+      [
+         "RO",
+         [
+            2,
+            "03e8"
          ]
       ],
       [

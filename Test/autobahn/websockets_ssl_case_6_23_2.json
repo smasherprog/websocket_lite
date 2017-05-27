@@ -8,7 +8,7 @@
    "createWirelog": true,
    "description": "Send a text message with payload which is valid UTF-8 in one fragment.<br><br>Payload: 0xefbfba",
    "droppedByMe": false,
-   "duration": 14,
+   "duration": 11,
    "expectation": "The message is echo'ed back to us.",
    "expected": {
       "OK": [
@@ -27,8 +27,8 @@
       "requireClean": true
    },
    "failedByMe": false,
-   "httpRequest": "GET / HTTP/1.1\r\nUser-Agent: AutobahnTestSuite/0.7.6-0.10.9\r\nHost: localhost:3001\r\nUpgrade: WebSocket\r\nConnection: Upgrade\r\nPragma: no-cache\r\nCache-Control: no-cache\r\nSec-WebSocket-Key: /ec4iutFGTwf/akRvQQu6w==\r\nSec-WebSocket-Version: 13\r\n\r\n",
-   "httpResponse": "HTTP/1.1 101 Web Socket Protocol Handshake\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: wrRcljccjShRm1vOT0IwfwK2Vnk=\r\n\r\n",
+   "httpRequest": "GET / HTTP/1.1\r\nUser-Agent: AutobahnTestSuite/0.7.6-0.10.9\r\nHost: localhost:3001\r\nUpgrade: WebSocket\r\nConnection: Upgrade\r\nPragma: no-cache\r\nCache-Control: no-cache\r\nSec-WebSocket-Key: SIIpYJtj5SoGwFIwfJpbEQ==\r\nSec-WebSocket-Version: 13\r\n\r\n",
+   "httpResponse": "HTTP/1.1 101 Web Socket Protocol Handshake\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: utI8Hb4hR1o9ZrPW5DvwuMBmS5M=\r\n\r\n",
    "id": "6.23.2",
    "isServer": false,
    "localCloseCode": 1000,
@@ -51,11 +51,11 @@
       "8": 1
    },
    "rxOctetStats": {
-      "2": 2,
-      "5": 1,
+      "2": 3,
+      "3": 1,
       "139": 1
    },
-   "started": "2017-05-26T02:41:26.796Z",
+   "started": "2017-05-27T01:40:57.056Z",
    "trafficStats": null,
    "txFrameStats": {
       "1": 1,
@@ -96,7 +96,7 @@
          1,
          true,
          0,
-         "403a2010",
+         "59b4ec23",
          null,
          null,
          false
@@ -105,7 +105,7 @@
          "TO",
          [
             9,
-            "8183403a2010af859a"
+            "818359b4ec23b60b56"
          ],
          false
       ],
@@ -116,8 +116,15 @@
       [
          "RO",
          [
-            5,
-            "8103efbfba"
+            2,
+            "8103"
+         ]
+      ],
+      [
+         "RO",
+         [
+            3,
+            "efbfba"
          ]
       ],
       [
@@ -141,7 +148,7 @@
          8,
          true,
          0,
-         "b55f1be2",
+         "a7b793c1",
          null,
          null,
          false
@@ -150,7 +157,7 @@
          "TO",
          [
             8,
-            "8882b55f1be2b6b7"
+            "8882a7b793c1a45f"
          ],
          false
       ],

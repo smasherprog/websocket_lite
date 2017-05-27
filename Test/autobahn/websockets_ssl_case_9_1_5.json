@@ -8,7 +8,7 @@
    "createWirelog": true,
    "description": "Send text message message with payload of length 8 * 2**20 (8M).",
    "droppedByMe": false,
-   "duration": 207,
+   "duration": 828,
    "expectation": "Receive echo'ed text message (with payload as sent).",
    "expected": {},
    "expectedClose": {
@@ -19,8 +19,8 @@
       "requireClean": true
    },
    "failedByMe": false,
-   "httpRequest": "GET / HTTP/1.1\r\nUser-Agent: AutobahnTestSuite/0.7.6-0.10.9\r\nHost: localhost:3001\r\nUpgrade: WebSocket\r\nConnection: Upgrade\r\nPragma: no-cache\r\nCache-Control: no-cache\r\nSec-WebSocket-Key: 1MAMmOK6XAd5tTYJHho4Ww==\r\nSec-WebSocket-Version: 13\r\n\r\n",
-   "httpResponse": "HTTP/1.1 101 Web Socket Protocol Handshake\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: th3TzVTq1FszynXSnz1p3uZMV4c=\r\n\r\n",
+   "httpRequest": "GET / HTTP/1.1\r\nUser-Agent: AutobahnTestSuite/0.7.6-0.10.9\r\nHost: localhost:3001\r\nUpgrade: WebSocket\r\nConnection: Upgrade\r\nPragma: no-cache\r\nCache-Control: no-cache\r\nSec-WebSocket-Key: 5x9Rpil2AvueoaL+66xeTQ==\r\nSec-WebSocket-Version: 13\r\n\r\n",
+   "httpResponse": "HTTP/1.1 101 Web Socket Protocol Handshake\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: Y6I44fzXSMEGFIbnhSV/ZqyCgVo=\r\n\r\n",
    "id": "9.1.5",
    "isServer": false,
    "localCloseCode": 1000,
@@ -38,16 +38,11 @@
    },
    "rxOctetStats": {
       "2": 2,
+      "10": 1,
       "139": 1,
-      "14610": 1,
-      "39256": 1,
-      "45096": 1,
-      "46720": 1,
-      "52396": 1,
-      "64076": 1,
-      "65536": 124
+      "16384": 512
    },
-   "started": "2017-05-26T02:41:28.073Z",
+   "started": "2017-05-27T01:41:15.862Z",
    "trafficStats": null,
    "txFrameStats": {
       "1": 1,
@@ -92,7 +87,7 @@
          8,
          true,
          0,
-         "7c188821",
+         "c623b853",
          null,
          null,
          false
@@ -101,7 +96,7 @@
          "TO",
          [
             8,
-            "88827c1888217ff0"
+            "8882c623b853c5cb"
          ],
          false
       ],

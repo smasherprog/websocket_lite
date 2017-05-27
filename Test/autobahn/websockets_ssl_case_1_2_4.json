@@ -8,7 +8,7 @@
    "createWirelog": true,
    "description": "Send binary message message with payload of length 127.",
    "droppedByMe": false,
-   "duration": 13,
+   "duration": 12,
    "expectation": "Receive echo'ed binary message (with payload as sent). Clean close with normal code.",
    "expected": {
       "OK": [
@@ -27,8 +27,8 @@
       "requireClean": true
    },
    "failedByMe": false,
-   "httpRequest": "GET / HTTP/1.1\r\nUser-Agent: AutobahnTestSuite/0.7.6-0.10.9\r\nHost: localhost:3001\r\nUpgrade: WebSocket\r\nConnection: Upgrade\r\nPragma: no-cache\r\nCache-Control: no-cache\r\nSec-WebSocket-Key: rHgYVYYOppv9oMi2vaoL1A==\r\nSec-WebSocket-Version: 13\r\n\r\n",
-   "httpResponse": "HTTP/1.1 101 Web Socket Protocol Handshake\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: QQSqVTWrVRuJ+lL/i04f+u04wn8=\r\n\r\n",
+   "httpRequest": "GET / HTTP/1.1\r\nUser-Agent: AutobahnTestSuite/0.7.6-0.10.9\r\nHost: localhost:3001\r\nUpgrade: WebSocket\r\nConnection: Upgrade\r\nPragma: no-cache\r\nCache-Control: no-cache\r\nSec-WebSocket-Key: 1LRKViX01lSGopTAeC2DPg==\r\nSec-WebSocket-Version: 13\r\n\r\n",
+   "httpResponse": "HTTP/1.1 101 Web Socket Protocol Handshake\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: g+wQRHF3ZExiM2pubcs6dj+2kRw=\r\n\r\n",
    "id": "1.2.4",
    "isServer": false,
    "localCloseCode": 1000,
@@ -51,11 +51,12 @@
       "8": 1
    },
    "rxOctetStats": {
-      "4": 2,
+      "2": 2,
+      "4": 1,
       "127": 1,
       "139": 1
    },
-   "started": "2017-05-26T02:41:11.451Z",
+   "started": "2017-05-27T01:39:35.800Z",
    "trafficStats": null,
    "txFrameStats": {
       "2": 1,
@@ -96,7 +97,7 @@
          2,
          true,
          0,
-         "efb0668e",
+         "9ea41069",
          null,
          null,
          false
@@ -105,7 +106,7 @@
          "TO",
          [
             135,
-            "82fe007fefb0668e114e9870114e9870114e9870114e9870114e9870114e9870114e9870114e9870114e9870114e9870114e9870114e9870114e9870114e9870 ..."
+            "82fe007f9ea41069605aee97605aee97605aee97605aee97605aee97605aee97605aee97605aee97605aee97605aee97605aee97605aee97605aee97605aee97 ..."
          ],
          false
       ],
@@ -148,7 +149,7 @@
          8,
          true,
          0,
-         "7ea2aaaa",
+         "b73c5b67",
          null,
          null,
          false
@@ -157,15 +158,22 @@
          "TO",
          [
             8,
-            "88827ea2aaaa7d4a"
+            "8882b73c5b67b4d4"
          ],
          false
       ],
       [
          "RO",
          [
-            4,
-            "880203e8"
+            2,
+            "8802"
+         ]
+      ],
+      [
+         "RO",
+         [
+            2,
+            "03e8"
          ]
       ],
       [

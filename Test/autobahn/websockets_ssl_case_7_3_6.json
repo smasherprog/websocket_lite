@@ -21,8 +21,8 @@
       "requireClean": false
    },
    "failedByMe": false,
-   "httpRequest": "GET / HTTP/1.1\r\nUser-Agent: AutobahnTestSuite/0.7.6-0.10.9\r\nHost: localhost:3001\r\nUpgrade: WebSocket\r\nConnection: Upgrade\r\nPragma: no-cache\r\nCache-Control: no-cache\r\nSec-WebSocket-Key: HRa4IqWS68JRELiKzzX0Ug==\r\nSec-WebSocket-Version: 13\r\n\r\n",
-   "httpResponse": "HTTP/1.1 101 Web Socket Protocol Handshake\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: BagtJiDPq+pG1qPi8olopOt3Fk4=\r\n\r\n",
+   "httpRequest": "GET / HTTP/1.1\r\nUser-Agent: AutobahnTestSuite/0.7.6-0.10.9\r\nHost: localhost:3001\r\nUpgrade: WebSocket\r\nConnection: Upgrade\r\nPragma: no-cache\r\nCache-Control: no-cache\r\nSec-WebSocket-Key: IQs/ZnQS+Rio/aj418qTAQ==\r\nSec-WebSocket-Version: 13\r\n\r\n",
+   "httpResponse": "HTTP/1.1 101 Web Socket Protocol Handshake\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: PPJmVahXCYP4veJk8/IvbZZVknQ=\r\n\r\n",
    "id": "7.3.6",
    "isServer": false,
    "localCloseCode": 1000,
@@ -38,10 +38,11 @@
       "8": 1
    },
    "rxOctetStats": {
-      "59": 1,
+      "2": 1,
+      "57": 1,
       "139": 1
    },
-   "started": "2017-05-26T02:41:27.196Z",
+   "started": "2017-05-27T01:41:03.532Z",
    "trafficStats": null,
    "txFrameStats": {
       "8": 1
@@ -80,7 +81,7 @@
          8,
          true,
          0,
-         "8c249229",
+         "7e1e2275",
          null,
          null,
          false
@@ -89,7 +90,7 @@
          "TO",
          [
             134,
-            "88fe007e8c2492298fccb803a60eb803a60eb803a60eb803a60eb803a60eb803a60eb803a60eb803a60eb803a60eb803a60eb803a60eb803a60eb803a60eb803 ..."
+            "88fe007e7e1e22757df6085f5434085f5434085f5434085f5434085f5434085f5434085f5434085f5434085f5434085f5434085f5434085f5434085f5434085f ..."
          ],
          false
       ],
@@ -100,8 +101,15 @@
       [
          "RO",
          [
-            59,
-            "883903ea5061796c6f616420657863656564656420666f7220636f6e74726f6c206672616d65732e2053697a652072657175657374656420313330"
+            2,
+            "8839"
+         ]
+      ],
+      [
+         "RO",
+         [
+            57,
+            "03ea5061796c6f616420657863656564656420666f7220636f6e74726f6c206672616d65732e2053697a652072657175657374656420313330"
          ]
       ],
       [

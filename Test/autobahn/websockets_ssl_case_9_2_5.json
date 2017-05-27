@@ -8,7 +8,7 @@
    "createWirelog": true,
    "description": "Send binary message message with payload of length 8 * 2**20 (16M).",
    "droppedByMe": false,
-   "duration": 234,
+   "duration": 856,
    "expectation": "Receive echo'ed binary message (with payload as sent).",
    "expected": {},
    "expectedClose": {
@@ -19,8 +19,8 @@
       "requireClean": true
    },
    "failedByMe": false,
-   "httpRequest": "GET / HTTP/1.1\r\nUser-Agent: AutobahnTestSuite/0.7.6-0.10.9\r\nHost: localhost:3001\r\nUpgrade: WebSocket\r\nConnection: Upgrade\r\nPragma: no-cache\r\nCache-Control: no-cache\r\nSec-WebSocket-Key: HbQ6XK2xWziEJua47jNDwA==\r\nSec-WebSocket-Version: 13\r\n\r\n",
-   "httpResponse": "HTTP/1.1 101 Web Socket Protocol Handshake\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: cv3GZRvmm/zNdvRQMHG3atcY1Qo=\r\n\r\n",
+   "httpRequest": "GET / HTTP/1.1\r\nUser-Agent: AutobahnTestSuite/0.7.6-0.10.9\r\nHost: localhost:3001\r\nUpgrade: WebSocket\r\nConnection: Upgrade\r\nPragma: no-cache\r\nCache-Control: no-cache\r\nSec-WebSocket-Key: e60PZi5/77ZZLSMYOlwkvA==\r\nSec-WebSocket-Version: 13\r\n\r\n",
+   "httpResponse": "HTTP/1.1 101 Web Socket Protocol Handshake\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: 0/FaO0sPM5ZbakO3acCxSVMXyvA=\r\n\r\n",
    "id": "9.2.5",
    "isServer": false,
    "localCloseCode": 1000,
@@ -37,21 +37,12 @@
       "8": 1
    },
    "rxOctetStats": {
-      "4": 1,
+      "2": 2,
+      "10": 1,
       "139": 1,
-      "7136": 1,
-      "10056": 1,
-      "14610": 1,
-      "15896": 1,
-      "18816": 24,
-      "46720": 24,
-      "49640": 1,
-      "50936": 1,
-      "55480": 1,
-      "58400": 1,
-      "65536": 100
+      "16384": 512
    },
-   "started": "2017-05-26T02:41:28.931Z",
+   "started": "2017-05-27T01:41:21.105Z",
    "trafficStats": null,
    "txFrameStats": {
       "2": 1,
@@ -96,7 +87,7 @@
          8,
          true,
          0,
-         "7a95e1c4",
+         "1f2d6b6a",
          null,
          null,
          false
@@ -105,15 +96,22 @@
          "TO",
          [
             8,
-            "88827a95e1c4797d"
+            "88821f2d6b6a1cc5"
          ],
          false
       ],
       [
          "RO",
          [
-            4,
-            "880203e8"
+            2,
+            "8802"
+         ]
+      ],
+      [
+         "RO",
+         [
+            2,
+            "03e8"
          ]
       ],
       [
