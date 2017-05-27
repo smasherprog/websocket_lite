@@ -195,7 +195,7 @@ void multithreadthroughputtest() {
     std::cout << "Starting Multi threaded throughput test" << std::endl;
 
     SL::WS_LITE::PortNumber port(3004);
-    SL::WS_LITE::WSContext ctx(SL::WS_LITE::ThreadCount(4));
+    SL::WS_LITE::WSContext ctx(SL::WS_LITE::ThreadCount(2));
 
     auto listener = ctx.CreateListener(port);
     auto lastheard = std::chrono::high_resolution_clock::now();
