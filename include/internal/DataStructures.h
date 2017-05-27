@@ -112,7 +112,7 @@ namespace SL {
         };
 
         struct WSInternal {
-            WSInternal(std::shared_ptr<WSContextImpl>& p) :sslcontext(asio::ssl::context::tlsv11), WSContextImpl_(p) {}
+            WSInternal(std::shared_ptr<WSContextImpl>& p) :WSContextImpl_(p), sslcontext(asio::ssl::context::tlsv11) {}
             std::shared_ptr<WSContextImpl> WSContextImpl_;
             asio::ssl::context sslcontext;
             std::chrono::seconds ReadTimeout = std::chrono::seconds(30);
@@ -200,8 +200,8 @@ namespace SL {
             }
 
             WSListenerImpl(std::shared_ptr<WSContextImpl>& p, PortNumber port) :
-                acceptor(p->io_service, asio::ip::tcp::endpoint(asio::ip::tcp::v4(), port.value)),
-                WSInternal(p) {
+                WSInternal(p),
+                acceptor(p->io_service, asio::ip::tcp::endpoint(asio::ip::tcp::v4(), port.value)) {
 
             }
 

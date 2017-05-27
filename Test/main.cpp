@@ -199,7 +199,8 @@ void multithreadthroughputtest() {
 
     auto listener = ctx.CreateListener(port);
     auto lastheard = std::chrono::high_resolution_clock::now();
-    std::atomic_int mbsreceived = 0;
+    std::atomic_int mbsreceived;
+    mbsreceived = 0;
     listener.onHttpUpgrade([&](const SL::WS_LITE::WSocket& socket) {
         lastheard = std::chrono::high_resolution_clock::now();
     });
@@ -216,7 +217,8 @@ void multithreadthroughputtest() {
     listener.startlistening();
     std::vector<SL::WS_LITE::WSClient> clients;
     clients.reserve(100);
-    std::atomic_int mbssent = 0;
+    std::atomic_int mbssent;
+    mbssent = 0;
     auto sendtimer = std::chrono::high_resolution_clock::now();
     for (auto i = 0; i < clients.capacity(); i++) {
 
