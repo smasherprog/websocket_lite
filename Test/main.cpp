@@ -195,12 +195,17 @@ void multithreadthroughputtest() {
     std::cout << "Starting Multi threaded throughput test" << std::endl;
 
     SL::WS_LITE::PortNumber port(3004);
-    SL::WS_LITE::WSContext ctx(SL::WS_LITE::ThreadCount(2));
+    SL::WS_LITE::WSContext listenerctx(SL::WS_LITE::ThreadCount(8));
+    std::vector<SL::WS_LITE::WSClient> clients;
+    clients.reserve(50);//this should use about 1 GB of memory between sending and receiving
 
-    auto listener = ctx.CreateListener(port);
+    auto recvtimer = std::chrono::high_resolution_clock::now();
+
+    auto listener = listenerctx.CreateListener(port);
     auto lastheard = std::chrono::high_resolution_clock::now();
-    std::atomic_int mbsreceived;
+    std::atomic_uint64_t mbsreceived;
     mbsreceived = 0;
+    const auto bufferesize = 1024 * 1024 * 10;
     listener.onHttpUpgrade([&](const SL::WS_LITE::WSocket& socket) {
         lastheard = std::chrono::high_resolution_clock::now();
     });
@@ -213,30 +218,33 @@ void multithreadthroughputtest() {
     listener.onMessage([&](const SL::WS_LITE::WSocket& socket, const SL::WS_LITE::WSMessage& message) {
         lastheard = std::chrono::high_resolution_clock::now();
         mbsreceived += message.len;
+        if (mbsreceived == bufferesize* clients.capacity()) {
+            std::cout << "Took " << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - recvtimer).count() << "ms to receive " << bufferesize * clients.capacity() << " bytes" << std::endl;
+        }
     });
     listener.startlistening();
-    std::vector<SL::WS_LITE::WSClient> clients;
-    clients.reserve(100);
-    std::atomic_int mbssent;
+
+    std::atomic_uint64_t mbssent;
     mbssent = 0;
+    SL::WS_LITE::WSContext clientctx(SL::WS_LITE::ThreadCount(8));
     auto sendtimer = std::chrono::high_resolution_clock::now();
     for (auto i = 0; i < clients.capacity(); i++) {
 
-        clients.push_back(ctx.CreateClient());
+        clients.push_back(clientctx.CreateClient());
         clients[i].onHttpUpgrade([&](const SL::WS_LITE::WSocket& socket) {
             lastheard = std::chrono::high_resolution_clock::now();
         });
-        clients[i].onConnection([&clients, &lastheard, i, &mbssent, &sendtimer](const SL::WS_LITE::WSocket& socket, const std::unordered_map<std::string, std::string>& header) {
+        clients[i].onConnection([&clients, &lastheard, i, &mbssent, &sendtimer, bufferesize](const SL::WS_LITE::WSocket& socket, const std::unordered_map<std::string, std::string>& header) {
             lastheard = std::chrono::high_resolution_clock::now();
             SL::WS_LITE::WSMessage msg;
-            msg.Buffer = std::shared_ptr<unsigned char>(new unsigned char[1024*1024], [&](unsigned char* p) { 
-                mbssent += 1024 * 1024;
-                if (mbssent == 1024 * 1024 * clients.capacity()) {
-                    std::cout << "Took " << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now()- sendtimer).count() << "ms to send " << 1024 * 1024 * clients.capacity() <<" bytes" << std::endl;
+            msg.Buffer = std::shared_ptr<unsigned char>(new unsigned char[bufferesize], [&](unsigned char* p) {
+                mbssent += bufferesize;
+                if (mbssent == bufferesize * clients.capacity()) {
+                    std::cout << "Took " << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now()- sendtimer).count() << "ms to send " << bufferesize * clients.capacity() <<" bytes" << std::endl;
                 }
                 delete[] p; 
             });
-            msg.len = 1024 * 1024;//1MB
+            msg.len = bufferesize;//10MB
             msg.code = SL::WS_LITE::OpCode::BINARY;
             msg.data = msg.Buffer.get();
             clients[i].send(socket, msg, false);
@@ -250,7 +258,7 @@ void multithreadthroughputtest() {
         clients[i].connect("localhost", port);
     }
 
-    while (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - lastheard).count() < 5000) {
+    while (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - lastheard).count() < 50000) {
         std::this_thread::sleep_for(200ms);
     }
     std::cout << "Received " << mbsreceived<<"  bytes"<< std::endl;

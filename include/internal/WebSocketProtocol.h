@@ -108,12 +108,11 @@ namespace SL {
                     websocket->SendMessageQueue.pop_front();
                 }
                 UNUSED(bytes_transferred);
-                //   assert(msg.len == bytes_transferred);
                 if (ec)
                 {
                     return closeImpl(parent, websocket, 1002, "write header failed " + ec.message());
                 }
-
+                assert(msg.len == bytes_transferred);
                 if (msg.code == OpCode::CLOSE) {
                     handleclose(parent, websocket, socket, msg);
                 }
@@ -137,8 +136,6 @@ namespace SL {
             }
             std::error_code ec;
             auto bytes_transferred = asio::write(*socket, asio::buffer(mask, 4), ec);
-            UNUSED(bytes_transferred);
-            assert(bytes_transferred == 4);
             if (ec)
             {
                 if (msg.code == OpCode::CLOSE) {
@@ -149,6 +146,8 @@ namespace SL {
                 }
             }
             else {
+                UNUSED(bytes_transferred);
+                assert(bytes_transferred == 4);
                 write_end(parent, websocket, socket, msg);
             }
         }
@@ -387,7 +386,7 @@ namespace SL {
                 if (size > 0) {
                     websocket->ReceiveBuffer = static_cast<unsigned char*>(realloc(websocket->ReceiveBuffer, websocket->ReceiveBufferSize));
                     if (!websocket->ReceiveBuffer) {
-                        SL_WS_LITE_LOG(Logging_Levels::ERROR_log_level, "MEMORY ALLOCATION ERROR!!!");
+                        SL_WS_LITE_LOG(Logging_Levels::ERROR_log_level, "MEMORY ALLOCATION ERROR!!! Tried to realloc "<< websocket->ReceiveBufferSize);
                         return closeImpl(parent, websocket, 1009, "Payload exceeded MaxPayload size");
                     }
                     asio::async_read(*socket, asio::buffer(websocket->ReceiveBuffer + websocket->ReceiveBufferSize - size, size), [parent, websocket, socket, size](const std::error_code& ec, size_t bytes_transferred) {
@@ -428,7 +427,7 @@ namespace SL {
             asio::async_read(*socket, asio::buffer(websocket->ReceiveHeader, 2), [parent, websocket, socket](const std::error_code& ec, size_t bytes_transferred) {
                 UNUSED(bytes_transferred);
                 if (!ec) {
-                  //  assert(bytes_transferred == 2);
+                    assert(bytes_transferred == 2);
 
                     size_t readbytes = getpayloadLength1(websocket->ReceiveHeader);
                     switch (readbytes) {
