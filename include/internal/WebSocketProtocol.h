@@ -1,278 +1,24 @@
 #pragma once
 #include "WS_Lite.h"
+#include "DataStructures.h"
 #include "Utils.h"
 #if WIN32
 #include <SDKDDKVer.h>
 #endif
 
-#include <unordered_map>
-#include <sstream>
 #include <string>
 #include <unordered_map>
 #include <memory>
-#include <thread>
 #include <random>
 #include <deque>
-#include <mutex>
 
 #include "asio.hpp"
 #include "asio/ssl.hpp"
 #include "asio/deadline_timer.hpp"
 
-#include <zlib.h>
-
 namespace SL {
     namespace WS_LITE {
 
-        inline char* ZlibInflate(char *data, size_t &length, size_t maxPayload, std::string& dynamicInflationBuffer, z_stream& inflationStream, char* inflationBuffer) {
-            dynamicInflationBuffer.clear();
-
-            inflationStream.next_in = (Bytef *)data;
-            inflationStream.avail_in = length;
-
-            int err;
-            do {
-                inflationStream.next_out = (Bytef *)inflationBuffer;
-                inflationStream.avail_out = LARGE_BUFFER_SIZE;
-                err = ::inflate(&inflationStream, Z_FINISH);
-                if (!inflationStream.avail_in) {
-                    break;
-                }
-
-                dynamicInflationBuffer.append(inflationBuffer, LARGE_BUFFER_SIZE - inflationStream.avail_out);
-            } while (err == Z_BUF_ERROR && dynamicInflationBuffer.length() <= maxPayload);
-
-            inflateReset(&inflationStream);
-
-            if ((err != Z_BUF_ERROR && err != Z_OK) || dynamicInflationBuffer.length() > maxPayload) {
-                length = 0;
-                return nullptr;
-            }
-
-            if (dynamicInflationBuffer.length()) {
-                dynamicInflationBuffer.append(inflationBuffer, LARGE_BUFFER_SIZE - inflationStream.avail_out);
-
-                length = dynamicInflationBuffer.length();
-                return (char *)dynamicInflationBuffer.data();
-            }
-
-            length = LARGE_BUFFER_SIZE - inflationStream.avail_out;
-            return inflationBuffer;
-        }
-
-        template<class T>std::string get_address(T& _socket)
-        {
-            std::error_code ec;
-            auto rt(_socket->lowest_layer().remote_endpoint(ec));
-            if (!ec) return rt.address().to_string();
-            else return "";
-        }
-        template<class T> unsigned short get_port(T& _socket)
-        {
-            std::error_code ec;
-            auto rt(_socket->lowest_layer().remote_endpoint(ec));
-            if (!ec) return rt.port();
-            else return static_cast<unsigned short>(-1);
-        }
-        template<class T> bool is_v4(T& _socket)
-        {
-            std::error_code ec;
-            auto rt(_socket->lowest_layer().remote_endpoint(ec));
-            if (!ec) return rt.address().is_v4();
-            else return true;
-        }
-        template<class T> bool is_v6(T& _socket)
-        {
-            std::error_code ec;
-            auto rt(_socket->lowest_layer().remote_endpoint(ec));
-            if (!ec) return rt.address().is_v6();
-            else return true;
-        }
-        template<class T> bool is_loopback(T& _socket)
-        {
-            std::error_code ec;
-            auto rt(_socket->lowest_layer().remote_endpoint(ec));
-            if (!ec) return rt.address().is_loopback();
-            else return true;
-        }
-        struct SendQueueItem {
-            WSMessage msg;
-            bool compressmessage;
-        };
-        struct WSocketImpl
-        {
-            WSocketImpl(asio::io_service& s) :read_deadline(s), write_deadline(s), strand(s) {}
-            ~WSocketImpl() {
-                canceltimers();
-                if (ReceiveBuffer) {
-                    free(ReceiveBuffer);
-                }
-            }
-            asio::basic_waitable_timer<std::chrono::steady_clock> read_deadline;
-            asio::basic_waitable_timer<std::chrono::steady_clock> write_deadline;
-            unsigned char* ReceiveBuffer = nullptr;
-            size_t ReceiveBufferSize = 0;
-            unsigned char ReceiveHeader[14];
-            bool CompressionEnabled = false;
-
-            OpCode LastOpCode = OpCode::INVALID;
-            std::shared_ptr<asio::ip::tcp::socket> Socket;
-            std::shared_ptr<asio::ssl::stream<asio::ip::tcp::socket>> TLSSocket;
-            asio::strand strand;
-            std::deque<SendQueueItem> SendMessageQueue;
-
-            void canceltimers() {
-                read_deadline.cancel();
-                write_deadline.cancel();
-            }
-        };
-        inline void set_Socket(std::shared_ptr<WSocketImpl>& ws, std::shared_ptr<asio::ssl::stream<asio::ip::tcp::socket>> s) {
-            ws->TLSSocket = s;
-        }
-        inline void set_Socket(std::shared_ptr<WSocketImpl>& ws, std::shared_ptr<asio::ip::tcp::socket>  s) {
-            ws->Socket = s;
-        }
-
-
-        struct ThreadContext {
-            std::unique_ptr<char[]> inflationBuffer;
-            z_stream inflationStream = {};
-            std::thread Thread;
-        };
-        const auto CONTROLBUFFERMAXSIZE = 125;
-        class WSContextImpl {
-        public:
-            WSContextImpl(ThreadCount threadcount) : work(std::make_unique<asio::io_service::work>(io_service)) {
-                Threads.resize(threadcount.value);
-                for (auto& ctx : Threads) {
-                    inflateInit2(&ctx.inflationStream, -MAX_WBITS);
-                    ctx.inflationBuffer = std::make_unique<char[]>(LARGE_BUFFER_SIZE);
-                    ctx.Thread = std::thread([&]() {
-                        std::error_code ec;
-                        io_service.run(ec);
-                    });
-                }
-            }
-            ~WSContextImpl() {
-                work.reset();
-                io_service.stop();
-                while (!io_service.stopped()) {
-                    std::this_thread::sleep_for(std::chrono::milliseconds(5));
-                }
-                for (auto& t : Threads) {
-                    inflateEnd(&t.inflationStream);
-                    if (t.Thread.joinable()) {
-                        t.Thread.join();
-                    }
-                }
-                Threads.clear();
-            }
-
-            asio::io_service io_service;
-            std::vector<ThreadContext> Threads;
-            std::unique_ptr<asio::io_service::work> work;
-
-        };
-
-        struct WSInternal {
-            WSInternal(std::shared_ptr<WSContextImpl>& p) :sslcontext(asio::ssl::context::tlsv11), WSContextImpl_(p) {}
-            std::shared_ptr<WSContextImpl> WSContextImpl_;
-            asio::ssl::context sslcontext;
-            std::chrono::seconds ReadTimeout = std::chrono::seconds(30);
-            std::chrono::seconds WriteTimeout = std::chrono::seconds(30);
-            size_t MaxPayload = 1024 * 1024 * 20;//20 MB
-            bool TLSEnabled = false;
-
-            std::function<void(WSocket&, const std::unordered_map<std::string, std::string>&)> onConnection;
-            std::function<void(WSocket&, const WSMessage&)> onMessage;
-            std::function<void(WSocket&, unsigned short, const std::string&)> onDisconnection;
-            std::function<void(WSocket&, const unsigned char *, size_t)> onPing;
-            std::function<void(WSocket&, const unsigned char *, size_t)> onPong;
-            std::function<void(WSocket&)> onHttpUpgrade;
-
-        };
-        class WSClientImpl : public WSInternal {
-        public:
-            WSClientImpl(std::shared_ptr<WSContextImpl>& p, std::string Publiccertificate_File) : WSClientImpl(p)
-            {
-                TLSEnabled = true;
-                std::ifstream file(Publiccertificate_File, std::ios::binary);
-                assert(file);
-                std::vector<char> buf;
-                buf.resize(static_cast<size_t>(filesize(Publiccertificate_File)));
-                file.read(buf.data(), buf.size());
-                asio::const_buffer cert(buf.data(), buf.size());
-                std::error_code ec;
-                sslcontext.add_certificate_authority(cert, ec);
-                ec.clear();
-                sslcontext.set_default_verify_paths(ec);
-
-            }
-            WSClientImpl(std::shared_ptr<WSContextImpl>& p) :WSInternal(p)
-            {
-            }
-            ~WSClientImpl() {}
-        };
-
-        class WSListenerImpl : public WSInternal {
-        public:
-
-            asio::ip::tcp::acceptor acceptor;
-
-            WSListenerImpl(
-                std::shared_ptr<WSContextImpl>& p,
-                PortNumber port,
-                std::string Password,
-                std::string Privatekey_File,
-                std::string Publiccertificate_File,
-                std::string dh_File) :
-                WSListenerImpl(p, port)
-            {
-                TLSEnabled = true;
-                sslcontext.set_options(
-                    asio::ssl::context::default_workarounds
-                    | asio::ssl::context::no_sslv2 | asio::ssl::context::no_sslv3
-                    | asio::ssl::context::single_dh_use);
-                std::error_code ec;
-                sslcontext.set_password_callback([Password](std::size_t, asio::ssl::context::password_purpose) { return Password; }, ec);
-                if (ec) {
-                    SL_WS_LITE_LOG(Logging_Levels::ERROR_log_level, "set_password_callback " << ec.message());
-                    ec.clear();
-                }
-                sslcontext.use_tmp_dh_file(dh_File, ec);
-                if (ec) {
-                    SL_WS_LITE_LOG(Logging_Levels::ERROR_log_level, "use_tmp_dh_file " << ec.message());
-                    ec.clear();
-                }
-                sslcontext.use_certificate_chain_file(Publiccertificate_File, ec);
-                if (ec) {
-                    SL_WS_LITE_LOG(Logging_Levels::ERROR_log_level, "use_certificate_chain_file " << ec.message());
-                    ec.clear();
-                }
-                sslcontext.set_default_verify_paths(ec);
-                if (ec) {
-                    SL_WS_LITE_LOG(Logging_Levels::ERROR_log_level, "set_default_verify_paths " << ec.message());
-                    ec.clear();
-                }
-                sslcontext.use_private_key_file(Privatekey_File, asio::ssl::context::pem, ec);
-                if (ec) {
-                    SL_WS_LITE_LOG(Logging_Levels::ERROR_log_level, "use_private_key_file " << ec.message());
-                    ec.clear();
-                }
-
-            }
-
-            WSListenerImpl(std::shared_ptr<WSContextImpl>& p, PortNumber port) :
-                acceptor(p->io_service, asio::ip::tcp::endpoint(asio::ip::tcp::v4(), port.value)),
-                WSInternal(p) {
-
-            }
-
-            ~WSListenerImpl() {
-                std::error_code ec;
-                acceptor.close(ec);
-            }
-        };
 
         template<class PARENTTYPE, class SOCKETTYPE> void readexpire_from_now(const std::shared_ptr<PARENTTYPE>& parent, const std::shared_ptr<WSocketImpl>& websocket, const SOCKETTYPE& socket, std::chrono::seconds secs)
         {
@@ -341,77 +87,6 @@ namespace SL {
             sendImpl(parent, websocket, ws, false);
         }
 
-
-        /*
-        0                   1                   2                   3
-         0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-        +-+-+-+-+-------+-+-------------+-------------------------------+
-        |F|R|R|R| opcode|M| Payload len |    Extended payload length    |
-        |I|S|S|S|  (4)  |A|     (7)     |             (16/64)           |
-        |N|V|V|V|       |S|             |   (if payload len==126/127)   |
-        | |1|2|3|       |K|             |                               |
-        +-+-+-+-+-------+-+-------------+ - - - - - - - - - - - - - - - +
-        |     Extended payload length continued, if payload len == 127  |
-        + - - - - - - - - - - - - - - - +-------------------------------+
-        |                               |Masking-key, if MASK set to 1  |
-        +-------------------------------+-------------------------------+
-        | Masking-key (continued)       |          Payload data         |
-        +-------------------------------- - - - - - - - - - - - - - - - +
-        :                     Payload data continued ...                :
-        + - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - +
-        |                     Payload data continued ...                |
-        +---------------------------------------------------------------+
-        */
-        inline bool getFin(unsigned char* frame) { return frame[0] & 128; }
-        inline void setFin(unsigned char* frame, unsigned char val) { frame[0] = (val & 128) | (~128 & frame[0]); }
-
-        inline bool getMask(unsigned char* frame) { return frame[1] & 128; }
-        inline void setMask(unsigned char* frame, unsigned char val) { frame[1] = (val & 128) | (~128 & frame[1]); }
-
-        inline unsigned char getpayloadLength1(unsigned char *frame) { return frame[1] & 127; }
-        inline unsigned short getpayloadLength2(unsigned char *frame) { return *reinterpret_cast<unsigned short*>(frame + 2); }
-        inline unsigned long long int getpayloadLength8(unsigned char *frame) { return *reinterpret_cast<unsigned long long int*>(frame + 2); }
-
-        inline void setpayloadLength1(unsigned char *frame, unsigned char  val) { frame[1] = (val & 127) | (~127 & frame[1]); }
-        inline void setpayloadLength2(unsigned char *frame, unsigned short val) { *reinterpret_cast<unsigned short*>(frame + 2) = val; }
-        inline void setpayloadLength8(unsigned char *frame, unsigned long long int val) { *reinterpret_cast<unsigned long long int *>(frame + 2) = val; }
-
-        inline OpCode getOpCode(unsigned char *frame) { return static_cast<OpCode>(*frame & 15); }
-        inline void setOpCode(unsigned char *frame, OpCode val) { frame[0] = (val & 15) | (~15 & frame[0]); }
-
-        inline bool getrsv3(unsigned char *frame) { return *frame & 16; }
-        inline bool getrsv2(unsigned char *frame) { return *frame & 32; }
-        //compressed?
-        inline bool getrsv1(unsigned char *frame) { return *frame & 64; }
-
-        inline void setrsv3(unsigned char *frame, unsigned char val) { frame[0] = (val & 16) | (~16 & frame[0]); }
-        inline void setrsv2(unsigned char *frame, unsigned char val) { frame[0] = (val & 32) | (~32 & frame[0]); }
-        inline void setrsv1(unsigned char *frame, unsigned char val) { frame[0] = (val & 64) | (~64 & frame[0]); }
-
-        struct HandshakeContainer {
-            asio::streambuf Read;
-            asio::streambuf Write;
-            std::unordered_map<std::string, std::string> Header;
-        };
-        struct WSSendMessageInternal {
-            unsigned char* data;
-            size_t len;
-            OpCode code;
-            //compress the outgoing message?
-            bool Compress;
-        };
-
-        template<class PARENTTYPE>inline bool DidPassMaskRequirement(unsigned char* h) { return true; }
-        template<> inline bool DidPassMaskRequirement<WSListenerImpl>(unsigned char* h) { return getMask(h); }
-        template<> inline bool DidPassMaskRequirement<WSClientImpl>(unsigned char* h) { return !getMask(h); }
-
-        template<class PARENTTYPE>inline size_t AdditionalBodyBytesToRead() { return 0; }
-        template<>inline size_t AdditionalBodyBytesToRead<WSListenerImpl>() { return 4; }
-        template<>inline size_t AdditionalBodyBytesToRead<WSClientImpl>() { return 0; }
-
-        template<class PARENTTYPE>inline void set_MaskBitForSending(unsigned char* frame) {  }
-        template<>inline void set_MaskBitForSending<WSListenerImpl>(unsigned char* frame) { setMask(frame, 0x00); }
-        template<>inline void set_MaskBitForSending<WSClientImpl>(unsigned char* frame) { setMask(frame, 0xff); }
 
         template<class PARENTYPE, class SOCKETTYPE, class SENDBUFFERTYPE>inline void handleclose(const PARENTYPE& parent, const std::shared_ptr<WSocketImpl>& websocket, const SOCKETTYPE& socket, const SENDBUFFERTYPE& msg) {
             SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "Closed: " << msg.code);
@@ -753,7 +428,7 @@ namespace SL {
             asio::async_read(*socket, asio::buffer(websocket->ReceiveHeader, 2), [parent, websocket, socket](const std::error_code& ec, size_t bytes_transferred) {
                 UNUSED(bytes_transferred);
                 if (!ec) {
-                    assert(bytes_transferred == 2);
+                  //  assert(bytes_transferred == 2);
 
                     size_t readbytes = getpayloadLength1(websocket->ReceiveHeader);
                     switch (readbytes) {

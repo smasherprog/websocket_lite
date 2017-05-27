@@ -3,8 +3,11 @@
    "outdir": "../../Test/autobahn",
    "servers": [
                 {"agent": "WebSockets SSL",
-                 "url": "ws://localhost:3001",
-                 "options": {"version": 18}}
+                 "url": "wss://localhost:3001",
+                 "options": {"version": 18}},
+				{"agent": "WebSockets",
+                  "url": "ws://localhost:3000",
+                  "options": {"version": 18}}
               ],
 
    "cases": ["1.*","2.*","3.*","4.*", "5.*", "6.*", "7.*", "9.*", "10.*"],
