@@ -346,8 +346,7 @@ namespace SL {
                     auto buffer = std::shared_ptr<unsigned char>(new unsigned char[size], [](auto p) { delete[] p; });
                     asio::async_read(*socket, asio::buffer(buffer.get(), size), [parent, websocket, socket, buffer, size](const std::error_code& ec, size_t bytes_transferred) {
 
-                        if (!ec) {
-                            assert(size == bytes_transferred);
+                        if (!ec || bytes_transferred != size) {
                             if (size != bytes_transferred) {
                                 return closeImpl(parent, websocket, 1002, "Did not receive all bytes ... ");
                             }
@@ -391,8 +390,7 @@ namespace SL {
                     }
                     asio::async_read(*socket, asio::buffer(websocket->ReceiveBuffer + websocket->ReceiveBufferSize - size, size), [parent, websocket, socket, size](const std::error_code& ec, size_t bytes_transferred) {
 
-                        if (!ec) {
-                            assert(size == bytes_transferred);
+                        if (!ec || bytes_transferred != size) {
                             if (size != bytes_transferred) {
                                 return closeImpl(parent, websocket, 1002, "Did not receive all bytes ... ");
                             }
@@ -426,9 +424,7 @@ namespace SL {
             readexpire_from_now(parent, websocket, socket, parent->ReadTimeout);
             asio::async_read(*socket, asio::buffer(websocket->ReceiveHeader, 2), [parent, websocket, socket](const std::error_code& ec, size_t bytes_transferred) {
                 UNUSED(bytes_transferred);
-                if (!ec) {
-                    assert(bytes_transferred == 2);
-
+                if (!ec || bytes_transferred!=2) {
                     size_t readbytes = getpayloadLength1(websocket->ReceiveHeader);
                     switch (readbytes) {
                     case 126:
