@@ -8,7 +8,7 @@
    "createWirelog": true,
    "description": "Send binary message message with payload of length 8 * 2**20 (16M).",
    "droppedByMe": false,
-   "duration": 856,
+   "duration": 303,
    "expectation": "Receive echo'ed binary message (with payload as sent).",
    "expected": {},
    "expectedClose": {
@@ -19,8 +19,8 @@
       "requireClean": true
    },
    "failedByMe": false,
-   "httpRequest": "GET / HTTP/1.1\r\nUser-Agent: AutobahnTestSuite/0.7.6-0.10.9\r\nHost: localhost:3001\r\nUpgrade: WebSocket\r\nConnection: Upgrade\r\nPragma: no-cache\r\nCache-Control: no-cache\r\nSec-WebSocket-Key: e60PZi5/77ZZLSMYOlwkvA==\r\nSec-WebSocket-Version: 13\r\n\r\n",
-   "httpResponse": "HTTP/1.1 101 Web Socket Protocol Handshake\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: 0/FaO0sPM5ZbakO3acCxSVMXyvA=\r\n\r\n",
+   "httpRequest": "GET / HTTP/1.1\r\nUser-Agent: AutobahnTestSuite/0.7.6-0.10.9\r\nHost: localhost:3001\r\nUpgrade: WebSocket\r\nConnection: Upgrade\r\nPragma: no-cache\r\nCache-Control: no-cache\r\nSec-WebSocket-Key: VbdserW8WcnjbiNwAhncyA==\r\nSec-WebSocket-Version: 13\r\n\r\n",
+   "httpResponse": "HTTP/1.1 101 Web Socket Protocol Handshake\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: vnuBr1XbaVTcgQDCRBOhzy3mDp4=\r\n\r\n",
    "id": "9.2.5",
    "isServer": false,
    "localCloseCode": 1000,
@@ -40,9 +40,10 @@
       "2": 2,
       "10": 1,
       "139": 1,
-      "16384": 512
+      "2048": 128,
+      "15872": 512
    },
-   "started": "2017-05-27T01:41:21.105Z",
+   "started": "2017-05-28T14:15:41.340Z",
    "trafficStats": null,
    "txFrameStats": {
       "2": 1,
@@ -87,7 +88,7 @@
          8,
          true,
          0,
-         "1f2d6b6a",
+         "21dbcc27",
          null,
          null,
          false
@@ -96,7 +97,7 @@
          "TO",
          [
             8,
-            "88821f2d6b6a1cc5"
+            "888221dbcc272233"
          ],
          false
       ],

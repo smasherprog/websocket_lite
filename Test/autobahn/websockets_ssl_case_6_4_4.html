@@ -202,7 +202,7 @@ pre.wirelog_tcp_closed_by_peer {color: #fff; margin: 0; background-color: #000; 
       <center><a href="http://autobahn.ws/testsuite" title="Autobahn WebSocket Testsuite"><img src="http://autobahn.ws/static/img/ws_protocol_test_report.png"          border="0" width="820" height="46" alt="Autobahn WebSocket Testsuite Report"></img></a></center>
       <center><a href="http://autobahn.ws"           title="Autobahn WebSocket">          <img src="http://autobahn.ws/static/img/ws_protocol_test_report_autobahn.png" border="0" width="300" height="68" alt="Autobahn WebSocket">                 </img></a></center>
       <br/>
-      <p class="case case_non_strict">WebSockets SSL - <span style="font-size: 1.3em;"><b>Case 6.4.4</b></span> : Non-Strict - <span style="font-size: 0.9em;"><b>2018</b> ms @ 2017-05-27T01:40:08.344Z</a></p>
+      <p class="case case_non_strict">WebSockets SSL - <span style="font-size: 1.3em;"><b>Case 6.4.4</b></span> : Non-Strict - <span style="font-size: 0.9em;"><b>2003</b> ms @ 2017-05-28T14:15:32.374Z</a></p>
       <p class="case_text_block case_desc"><b>Case Description</b><br/><br/>Same as Case 6.4.2, but we send message not in 3 frames, but in 3 chops of the same message frame.
 <br><br>MESSAGE PARTS:<br>
 PART1 = cebae1bdb9cf83cebcceb5f4<br>
@@ -219,19 +219,19 @@ PART3 = <br>
       <p class="case_text_block case_closing_beh"><b>Case Closing Behavior</b><br/><br/>Connection was properly closed (OK)</p>
       <br/><hr/>
       <h2>Opening Handshake</h2>
-      <pre class="http_dump">GET / HTTP/1.1
-User-Agent: AutobahnTestSuite/0.7.6-0.10.9
-Host: localhost:3001
-Upgrade: WebSocket
-Connection: Upgrade
-Pragma: no-cache
-Cache-Control: no-cache
-Sec-WebSocket-Key: TZZGzXaqRvDuiUNc9J3BDQ==
+      <pre class="http_dump">GET / HTTP/1.1
+User-Agent: AutobahnTestSuite/0.7.6-0.10.9
+Host: localhost:3001
+Upgrade: WebSocket
+Connection: Upgrade
+Pragma: no-cache
+Cache-Control: no-cache
+Sec-WebSocket-Key: NSMfN/J0MJQFLLFQHQBxfQ==
 Sec-WebSocket-Version: 13</pre>
-      <pre class="http_dump">HTTP/1.1 101 Web Socket Protocol Handshake
-Upgrade: websocket
-Connection: Upgrade
-Sec-WebSocket-Accept: J8Ix0HphLnT4w0JSZF0Rt0zudpI=</pre>
+      <pre class="http_dump">HTTP/1.1 101 Web Socket Protocol Handshake
+Upgrade: websocket
+Connection: Upgrade
+Sec-WebSocket-Accept: KCSmSAhpdLGbR5L97ST3YK8QX9A=</pre>
       <br/><hr/>
       <h2>Closing Behavior</h2>
       <table>
@@ -289,24 +289,24 @@ Sec-WebSocket-Accept: J8Ix0HphLnT4w0JSZF0Rt0zudpI=</pre>
          <pre class="wirelog_tx_octets">               362d302e31302e390d0a486f7374 ...</pre>
          <pre class="wirelog_rx_octets">001 RX OCTETS: 485454502f312e31203130312057656220536f636b65742050726f746f636f6c2048616e647368616b650d0a557067726164</pre>
          <pre class="wirelog_rx_octets">               653a20776562736f636b65740d0a ...</pre>
-         <pre class="wirelog_tx_octets">002 TX OCTETS: 01950e59b83e</pre>
-         <pre class="wirelog_tx_octets">003 TX OCTETS: c0e35983b7963bf0b2970dca</pre>
+         <pre class="wirelog_tx_octets">002 TX OCTETS: 0195e488059f</pre>
+         <pre class="wirelog_tx_octets">003 TX OCTETS: 2a32e4225d4786515846b06b</pre>
          <pre class="wirelog_delay">004 DELAY 1.000000 sec for TAG A</pre>
          <pre class="wirelog_delay">005 DELAY TIMEOUT on TAG A</pre>
-         <pre class="wirelog_tx_octets">006 TX OCTETS: 9e</pre>
+         <pre class="wirelog_tx_octets">006 TX OCTETS: 74</pre>
          <pre class="wirelog_delay">007 DELAY 1.000000 sec for TAG B</pre>
          <pre class="wirelog_delay">008 DELAY TIMEOUT on TAG B</pre>
-         <pre class="wirelog_tx_octets">009 TX OCTETS: d9385b6a30cc5b6a</pre>
-         <pre class="wirelog_tx_frame">010 TX FRAME : OPCODE=0, FIN=True, RSV=0, PAYLOAD-LEN=0, MASK=45dcff07, PAYLOAD-REPEAT-LEN=None, CHOPSIZE=None, SYNC=False</pre>
-         <pre class="wirelog_tx_octets">011 TX OCTETS: 808045dcff07</pre>
+         <pre class="wirelog_tx_octets">009 TX OCTETS: 0885fa80e171fa80</pre>
+         <pre class="wirelog_tx_frame">010 TX FRAME : OPCODE=0, FIN=True, RSV=0, PAYLOAD-LEN=0, MASK=33df4925, PAYLOAD-REPEAT-LEN=None, CHOPSIZE=None, SYNC=False</pre>
+         <pre class="wirelog_tx_octets">011 TX OCTETS: 808033df4925</pre>
          <pre class="wirelog_kill_after">012 FAIL CONNECTION AFTER 1.000000 sec</pre>
          <pre class="wirelog_rx_octets">013 RX OCTETS: 8816</pre>
          <pre class="wirelog_rx_octets">014 RX OCTETS: 03ef4672616d65206e6f742076616c69642075746638</pre>
          <pre class="wirelog_rx_frame">015 RX FRAME : OPCODE=8, FIN=True, RSV=0, PAYLOAD-LEN=22, MASKED=False, MASK=None</pre>
          <pre class="wirelog_rx_frame">               0x03ef4672616d65206e6f742076616c69642075746638</pre>
-         <pre class="wirelog_tx_frame">016 TX FRAME : OPCODE=8, FIN=True, RSV=0, PAYLOAD-LEN=2, MASK=6fbe9ce1, PAYLOAD-REPEAT-LEN=None, CHOPSIZE=None, SYNC=False</pre>
+         <pre class="wirelog_tx_frame">016 TX FRAME : OPCODE=8, FIN=True, RSV=0, PAYLOAD-LEN=2, MASK=86dd907c, PAYLOAD-REPEAT-LEN=None, CHOPSIZE=None, SYNC=False</pre>
          <pre class="wirelog_tx_frame">               0x03e8</pre>
-         <pre class="wirelog_tx_octets">017 TX OCTETS: 88826fbe9ce16c56</pre>
+         <pre class="wirelog_tx_octets">017 TX OCTETS: 888286dd907c8535</pre>
          <pre class="wirelog_tcp_closed_by_peer">018 TCP DROPPED BY PEER</pre>
       </div>
       <br/><hr/>

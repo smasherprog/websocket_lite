@@ -8,7 +8,7 @@
    "createWirelog": true,
    "description": "Send small binary message with <b>RSV = 5</b>.",
    "droppedByMe": false,
-   "duration": 12,
+   "duration": 1,
    "expectation": "The connection is failed immediately, since RSV must be 0.",
    "expected": {
       "OK": []
@@ -21,8 +21,8 @@
       "requireClean": false
    },
    "failedByMe": false,
-   "httpRequest": "GET / HTTP/1.1\r\nUser-Agent: AutobahnTestSuite/0.7.6-0.10.9\r\nHost: localhost:3000\r\nUpgrade: WebSocket\r\nConnection: Upgrade\r\nPragma: no-cache\r\nCache-Control: no-cache\r\nSec-WebSocket-Key: /MtSRZEieHpA8W0uVeRKdQ==\r\nSec-WebSocket-Version: 13\r\n\r\n",
-   "httpResponse": "HTTP/1.1 101 Web Socket Protocol Handshake\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: gv8bcJEwGwLb7Ub7HUhFvGksWqg=\r\n\r\n",
+   "httpRequest": "GET / HTTP/1.1\r\nUser-Agent: AutobahnTestSuite/0.7.6-0.10.9\r\nHost: localhost:3000\r\nUpgrade: WebSocket\r\nConnection: Upgrade\r\nPragma: no-cache\r\nCache-Control: no-cache\r\nSec-WebSocket-Key: R+kJVHzOT9qae3XWSVVoCg==\r\nSec-WebSocket-Version: 13\r\n\r\n",
+   "httpResponse": "HTTP/1.1 101 Web Socket Protocol Handshake\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: uSv4gt72A1hggBkB1eYMcCR+2mM=\r\n\r\n",
    "id": "3.5",
    "isServer": false,
    "localCloseCode": 1000,
@@ -38,11 +38,10 @@
       "8": 1
    },
    "rxOctetStats": {
-      "2": 1,
-      "33": 1,
+      "35": 1,
       "139": 1
    },
-   "started": "2017-05-27T01:43:29.294Z",
+   "started": "2017-05-28T14:16:10.127Z",
    "trafficStats": null,
    "txFrameStats": {
       "2": 1,
@@ -83,7 +82,7 @@
          2,
          true,
          5,
-         "e967541e",
+         "2d54bb7f",
          null,
          null,
          false
@@ -92,7 +91,7 @@
          "TO",
          [
             14,
-            "d288e967541ee998aae3159c54e1"
+            "d2882d54bb7f2dab4582d1afbb80"
          ],
          false
       ],
@@ -103,15 +102,8 @@
       [
          "RO",
          [
-            2,
-            "8821"
-         ]
-      ],
-      [
-         "RO",
-         [
-            33,
-            "03ea436c6f73696e6720636f6e6e656374696f6e2e207273762062697420736574"
+            35,
+            "882103ea436c6f73696e6720636f6e6e656374696f6e2e207273762062697420736574"
          ]
       ],
       [
@@ -135,7 +127,7 @@
          8,
          true,
          0,
-         "f8df35c9",
+         "1703f4a3",
          null,
          null,
          false
@@ -144,7 +136,7 @@
          "TO",
          [
             8,
-            "8882f8df35c9fb37"
+            "88821703f4a314eb"
          ],
          false
       ]

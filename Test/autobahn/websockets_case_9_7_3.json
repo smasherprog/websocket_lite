@@ -8,7 +8,7 @@
    "createWirelog": true,
    "description": "Send 1000 text messages of payload size 64 to measure implementation/network RTT (round trip time) / latency.",
    "droppedByMe": false,
-   "duration": 242,
+   "duration": 200,
    "expectation": "Receive echo'ed text messages (with payload as sent). Timeout case after 60 secs.",
    "expected": {},
    "expectedClose": {
@@ -19,8 +19,8 @@
       "requireClean": true
    },
    "failedByMe": false,
-   "httpRequest": "GET / HTTP/1.1\r\nUser-Agent: AutobahnTestSuite/0.7.6-0.10.9\r\nHost: localhost:3000\r\nUpgrade: WebSocket\r\nConnection: Upgrade\r\nPragma: no-cache\r\nCache-Control: no-cache\r\nSec-WebSocket-Key: VZREouKF+2ynWxMafBZYTA==\r\nSec-WebSocket-Version: 13\r\n\r\n",
-   "httpResponse": "HTTP/1.1 101 Web Socket Protocol Handshake\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: Abz+HjyC2kW8EhRmOpmaK8YuVpA=\r\n\r\n",
+   "httpRequest": "GET / HTTP/1.1\r\nUser-Agent: AutobahnTestSuite/0.7.6-0.10.9\r\nHost: localhost:3000\r\nUpgrade: WebSocket\r\nConnection: Upgrade\r\nPragma: no-cache\r\nCache-Control: no-cache\r\nSec-WebSocket-Key: FrB7lA0Sw3w69BgIGNj8tg==\r\nSec-WebSocket-Version: 13\r\n\r\n",
+   "httpResponse": "HTTP/1.1 101 Web Socket Protocol Handshake\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: U9LYb0wNq1o4E7teAyQcdk6iPWo=\r\n\r\n",
    "id": "9.7.3",
    "isServer": false,
    "localCloseCode": 1000,
@@ -37,13 +37,13 @@
       "8": 1
    },
    "rxOctetStats": {
-      "2": 886,
+      "2": 4,
       "4": 1,
-      "64": 886,
-      "66": 114,
+      "64": 4,
+      "66": 996,
       "139": 1
    },
-   "started": "2017-05-27T01:45:06.192Z",
+   "started": "2017-05-28T14:16:32.772Z",
    "trafficStats": null,
    "txFrameStats": {
       "1": 1000,
@@ -96,7 +96,7 @@
          8,
          true,
          0,
-         "cbad5090",
+         "1c183bd5",
          null,
          null,
          false
@@ -105,7 +105,7 @@
          "TO",
          [
             8,
-            "8882cbad5090c845"
+            "88821c183bd51ff0"
          ],
          false
       ],

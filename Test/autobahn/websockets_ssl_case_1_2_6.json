@@ -8,7 +8,7 @@
    "createWirelog": true,
    "description": "Send binary message message with payload of length 65535.",
    "droppedByMe": false,
-   "duration": 60,
+   "duration": 28,
    "expectation": "Receive echo'ed binary message (with payload as sent). Clean close with normal code.",
    "expected": {
       "OK": [
@@ -27,8 +27,8 @@
       "requireClean": true
    },
    "failedByMe": false,
-   "httpRequest": "GET / HTTP/1.1\r\nUser-Agent: AutobahnTestSuite/0.7.6-0.10.9\r\nHost: localhost:3001\r\nUpgrade: WebSocket\r\nConnection: Upgrade\r\nPragma: no-cache\r\nCache-Control: no-cache\r\nSec-WebSocket-Key: m1r2RpLnCbsS2dhvmKvdQg==\r\nSec-WebSocket-Version: 13\r\n\r\n",
-   "httpResponse": "HTTP/1.1 101 Web Socket Protocol Handshake\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: y4F4rNB0nr1ZyRVS2oYVOpMW0Pc=\r\n\r\n",
+   "httpRequest": "GET / HTTP/1.1\r\nUser-Agent: AutobahnTestSuite/0.7.6-0.10.9\r\nHost: localhost:3001\r\nUpgrade: WebSocket\r\nConnection: Upgrade\r\nPragma: no-cache\r\nCache-Control: no-cache\r\nSec-WebSocket-Key: ZHnDmhjXzVTOvJPLxOF4dw==\r\nSec-WebSocket-Version: 13\r\n\r\n",
+   "httpResponse": "HTTP/1.1 101 Web Socket Protocol Handshake\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: hw/azkdUh2e8GbHLQxi39ve0ZEQ=\r\n\r\n",
    "id": "1.2.6",
    "isServer": false,
    "localCloseCode": 1000,
@@ -57,7 +57,7 @@
       "16383": 1,
       "16384": 3
    },
-   "started": "2017-05-27T01:39:36.525Z",
+   "started": "2017-05-28T14:15:21.805Z",
    "trafficStats": null,
    "txFrameStats": {
       "2": 1,
@@ -98,7 +98,7 @@
          2,
          true,
          0,
-         "cf2674ff",
+         "77f45059",
          null,
          null,
          false
@@ -107,7 +107,7 @@
          "TO",
          [
             65543,
-            "82feffffcf2674ff31d88a0131d88a0131d88a0131d88a0131d88a0131d88a0131d88a0131d88a0131d88a0131d88a0131d88a0131d88a0131d88a0131d88a01 ..."
+            "82feffff77f45059890aaea7890aaea7890aaea7890aaea7890aaea7890aaea7890aaea7890aaea7890aaea7890aaea7890aaea7890aaea7890aaea7890aaea7 ..."
          ],
          false
       ],
@@ -171,7 +171,7 @@
          8,
          true,
          0,
-         "fd34ebc7",
+         "6419ac11",
          null,
          null,
          false
@@ -180,7 +180,7 @@
          "TO",
          [
             8,
-            "8882fd34ebc7fedc"
+            "88826419ac1167f1"
          ],
          false
       ],

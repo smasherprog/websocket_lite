@@ -8,7 +8,7 @@
    "createWirelog": true,
    "description": "Send 1000 text messages of payload size 4096 to measure implementation/network RTT (round trip time) / latency.",
    "droppedByMe": false,
-   "duration": 523,
+   "duration": 460,
    "expectation": "Receive echo'ed text messages (with payload as sent). Timeout case after 480 secs.",
    "expected": {},
    "expectedClose": {
@@ -19,8 +19,8 @@
       "requireClean": true
    },
    "failedByMe": false,
-   "httpRequest": "GET / HTTP/1.1\r\nUser-Agent: AutobahnTestSuite/0.7.6-0.10.9\r\nHost: localhost:3000\r\nUpgrade: WebSocket\r\nConnection: Upgrade\r\nPragma: no-cache\r\nCache-Control: no-cache\r\nSec-WebSocket-Key: ulBgLpr9EX1WSGcs4Ov7Gw==\r\nSec-WebSocket-Version: 13\r\n\r\n",
-   "httpResponse": "HTTP/1.1 101 Web Socket Protocol Handshake\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: OAdnLLmZZTwScqBuiLThS8acAMU=\r\n\r\n",
+   "httpRequest": "GET / HTTP/1.1\r\nUser-Agent: AutobahnTestSuite/0.7.6-0.10.9\r\nHost: localhost:3000\r\nUpgrade: WebSocket\r\nConnection: Upgrade\r\nPragma: no-cache\r\nCache-Control: no-cache\r\nSec-WebSocket-Key: 9E70A3bv+XOUmHE1CdUX4Q==\r\nSec-WebSocket-Version: 13\r\n\r\n",
+   "httpResponse": "HTTP/1.1 101 Web Socket Protocol Handshake\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: GVrXIq35wd4LuAWfM2JwakWyvFk=\r\n\r\n",
    "id": "9.7.6",
    "isServer": false,
    "localCloseCode": 1000,
@@ -37,16 +37,12 @@
       "8": 1
    },
    "rxOctetStats": {
-      "4": 724,
+      "4": 2,
       "139": 1,
-      "1176": 2,
-      "1464": 4,
-      "2636": 4,
-      "2924": 2,
-      "4096": 723,
-      "4100": 271
+      "4096": 1,
+      "4100": 999
    },
-   "started": "2017-05-27T01:45:07.052Z",
+   "started": "2017-05-28T14:16:33.477Z",
    "trafficStats": null,
    "txFrameStats": {
       "1": 1000,
@@ -99,7 +95,7 @@
          8,
          true,
          0,
-         "69aa4957",
+         "a0703ba1",
          null,
          null,
          false
@@ -108,7 +104,7 @@
          "TO",
          [
             8,
-            "888269aa49576a42"
+            "8882a0703ba1a398"
          ],
          false
       ],

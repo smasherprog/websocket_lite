@@ -8,7 +8,7 @@
    "createWirelog": true,
    "description": "Send text message message with payload of length 1 * 2**20 (1M). Sent out data in chops of 256 octets.",
    "droppedByMe": false,
-   "duration": 4157,
+   "duration": 321,
    "expectation": "Receive echo'ed text message (with payload as sent).",
    "expected": {},
    "expectedClose": {
@@ -19,8 +19,8 @@
       "requireClean": true
    },
    "failedByMe": false,
-   "httpRequest": "GET / HTTP/1.1\r\nUser-Agent: AutobahnTestSuite/0.7.6-0.10.9\r\nHost: localhost:3000\r\nUpgrade: WebSocket\r\nConnection: Upgrade\r\nPragma: no-cache\r\nCache-Control: no-cache\r\nSec-WebSocket-Key: K1dG+LcQH6CVUZyXD07+cw==\r\nSec-WebSocket-Version: 13\r\n\r\n",
-   "httpResponse": "HTTP/1.1 101 Web Socket Protocol Handshake\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: FOnx1zZU3USy3r8jAfWPmERa8Hg=\r\n\r\n",
+   "httpRequest": "GET / HTTP/1.1\r\nUser-Agent: AutobahnTestSuite/0.7.6-0.10.9\r\nHost: localhost:3000\r\nUpgrade: WebSocket\r\nConnection: Upgrade\r\nPragma: no-cache\r\nCache-Control: no-cache\r\nSec-WebSocket-Key: E3Ln0JZycqVp0LlTO1y6QA==\r\nSec-WebSocket-Version: 13\r\n\r\n",
+   "httpResponse": "HTTP/1.1 101 Web Socket Protocol Handshake\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: SPKZeiE1QabTM45EVVVYlKhY9jQ=\r\n\r\n",
    "id": "9.5.3",
    "isServer": false,
    "localCloseCode": 1000,
@@ -40,11 +40,9 @@
       "4": 1,
       "10": 1,
       "139": 1,
-      "4216": 1,
-      "61320": 1,
-      "65536": 15
+      "65536": 16
    },
-   "started": "2017-05-27T01:44:25.149Z",
+   "started": "2017-05-28T14:16:29.190Z",
    "trafficStats": null,
    "txFrameStats": {
       "1": 1,
@@ -90,7 +88,7 @@
          8,
          true,
          0,
-         "92cb1f5e",
+         "8666ac84",
          null,
          null,
          false
@@ -99,7 +97,7 @@
          "TO",
          [
             8,
-            "888292cb1f5e9123"
+            "88828666ac84858e"
          ],
          false
       ],

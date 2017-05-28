@@ -14,8 +14,8 @@ using namespace std::chrono_literals;
 void wssautobahntest() {
     // auto listener = SL::WS_LITE::WSListener::CreateListener(3001, TEST_CERTIFICATE_PRIVATE_PASSWORD, TEST_CERTIFICATE_PRIVATE_PATH, TEST_CERTIFICATE_PUBLIC_PATH, TEST_DH_PATH);
 
-    SL::WS_LITE::PortNumber port(3001);
-    SL::WS_LITE::WSContext ctx(SL::WS_LITE::ThreadCount(4));
+
+    SL::WS_LITE::WSContext ctx(SL::WS_LITE::ThreadCount(1));
 
     auto listener = ctx.CreateListener(SL::WS_LITE::PortNumber(3000));
     listener.set_ReadTimeout(std::chrono::seconds(100));
@@ -41,8 +41,10 @@ void wssautobahntest() {
     });
 
     listener.startlistening();
-
-    auto tlslistener = ctx.CreateListener(SL::WS_LITE::PortNumber(3001), TEST_CERTIFICATE_PRIVATE_PASSWORD, TEST_CERTIFICATE_PRIVATE_PATH, TEST_CERTIFICATE_PUBLIC_PATH, TEST_DH_PATH);
+    
+   SL::WS_LITE::WSContext tlsctx(SL::WS_LITE::ThreadCount(1));
+   
+    auto tlslistener = tlsctx.CreateListener(SL::WS_LITE::PortNumber(3001), TEST_CERTIFICATE_PRIVATE_PASSWORD, TEST_CERTIFICATE_PRIVATE_PATH, TEST_CERTIFICATE_PUBLIC_PATH, TEST_DH_PATH);
     tlslistener.set_ReadTimeout(std::chrono::seconds(100));
     tlslistener.set_WriteTimeout(std::chrono::seconds(100));
     tlslistener.onHttpUpgrade([&](const SL::WS_LITE::WSocket& socket) {
@@ -228,7 +230,7 @@ void multithreadthroughputtest() {
     mbssent = 0;
     SL::WS_LITE::WSContext clientctx(SL::WS_LITE::ThreadCount(8));
     auto sendtimer = std::chrono::high_resolution_clock::now();
-    for (auto i = 0; i < clients.capacity(); i++) {
+    for (size_t i = 0; i < clients.capacity(); i++) {
 
         clients.push_back(clientctx.CreateClient());
         clients[i].onHttpUpgrade([&](const SL::WS_LITE::WSocket& socket) {
@@ -258,7 +260,7 @@ void multithreadthroughputtest() {
         clients[i].connect("localhost", port);
     }
 
-    while (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - lastheard).count() < 50000) {
+    while (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - lastheard).count() < 5000) {
         std::this_thread::sleep_for(200ms);
     }
     std::cout << "Received " << mbsreceived<<"  bytes"<< std::endl;

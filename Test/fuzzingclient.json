@@ -5,7 +5,7 @@
                 {"agent": "WebSockets SSL",
                  "url": "wss://localhost:3001",
                  "options": {"version": 18}},
-				{"agent": "WebSockets",
+		{"agent": "WebSockets",
                   "url": "ws://localhost:3000",
                   "options": {"version": 18}}
               ],
