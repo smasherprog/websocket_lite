@@ -29,8 +29,8 @@ https://github.com/smasherprog/websocket_lite/blob/master/Test/main.cpp
 
 ```
     SL::WS_LITE::PortNumber port(3001);
-    SL::WS_LITE::WSContext ctx(SL::WS_LITE::ThreadCount(1));
-    auto listener = ctx.CreateListener(port);
+    SL::WS_LITE::WSContext listenerctx(SL::WS_LITE::ThreadCount(1));
+    auto listener = listenerctx.CreateListener(port);
     listener.onHttpUpgrade([&](const SL::WS_LITE::WSocket& socket) {
     
     });
@@ -42,8 +42,8 @@ https://github.com/smasherprog/websocket_lite/blob/master/Test/main.cpp
     });
 
     listener.startlistening();
-    
-    auto client = ctx.CreateClient();
+    SL::WS_LITE::WSContext clientctx(SL::WS_LITE::ThreadCount(1));
+    auto client = clientctx.CreateClient();
     client.onHttpUpgrade([&](const SL::WS_LITE::WSocket& socket) {
     
     });
