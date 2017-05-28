@@ -24,7 +24,7 @@ elseif(APPLE)
 	set(WEBSOCKET_LITE_PLATFORM_LIBS
 
     )
-set(OPENSSL_ROOT_DIR /usr/local/Cellar/openssl/*)
+    set(OPENSSL_ROOT_DIR /usr/local/Cellar/openssl/*)
 else()
 	find_package(Threads REQUIRED)
 
