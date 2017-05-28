@@ -8,7 +8,7 @@
    "createWirelog": true,
    "description": "Send fragmented text message, 3 fragments each of length 0.",
    "droppedByMe": false,
-   "duration": 2,
+   "duration": 1,
    "expectation": "A message is echo'ed back to us (with empty payload).",
    "expected": {
       "OK": [
@@ -27,8 +27,8 @@
       "requireClean": true
    },
    "failedByMe": false,
-   "httpRequest": "GET / HTTP/1.1\r\nUser-Agent: AutobahnTestSuite/0.7.6-0.10.9\r\nHost: localhost:3001\r\nUpgrade: WebSocket\r\nConnection: Upgrade\r\nPragma: no-cache\r\nCache-Control: no-cache\r\nSec-WebSocket-Key: v6LQP9pQEL1DeslBNXFV4Q==\r\nSec-WebSocket-Version: 13\r\n\r\n",
-   "httpResponse": "HTTP/1.1 101 Web Socket Protocol Handshake\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: uNtg6k1ZzK3q1KzXyl0QKYlEmQY=\r\n\r\n",
+   "httpRequest": "GET / HTTP/1.1\r\nUser-Agent: AutobahnTestSuite/0.7.6-0.10.9\r\nHost: localhost:3001\r\nUpgrade: WebSocket\r\nConnection: Upgrade\r\nPragma: no-cache\r\nCache-Control: no-cache\r\nSec-WebSocket-Key: cBs1fBYn7c8CfEysCWFb7g==\r\nSec-WebSocket-Version: 13\r\n\r\n",
+   "httpResponse": "HTTP/1.1 101 Web Socket Protocol Handshake\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: DuG04970RvE12Hbc01/xmob58+I=\r\n\r\n",
    "id": "6.1.2",
    "isServer": false,
    "localCloseCode": 1000,
@@ -54,7 +54,7 @@
       "2": 3,
       "139": 1
    },
-   "started": "2017-05-28T14:15:25.908Z",
+   "started": "2017-05-28T20:52:26.652Z",
    "trafficStats": null,
    "txFrameStats": {
       "0": 2,
@@ -96,7 +96,7 @@
          1,
          false,
          0,
-         "f3feb20d",
+         "6005fe08",
          null,
          null,
          false
@@ -105,7 +105,7 @@
          "TO",
          [
             6,
-            "0180f3feb20d"
+            "01806005fe08"
          ],
          false
       ],
@@ -118,7 +118,7 @@
          0,
          false,
          0,
-         "2fcd6409",
+         "4e96af2f",
          null,
          null,
          false
@@ -127,7 +127,7 @@
          "TO",
          [
             6,
-            "00802fcd6409"
+            "00804e96af2f"
          ],
          false
       ],
@@ -140,7 +140,7 @@
          0,
          true,
          0,
-         "978e4507",
+         "9fbdf481",
          null,
          null,
          false
@@ -149,7 +149,7 @@
          "TO",
          [
             6,
-            "8080978e4507"
+            "80809fbdf481"
          ],
          false
       ],
@@ -185,7 +185,7 @@
          8,
          true,
          0,
-         "f6bf1658",
+         "e8bb9d6d",
          null,
          null,
          false
@@ -194,7 +194,7 @@
          "TO",
          [
             8,
-            "8882f6bf1658f557"
+            "8882e8bb9d6deb53"
          ],
          false
       ],

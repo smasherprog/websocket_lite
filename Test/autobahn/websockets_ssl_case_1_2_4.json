@@ -27,8 +27,8 @@
       "requireClean": true
    },
    "failedByMe": false,
-   "httpRequest": "GET / HTTP/1.1\r\nUser-Agent: AutobahnTestSuite/0.7.6-0.10.9\r\nHost: localhost:3001\r\nUpgrade: WebSocket\r\nConnection: Upgrade\r\nPragma: no-cache\r\nCache-Control: no-cache\r\nSec-WebSocket-Key: IQ3V/8CjR1HGf/jli0b3Kg==\r\nSec-WebSocket-Version: 13\r\n\r\n",
-   "httpResponse": "HTTP/1.1 101 Web Socket Protocol Handshake\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: 8uNg+B4xqEYSZR/DL+RiNUGN0dc=\r\n\r\n",
+   "httpRequest": "GET / HTTP/1.1\r\nUser-Agent: AutobahnTestSuite/0.7.6-0.10.9\r\nHost: localhost:3001\r\nUpgrade: WebSocket\r\nConnection: Upgrade\r\nPragma: no-cache\r\nCache-Control: no-cache\r\nSec-WebSocket-Key: WyjWlCgyIPttMYR1lBSBSQ==\r\nSec-WebSocket-Version: 13\r\n\r\n",
+   "httpResponse": "HTTP/1.1 101 Web Socket Protocol Handshake\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: EEUUodTbtykw4eATyYx34B3wWGo=\r\n\r\n",
    "id": "1.2.4",
    "isServer": false,
    "localCloseCode": 1000,
@@ -56,7 +56,7 @@
       "127": 1,
       "139": 1
    },
-   "started": "2017-05-28T14:15:21.753Z",
+   "started": "2017-05-28T20:52:22.458Z",
    "trafficStats": null,
    "txFrameStats": {
       "2": 1,
@@ -97,7 +97,7 @@
          2,
          true,
          0,
-         "20871d69",
+         "fe95cba1",
          null,
          null,
          false
@@ -106,7 +106,7 @@
          "TO",
          [
             135,
-            "82fe007f20871d69de79e397de79e397de79e397de79e397de79e397de79e397de79e397de79e397de79e397de79e397de79e397de79e397de79e397de79e397 ..."
+            "82fe007ffe95cba1006b355f006b355f006b355f006b355f006b355f006b355f006b355f006b355f006b355f006b355f006b355f006b355f006b355f006b355f ..."
          ],
          false
       ],
@@ -149,7 +149,7 @@
          8,
          true,
          0,
-         "74d7675d",
+         "c0ac5d5a",
          null,
          null,
          false
@@ -158,7 +158,7 @@
          "TO",
          [
             8,
-            "888274d7675d773f"
+            "8882c0ac5d5ac344"
          ],
          false
       ],

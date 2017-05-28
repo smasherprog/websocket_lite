@@ -8,7 +8,7 @@
    "createWirelog": true,
    "description": "Send 1000 binary messages of payload size 64 to measure implementation/network RTT (round trip time) / latency.",
    "droppedByMe": false,
-   "duration": 185,
+   "duration": 207,
    "expectation": "Receive echo'ed binary messages (with payload as sent). Timeout case after 60 secs.",
    "expected": {},
    "expectedClose": {
@@ -19,8 +19,8 @@
       "requireClean": true
    },
    "failedByMe": false,
-   "httpRequest": "GET / HTTP/1.1\r\nUser-Agent: AutobahnTestSuite/0.7.6-0.10.9\r\nHost: localhost:3000\r\nUpgrade: WebSocket\r\nConnection: Upgrade\r\nPragma: no-cache\r\nCache-Control: no-cache\r\nSec-WebSocket-Key: vzXRxMmUIQWh8/3s94lOhA==\r\nSec-WebSocket-Version: 13\r\n\r\n",
-   "httpResponse": "HTTP/1.1 101 Web Socket Protocol Handshake\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: 8sadMwLpcV8b20KRme4oW0NtALY=\r\n\r\n",
+   "httpRequest": "GET / HTTP/1.1\r\nUser-Agent: AutobahnTestSuite/0.7.6-0.10.9\r\nHost: localhost:3000\r\nUpgrade: WebSocket\r\nConnection: Upgrade\r\nPragma: no-cache\r\nCache-Control: no-cache\r\nSec-WebSocket-Key: 7UMTnoW0k+2W8nkKEM+QNQ==\r\nSec-WebSocket-Version: 13\r\n\r\n",
+   "httpResponse": "HTTP/1.1 101 Web Socket Protocol Handshake\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: 1VnvaccDE0MIRNIJBtdEfwB0DBc=\r\n\r\n",
    "id": "9.8.3",
    "isServer": false,
    "localCloseCode": 1000,
@@ -37,13 +37,11 @@
       "8": 1
    },
    "rxOctetStats": {
-      "2": 1,
       "4": 1,
-      "64": 1,
-      "66": 999,
+      "66": 1000,
       "139": 1
    },
-   "started": "2017-05-28T14:16:34.322Z",
+   "started": "2017-05-28T20:53:35.716Z",
    "trafficStats": null,
    "txFrameStats": {
       "2": 1000,
@@ -96,7 +94,7 @@
          8,
          true,
          0,
-         "ee42a736",
+         "e63e25e4",
          null,
          null,
          false
@@ -105,7 +103,7 @@
          "TO",
          [
             8,
-            "8882ee42a736edaa"
+            "8882e63e25e4e5d6"
          ],
          false
       ],

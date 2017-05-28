@@ -262,7 +262,7 @@ void multithreadthroughputtest() {
     std::cout << "Received " << mbsreceived<<"  bytes"<< std::endl;
 }
 int main(int argc, char* argv[]) {
-    //wssautobahntest();
+    wssautobahntest();
     std::this_thread::sleep_for(1s);
     generaltest();
     std::this_thread::sleep_for(1s);

@@ -8,7 +8,7 @@
    "createWirelog": true,
    "description": "Send 1000 text messages of payload size 1024 to measure implementation/network RTT (round trip time) / latency.",
    "droppedByMe": false,
-   "duration": 293,
+   "duration": 318,
    "expectation": "Receive echo'ed text messages (with payload as sent). Timeout case after 240 secs.",
    "expected": {},
    "expectedClose": {
@@ -19,8 +19,8 @@
       "requireClean": true
    },
    "failedByMe": false,
-   "httpRequest": "GET / HTTP/1.1\r\nUser-Agent: AutobahnTestSuite/0.7.6-0.10.9\r\nHost: localhost:3000\r\nUpgrade: WebSocket\r\nConnection: Upgrade\r\nPragma: no-cache\r\nCache-Control: no-cache\r\nSec-WebSocket-Key: E4GgYYFg842nlxuNUpdVgg==\r\nSec-WebSocket-Version: 13\r\n\r\n",
-   "httpResponse": "HTTP/1.1 101 Web Socket Protocol Handshake\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: CtQCkASIlCm9HiJOVZm/J2HDTQI=\r\n\r\n",
+   "httpRequest": "GET / HTTP/1.1\r\nUser-Agent: AutobahnTestSuite/0.7.6-0.10.9\r\nHost: localhost:3000\r\nUpgrade: WebSocket\r\nConnection: Upgrade\r\nPragma: no-cache\r\nCache-Control: no-cache\r\nSec-WebSocket-Key: 1Al6nKnOOq04VV6zd4XUZg==\r\nSec-WebSocket-Version: 13\r\n\r\n",
+   "httpResponse": "HTTP/1.1 101 Web Socket Protocol Handshake\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: cIfyPTf7dGc60bzCO/tG/sEzN14=\r\n\r\n",
    "id": "9.7.5",
    "isServer": false,
    "localCloseCode": 1000,
@@ -37,12 +37,11 @@
       "8": 1
    },
    "rxOctetStats": {
-      "4": 6,
+      "4": 1,
       "139": 1,
-      "1024": 5,
-      "1028": 995
+      "1028": 1000
    },
-   "started": "2017-05-28T14:16:33.183Z",
+   "started": "2017-05-28T20:53:34.385Z",
    "trafficStats": null,
    "txFrameStats": {
       "1": 1000,
@@ -95,7 +94,7 @@
          8,
          true,
          0,
-         "9bfe1cbf",
+         "e871d0b6",
          null,
          null,
          false
@@ -104,7 +103,7 @@
          "TO",
          [
             8,
-            "88829bfe1cbf9816"
+            "8882e871d0b6eb99"
          ],
          false
       ],

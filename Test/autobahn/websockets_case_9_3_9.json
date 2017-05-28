@@ -8,7 +8,7 @@
    "createWirelog": true,
    "description": "Send fragmented text message message with message payload of length 4 * 2**20 (8M). Sent out in fragments of 4M.",
    "droppedByMe": false,
-   "duration": 50,
+   "duration": 81,
    "expectation": "Receive echo'ed text message (with payload as sent).",
    "expected": {},
    "expectedClose": {
@@ -19,8 +19,8 @@
       "requireClean": true
    },
    "failedByMe": false,
-   "httpRequest": "GET / HTTP/1.1\r\nUser-Agent: AutobahnTestSuite/0.7.6-0.10.9\r\nHost: localhost:3000\r\nUpgrade: WebSocket\r\nConnection: Upgrade\r\nPragma: no-cache\r\nCache-Control: no-cache\r\nSec-WebSocket-Key: TaZB1qYu57IWmBt2pf5jCw==\r\nSec-WebSocket-Version: 13\r\n\r\n",
-   "httpResponse": "HTTP/1.1 101 Web Socket Protocol Handshake\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: RCWHGUDi2hZ93hpS4DBcA3TtSL0=\r\n\r\n",
+   "httpRequest": "GET / HTTP/1.1\r\nUser-Agent: AutobahnTestSuite/0.7.6-0.10.9\r\nHost: localhost:3000\r\nUpgrade: WebSocket\r\nConnection: Upgrade\r\nPragma: no-cache\r\nCache-Control: no-cache\r\nSec-WebSocket-Key: A7U0ul8hek+niERP1hznbQ==\r\nSec-WebSocket-Version: 13\r\n\r\n",
+   "httpResponse": "HTTP/1.1 101 Web Socket Protocol Handshake\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: FdmjERE6D+gDfaRwIXytWUwrAnE=\r\n\r\n",
    "id": "9.3.9",
    "isServer": false,
    "localCloseCode": 1000,
@@ -39,14 +39,14 @@
    "rxOctetStats": {
       "4": 1,
       "10": 1,
-      "53": 13,
+      "53": 12,
       "139": 1,
       "22400": 1,
       "43136": 1,
-      "65483": 13,
-      "65536": 50
+      "65483": 12,
+      "65536": 51
    },
-   "started": "2017-05-28T14:16:24.585Z",
+   "started": "2017-05-28T20:53:24.813Z",
    "trafficStats": null,
    "txFrameStats": {
       "1": 1,
@@ -91,7 +91,7 @@
          8,
          true,
          0,
-         "4d839e71",
+         "0b05aa83",
          null,
          null,
          false
@@ -100,7 +100,7 @@
          "TO",
          [
             8,
-            "88824d839e714e6b"
+            "88820b05aa8308ed"
          ],
          false
       ],

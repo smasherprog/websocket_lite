@@ -8,7 +8,7 @@
    "createWirelog": true,
    "description": "Send a text message with payload which is not valid UTF-8 in one fragment.<br><br>Payload: 0x808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9fa0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3b4b5b6b7b8b9babbbcbdbe",
    "droppedByMe": false,
-   "duration": 4,
+   "duration": 2,
    "expectation": "The connection is failed immediately, since the payload is not valid UTF-8.",
    "expected": {
       "OK": []
@@ -22,8 +22,8 @@
       "requireClean": false
    },
    "failedByMe": false,
-   "httpRequest": "GET / HTTP/1.1\r\nUser-Agent: AutobahnTestSuite/0.7.6-0.10.9\r\nHost: localhost:3001\r\nUpgrade: WebSocket\r\nConnection: Upgrade\r\nPragma: no-cache\r\nCache-Control: no-cache\r\nSec-WebSocket-Key: CT657BMHNxN8n57rLr6HBA==\r\nSec-WebSocket-Version: 13\r\n\r\n",
-   "httpResponse": "HTTP/1.1 101 Web Socket Protocol Handshake\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: NnOAWwrG4htwMEKfhybHUBZwOFY=\r\n\r\n",
+   "httpRequest": "GET / HTTP/1.1\r\nUser-Agent: AutobahnTestSuite/0.7.6-0.10.9\r\nHost: localhost:3001\r\nUpgrade: WebSocket\r\nConnection: Upgrade\r\nPragma: no-cache\r\nCache-Control: no-cache\r\nSec-WebSocket-Key: ztESbMpqP3EOVACOAYquBA==\r\nSec-WebSocket-Version: 13\r\n\r\n",
+   "httpResponse": "HTTP/1.1 101 Web Socket Protocol Handshake\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: Vn1QcM+s3xzDk7sEWnTZxnQ5+4M=\r\n\r\n",
    "id": "6.12.8",
    "isServer": false,
    "localCloseCode": 1000,
@@ -43,7 +43,7 @@
       "22": 1,
       "139": 1
    },
-   "started": "2017-05-28T14:15:35.805Z",
+   "started": "2017-05-28T20:52:36.727Z",
    "trafficStats": null,
    "txFrameStats": {
       "1": 1,
@@ -84,7 +84,7 @@
          1,
          true,
          0,
-         "a060c4d0",
+         "75ee9e38",
          null,
          null,
          false
@@ -93,7 +93,7 @@
          "TO",
          [
             69,
-            "81bfa060c4d020e1465324e5425728e94e5b2ced4a5f30f1564334f5524738f95e4b3cfd5a4f00c1667304c5627708c96e7b0ccd6a7f10d1766314d5726718d9 ..."
+            "81bf75ee9e38f56f1cbbf16b18bffd6714b3f96310b7e57f0cabe17b08afed7704a3e97300a7d54f3c9bd14b389fdd473493d9433097c55f2c8bc15b288fcd57 ..."
          ],
          false
       ],
@@ -136,7 +136,7 @@
          8,
          true,
          0,
-         "1af183aa",
+         "fe65f3d9",
          null,
          null,
          false
@@ -145,7 +145,7 @@
          "TO",
          [
             8,
-            "88821af183aa1919"
+            "8882fe65f3d9fd8d"
          ],
          false
       ]

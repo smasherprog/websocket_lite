@@ -8,7 +8,7 @@
    "createWirelog": true,
    "description": "Send ping with binary payload of 125 octets.",
    "droppedByMe": false,
-   "duration": 2,
+   "duration": 4,
    "expectation": "Pong with payload echo'ed is sent in reply to Ping. Clean close with normal code.",
    "expected": {
       "OK": [
@@ -26,8 +26,8 @@
       "requireClean": true
    },
    "failedByMe": false,
-   "httpRequest": "GET / HTTP/1.1\r\nUser-Agent: AutobahnTestSuite/0.7.6-0.10.9\r\nHost: localhost:3001\r\nUpgrade: WebSocket\r\nConnection: Upgrade\r\nPragma: no-cache\r\nCache-Control: no-cache\r\nSec-WebSocket-Key: t7YQKF0mcloLYYkmM3axtg==\r\nSec-WebSocket-Version: 13\r\n\r\n",
-   "httpResponse": "HTTP/1.1 101 Web Socket Protocol Handshake\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: m3bRABautgg3DZo5rqUBqjxzZws=\r\n\r\n",
+   "httpRequest": "GET / HTTP/1.1\r\nUser-Agent: AutobahnTestSuite/0.7.6-0.10.9\r\nHost: localhost:3001\r\nUpgrade: WebSocket\r\nConnection: Upgrade\r\nPragma: no-cache\r\nCache-Control: no-cache\r\nSec-WebSocket-Key: OdExxGCxwJBJYv/RXWWvIA==\r\nSec-WebSocket-Version: 13\r\n\r\n",
+   "httpResponse": "HTTP/1.1 101 Web Socket Protocol Handshake\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: crSZ0bmeSbAdh/vDtf5ubAfuB3A=\r\n\r\n",
    "id": "2.4",
    "isServer": false,
    "localCloseCode": 1000,
@@ -53,7 +53,7 @@
       "125": 1,
       "139": 1
    },
-   "started": "2017-05-28T14:15:22.071Z",
+   "started": "2017-05-28T20:52:22.903Z",
    "trafficStats": null,
    "txFrameStats": {
       "8": 1,
@@ -94,7 +94,7 @@
          9,
          true,
          0,
-         "0ee51bc2",
+         "53d93b9a",
          null,
          null,
          false
@@ -103,7 +103,7 @@
          "TO",
          [
             131,
-            "89fd0ee51bc2f01be53cf01be53cf01be53cf01be53cf01be53cf01be53cf01be53cf01be53cf01be53cf01be53cf01be53cf01be53cf01be53cf01be53cf01b ..."
+            "89fd53d93b9aad27c564ad27c564ad27c564ad27c564ad27c564ad27c564ad27c564ad27c564ad27c564ad27c564ad27c564ad27c564ad27c564ad27c564ad27 ..."
          ],
          false
       ],
@@ -146,7 +146,7 @@
          8,
          true,
          0,
-         "8c232135",
+         "b69402e9",
          null,
          null,
          false
@@ -155,7 +155,7 @@
          "TO",
          [
             8,
-            "88828c2321358fcb"
+            "8882b69402e9b57c"
          ],
          false
       ],
