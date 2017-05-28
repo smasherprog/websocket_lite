@@ -53,15 +53,19 @@ namespace SL {
             unsigned char *data;
             size_t len;
             OpCode code;
+            //buffer is here to ensure the lifetime of the unsigned char *data in this structure
+            //users should set the *data variable to be the beginning of the data to send. Then, set the Buffer shared ptr as well to make sure the lifetime of the data
             std::shared_ptr<unsigned char> Buffer;
         };
 
-  
+        class WSListener;
+        class WSClient;
         struct WSocketImpl;
-        struct WSocket {
+        class WSocket {
             std::shared_ptr<WSocketImpl> WSocketImpl_;
-            WSocket(const std::shared_ptr<WSocketImpl>& s) :WSocketImpl_(s){}
-            WSocket() {}
+        public:
+            WSocket(const std::shared_ptr<WSocketImpl>& s) :WSocketImpl_(s) {}
+            //WSocket() {}
             //can be used to compare two WSocket objects
             bool operator=(const WSocket& s) { return s.WSocketImpl_ == WSocketImpl_; }
             bool is_open();
@@ -71,7 +75,8 @@ namespace SL {
             bool is_v6();
             bool is_loopback();
             operator bool() const { return WSocketImpl_.operator bool(); }
-
+            friend WSListener;
+            friend WSClient;
         };
         class WSContext;
         class WSListenerImpl;

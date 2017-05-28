@@ -12,8 +12,6 @@
 using namespace std::chrono_literals;
 
 void wssautobahntest() {
-    // auto listener = SL::WS_LITE::WSListener::CreateListener(3001, TEST_CERTIFICATE_PRIVATE_PASSWORD, TEST_CERTIFICATE_PRIVATE_PATH, TEST_CERTIFICATE_PUBLIC_PATH, TEST_DH_PATH);
-
 
     SL::WS_LITE::WSContext ctx(SL::WS_LITE::ThreadCount(1));
 
@@ -77,7 +75,6 @@ void wssautobahntest() {
 }
 void generaltest() {
     std::cout << "Starting General test..." << std::endl;
-    //auto listener = SL::WS_LITE::WSListener::CreateListener(3002, TEST_CERTIFICATE_PRIVATE_PASSWORD, TEST_CERTIFICATE_PRIVATE_PATH, TEST_CERTIFICATE_PUBLIC_PATH, TEST_DH_PATH);
 
     SL::WS_LITE::PortNumber port(3002);
     SL::WS_LITE::WSContext ctx(SL::WS_LITE::ThreadCount(1));
@@ -109,8 +106,6 @@ void generaltest() {
     });
     listener.startlistening();
 
-    //auto client = SL::WS_LITE::WSClient::CreateClient(TEST_CERTIFICATE_PUBLIC_PATH);
-
     auto client = ctx.CreateClient();
     client.onHttpUpgrade([&](const SL::WS_LITE::WSocket& socket) {
         lastheard = std::chrono::high_resolution_clock::now();
@@ -135,9 +130,9 @@ void multithreadtest() {
     std::cout << "Starting Multi threaded test..." << std::endl;
 
     SL::WS_LITE::PortNumber port(3003);
-    SL::WS_LITE::WSContext ctx(SL::WS_LITE::ThreadCount(4));
+    SL::WS_LITE::WSContext listenerctx(SL::WS_LITE::ThreadCount(2));
 
-    auto listener = ctx.CreateListener(port);
+    auto listener = listenerctx.CreateListener(port);
     auto lastheard = std::chrono::high_resolution_clock::now();
     listener.onHttpUpgrade([&](const SL::WS_LITE::WSocket& socket) {
         lastheard = std::chrono::high_resolution_clock::now();
@@ -160,10 +155,11 @@ void multithreadtest() {
     });
     listener.startlistening();
     std::vector<SL::WS_LITE::WSClient> clients;
-    clients.reserve(100);
-    for (auto i = 0; i < 100; i++) {
+    SL::WS_LITE::WSContext clientctx(SL::WS_LITE::ThreadCount(2));
+    clients.reserve(50);
+    for (auto i = 0; i < 50; i++) {
 
-        clients.push_back(ctx.CreateClient());
+        clients.push_back(clientctx.CreateClient());
         clients[i].onHttpUpgrade([&](const SL::WS_LITE::WSocket& socket) {
             lastheard = std::chrono::high_resolution_clock::now();
         });
@@ -197,7 +193,7 @@ void multithreadthroughputtest() {
     std::cout << "Starting Multi threaded throughput test" << std::endl;
 
     SL::WS_LITE::PortNumber port(3004);
-    SL::WS_LITE::WSContext listenerctx(SL::WS_LITE::ThreadCount(8));
+    SL::WS_LITE::WSContext listenerctx(SL::WS_LITE::ThreadCount(2));
     std::vector<SL::WS_LITE::WSClient> clients;
     clients.reserve(50);//this should use about 1 GB of memory between sending and receiving
 
@@ -228,7 +224,7 @@ void multithreadthroughputtest() {
 
     std::atomic<unsigned long long> mbssent;
     mbssent = 0;
-    SL::WS_LITE::WSContext clientctx(SL::WS_LITE::ThreadCount(8));
+    SL::WS_LITE::WSContext clientctx(SL::WS_LITE::ThreadCount(2));
     auto sendtimer = std::chrono::high_resolution_clock::now();
     for (size_t i = 0; i < clients.capacity(); i++) {
 
@@ -266,7 +262,7 @@ void multithreadthroughputtest() {
     std::cout << "Received " << mbsreceived<<"  bytes"<< std::endl;
 }
 int main(int argc, char* argv[]) {
-    wssautobahntest();
+    //wssautobahntest();
     std::this_thread::sleep_for(1s);
     generaltest();
     std::this_thread::sleep_for(1s);
