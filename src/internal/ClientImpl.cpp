@@ -59,9 +59,9 @@ namespace SL {
                         if (!ec) {
                             SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "Read Handshake bytes " << bytes_transferred);
                             std::istream stream(read_buffer.get());
+                            
                             std::unordered_map<std::string, std::string> header;
-                            Parse_Handshake("1.1", stream, header);
-                            if (Base64decode(header[HTTP_SECWEBSOCKETACCEPT]) == accept_sha1) {
+                            if (Parse_ServerHandshake(stream, header) && Base64decode(header[HTTP_SECWEBSOCKETACCEPT]) == accept_sha1) {
 
 
                                 SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "Connected ");

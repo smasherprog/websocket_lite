@@ -1,4 +1,5 @@
 #include "internal/Utils.h"
+#include "Logging.h"
 
 #include <random>
 #include <fstream>
@@ -52,7 +53,46 @@ namespace SL {
             }
             return out;
         }
-        bool Parse_Handshake(std::string defaultheaderversion, std::istream& stream, std::unordered_map<std::string, std::string>& header)
+
+        bool Parse_ServerHandshake(std::istream& stream, std::unordered_map<std::string, std::string>& header)
+        {
+            std::string line;
+            std::getline(stream, line);
+
+            size_t path_end;
+            if ((path_end = line.find(' ')) != std::string::npos) {
+
+                if (path_end == 8)
+                    header[HTTP_VERSION] = line.substr(path_end - 3, 3);
+                else
+                {
+                    SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "Parse_ServerHandshake failed due to no http version in header");
+                    return false;
+                }
+                if (line.size() > path_end + 4) {
+                    header[HTTP_METHOD] = line.substr(path_end + 1, line.size() - path_end -1);
+                }
+
+                getline(stream, line);
+                size_t param_end;
+                while ((param_end = line.find(':')) != std::string::npos) {
+                    size_t value_start = param_end + 1;
+                    if ((value_start) < line.size()) {
+                        if (line[value_start] == ' ')
+                            value_start++;
+                        if (value_start < line.size())
+                            header.insert(std::make_pair(line.substr(0, param_end), line.substr(value_start, line.size() - value_start - 1)));
+                    }
+
+                    getline(stream, line);
+                }
+
+            }
+            return true;
+        }
+
+
+        bool Parse_ClientHandshake(std::istream& stream, std::unordered_map<std::string, std::string>& header)
         {
             std::string line;
             std::getline(stream, line);
@@ -64,8 +104,10 @@ namespace SL {
                     header[HTTP_PATH] = url_decode(line.substr(method_end + 1, path_end - method_end - 1));
                     if ((path_end + 6) < line.size())
                         header[HTTP_VERSION] = line.substr(path_end + 6, line.size() - (path_end + 6) - 1);
-                    else
-                        header[HTTP_VERSION] = defaultheaderversion;
+                    else {
+                        SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "Parse_ClientHandshake failed due to no http version in header");
+                        return false;
+                    }
 
                     getline(stream, line);
                     size_t param_end;
@@ -98,6 +140,9 @@ namespace SL {
             header_it = header.find(HTTP_SECWEBSOCKETEXTENSIONS);
             if (header_it != header.end() && header_it->second.find(PERMESSAGEDEFLATE) != std::string::npos) {
                 handshake << HTTP_SECWEBSOCKETEXTENSIONS << HTTP_KEYVALUEDELIM << PERMESSAGEDEFLATE << HTTP_ENDLINE;
+            }
+            else {
+                handshake << HTTP_SECWEBSOCKETEXTENSIONS << HTTP_KEYVALUEDELIM << HTTP_ENDLINE;
             }
             handshake << HTTP_SECWEBSOCKETACCEPT << HTTP_KEYVALUEDELIM << Base64encode(sha1) << HTTP_ENDLINE << HTTP_ENDLINE;
 

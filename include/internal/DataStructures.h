@@ -20,7 +20,6 @@
 
 namespace SL {
     namespace WS_LITE {
-
         struct HandshakeContainer {
             asio::streambuf Read;
             asio::streambuf Write;

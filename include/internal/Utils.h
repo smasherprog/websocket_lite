@@ -232,7 +232,8 @@ namespace SL {
         }
         std::string url_decode(const std::string& in);
 
-        bool Parse_Handshake(std::string defaultheaderversion, std::istream& stream, std::unordered_map<std::string, std::string>& header);
+        bool Parse_ClientHandshake(std::istream& stream, std::unordered_map<std::string, std::string>& header);
+        bool Parse_ServerHandshake(std::istream& stream, std::unordered_map<std::string, std::string>& header);
 
         const std::string ws_magic_string = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
         const int LARGE_BUFFER_SIZE = 300 * 1024;

@@ -39,9 +39,9 @@ void wssautobahntest() {
     });
 
     listener.startlistening();
-    
-   SL::WS_LITE::WSContext tlsctx(SL::WS_LITE::ThreadCount(1));
-   
+
+    SL::WS_LITE::WSContext tlsctx(SL::WS_LITE::ThreadCount(1));
+
     auto tlslistener = tlsctx.CreateTLSListener(SL::WS_LITE::PortNumber(3001), TEST_CERTIFICATE_PRIVATE_PASSWORD, TEST_CERTIFICATE_PRIVATE_PATH, TEST_CERTIFICATE_PUBLIC_PATH, TEST_DH_PATH);
     tlslistener.set_ReadTimeout(std::chrono::seconds(100));
     tlslistener.set_WriteTimeout(std::chrono::seconds(100));
@@ -199,7 +199,7 @@ void multithreadtest() {
     });
     listener.onDisconnection([&](const SL::WS_LITE::WSocket& socket, unsigned short code, const std::string& msg) {
         lastheard = std::chrono::high_resolution_clock::now();
-    });    
+    });
     listener.onMessage([&](const SL::WS_LITE::WSocket& socket, const SL::WS_LITE::WSMessage& message) {
         lastheard = std::chrono::high_resolution_clock::now();
         SL::WS_LITE::WSMessage msg;
@@ -239,7 +239,7 @@ void multithreadtest() {
             lastheard = std::chrono::high_resolution_clock::now();
         });
         clients[i].connect("localhost", port);
-     
+
     }
 
     while (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - lastheard).count() < 2000) {
@@ -295,9 +295,9 @@ void multithreadthroughputtest() {
             msg.Buffer = std::shared_ptr<unsigned char>(new unsigned char[bufferesize], [&](unsigned char* p) {
                 mbssent += bufferesize;
                 if (mbssent == bufferesize * clients.capacity()) {
-                    std::cout << "Took " << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now()- sendtimer).count() << "ms to send " << bufferesize * clients.capacity() <<" bytes" << std::endl;
+                    std::cout << "Took " << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - sendtimer).count() << "ms to send " << bufferesize * clients.capacity() << " bytes" << std::endl;
                 }
-                delete[] p; 
+                delete[] p;
             });
             msg.len = bufferesize;//10MB
             msg.code = SL::WS_LITE::OpCode::BINARY;
@@ -316,7 +316,7 @@ void multithreadthroughputtest() {
     while (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - lastheard).count() < 5000) {
         std::this_thread::sleep_for(200ms);
     }
-    std::cout << "Received " << mbsreceived<<"  bytes"<< std::endl;
+    std::cout << "Received " << mbsreceived << "  bytes" << std::endl;
 }
 int main(int argc, char* argv[]) {
     wssautobahntest();

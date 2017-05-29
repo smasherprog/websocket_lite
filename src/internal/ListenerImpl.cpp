@@ -14,7 +14,7 @@ namespace SL {
 
                     std::istream headerdata(&handshakecontainer->Read);
 
-                    if (!Parse_Handshake("1.1", headerdata, handshakecontainer->Header)) {
+                    if (!Parse_ClientHandshake(headerdata, handshakecontainer->Header)) {
                         SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "Parse Handshake failed ");
                         return;
                     }
