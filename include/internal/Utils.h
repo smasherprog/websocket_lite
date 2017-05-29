@@ -12,6 +12,7 @@
 #include <openssl/md5.h>
 
 #include <zlib.h>
+#include <math.h>
 
 namespace asio {
     namespace ssl {
