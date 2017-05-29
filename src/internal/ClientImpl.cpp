@@ -19,15 +19,15 @@ namespace SL {
         }
 
 
-        template<class SOCKETTYPE>void ConnectHandshake(std::shared_ptr<WSClientImpl> self, SOCKETTYPE& socket) {
+        template<class SOCKETTYPE>void ConnectHandshake(std::shared_ptr<WSClientImpl> self, SOCKETTYPE& socket, const std::string& host, const std::string& endpoint, const std::unordered_map<std::string, std::string>& extraheaders) {
             auto write_buffer(std::make_shared<asio::streambuf>());
             std::ostream request(write_buffer.get());
 
-            request << "GET /rdpenpoint/ HTTP/1.1" << HTTP_ENDLINE;
-            request << HTTP_HOST << HTTP_KEYVALUEDELIM << get_address(socket) << HTTP_ENDLINE;
+            request << "GET "<< endpoint<<" HTTP/1.1" << HTTP_ENDLINE;
+            request << HTTP_HOST << HTTP_KEYVALUEDELIM << host << HTTP_ENDLINE;
             request << "Upgrade: websocket" << HTTP_ENDLINE;
             request << "Connection: Upgrade" << HTTP_ENDLINE;
-
+    
             //Make random 16-byte nonce
             std::string nonce;
             nonce.resize(16);
@@ -40,7 +40,13 @@ namespace SL {
             auto nonce_base64 = Base64encode(nonce);
             request << HTTP_SECWEBSOCKETKEY << HTTP_KEYVALUEDELIM << nonce_base64 << HTTP_ENDLINE;
             request << "Sec-WebSocket-Version: 13" << HTTP_ENDLINE;
-            request << HTTP_SECWEBSOCKETEXTENSIONS << HTTP_KEYVALUEDELIM << PERMESSAGEDEFLATE << HTTP_ENDLINE << HTTP_ENDLINE;
+            for (auto& h : extraheaders) {
+                request << h.first << HTTP_KEYVALUEDELIM << h.second << HTTP_ENDLINE;
+            }
+            //  request << "" << HTTP_ENDLINE;
+            //  request << HTTP_SECWEBSOCKETEXTENSIONS << HTTP_KEYVALUEDELIM << PERMESSAGEDEFLATE << HTTP_ENDLINE;
+            request << HTTP_ENDLINE << HTTP_ENDLINE;
+
 
             auto accept_sha1 = SHA1(nonce_base64 + ws_magic_string);
 
@@ -106,14 +112,14 @@ namespace SL {
             });
 
         }
-        void async_handshake(std::shared_ptr<WSClientImpl> self, std::shared_ptr<asio::ip::tcp::socket> socket) {
-            ConnectHandshake(self, socket);
+        void async_handshake(std::shared_ptr<WSClientImpl> self, std::shared_ptr<asio::ip::tcp::socket> socket, const std::string& host, const std::string& endpoint, const std::unordered_map<std::string, std::string>& extraheaders) {
+            ConnectHandshake(self, socket, host, endpoint, extraheaders);
         }
-        void async_handshake(std::shared_ptr<WSClientImpl> self, std::shared_ptr<asio::ssl::stream<asio::ip::tcp::socket>> socket) {
-            socket->async_handshake(asio::ssl::stream_base::client, [socket, self](const std::error_code& ec) {
+        void async_handshake(std::shared_ptr<WSClientImpl> self, std::shared_ptr<asio::ssl::stream<asio::ip::tcp::socket>> socket, const std::string& host, const std::string& endpoint, const std::unordered_map<std::string, std::string>& extraheaders) {
+            socket->async_handshake(asio::ssl::stream_base::client, [socket, self, host, endpoint, extraheaders](const std::error_code& ec) {
                 if (!ec)
                 {
-                    ConnectHandshake(self, socket);
+                    ConnectHandshake(self, socket, host, endpoint, extraheaders);
                 }
                 else {
                     SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "Failed async_handshake " << ec.message());
@@ -125,7 +131,7 @@ namespace SL {
                 }
             });
         }
-        template<typename SOCKETCREATOR>void Connect(std::shared_ptr<WSClientImpl> self, const char* host, PortNumber port, SOCKETCREATOR&& socketcreator) {
+        template<typename SOCKETCREATOR>void Connect(std::shared_ptr<WSClientImpl> self, const std::string& host, PortNumber port, SOCKETCREATOR&& socketcreator, const std::string& endpoint, const std::unordered_map<std::string, std::string>& extraheaders) {
 
             auto socket = socketcreator(self);
             std::error_code ec;
@@ -133,7 +139,7 @@ namespace SL {
             auto portstr = std::to_string(port.value);
             asio::ip::tcp::resolver::query query(host, portstr.c_str());
 
-            auto endpoint = resolver.resolve(query, ec);
+            auto resolvedendpoint = resolver.resolve(query, ec);
 
             if (ec) {
                 SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "resolve error " << ec.message());
@@ -144,7 +150,7 @@ namespace SL {
                 }
             }
             else {
-                asio::async_connect(socket->lowest_layer(), endpoint, [socket, self](const std::error_code& ec, asio::ip::tcp::resolver::iterator)
+                asio::async_connect(socket->lowest_layer(), resolvedendpoint, [socket, self, host, endpoint, extraheaders](const std::error_code& ec, asio::ip::tcp::resolver::iterator)
                 {
                     std::error_code e;
                     socket->lowest_layer().set_option(asio::ip::tcp::no_delay(true), e);
@@ -154,7 +160,7 @@ namespace SL {
                     }
                     if (!ec)
                     {
-                        async_handshake(self, socket);
+                        async_handshake(self, socket, host, endpoint, extraheaders);
                     }
                     else {
                         SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "Failed async_connect " << ec.message());
@@ -169,22 +175,22 @@ namespace SL {
 
         }
 
-        void WSClient::connect(const char* host, PortNumber port) {
+        void WSClient::connect(const std::string& host, PortNumber port, const std::string& endpoint, const std::unordered_map<std::string, std::string>& extraheaders) {
             if (Impl_->TLSEnabled) {
                 auto createsocket = [](auto c) {
                     auto socket = std::make_shared<asio::ssl::stream<asio::ip::tcp::socket>>(c->WSContextImpl_->io_service, c->sslcontext);
-                    socket->set_verify_mode(asio::ssl::verify_peer);
+                    socket->set_verify_mode(asio::ssl::verify_fail_if_no_peer_cert);
                     socket->set_verify_callback(std::bind(&verify_certificate, std::placeholders::_1, std::placeholders::_2));
                     return socket;
 
                 };
-                Connect(Impl_, host, port, createsocket);
+                Connect(Impl_, host, port, createsocket, endpoint, extraheaders);
             }
             else {
                 auto createsocket = [](auto c) {
                     return std::make_shared<asio::ip::tcp::socket>(c->WSContextImpl_->io_service);
                 };
-                Connect(Impl_, host, port, createsocket);
+                Connect(Impl_, host, port, createsocket, endpoint, extraheaders);
             }
         }
 
@@ -278,9 +284,14 @@ namespace SL {
             if (WSocketImpl_->Socket) return SL::WS_LITE::is_loopback(WSocketImpl_->Socket);
             else  return SL::WS_LITE::is_loopback(WSocketImpl_->TLSSocket);
         }
-        WSClient WSContext::CreateClient(std::string Publiccertificate_File) {
+        WSClient WSContext::CreateTLSClient(std::string Publiccertificate_File) {
             WSClient c;
             c.Impl_ = std::make_shared<WSClientImpl>(Impl_, Publiccertificate_File);
+            return c;
+        }
+        WSClient WSContext::CreateTLSClient() {
+            WSClient c;
+            c.Impl_ = std::make_shared<WSClientImpl>(Impl_, true);
             return c;
         }
         WSClient WSContext::CreateClient() {

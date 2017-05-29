@@ -1,6 +1,8 @@
 #pragma once
 #include "WS_Lite.h"
 #include "Utils.h"
+#include "Logging.h"
+
 #if WIN32
 #include <SDKDDKVer.h>
 #endif
@@ -14,6 +16,7 @@
 #include "asio.hpp"
 #include "asio/ssl.hpp"
 #include "asio/deadline_timer.hpp"
+
 
 namespace SL {
     namespace WS_LITE {
@@ -128,6 +131,9 @@ namespace SL {
             std::function<void(WSocket&)> onHttpUpgrade;
 
         };
+
+
+
         class WSClientImpl : public WSInternal {
         public:
             WSClientImpl(std::shared_ptr<WSContextImpl>& p, std::string Publiccertificate_File) : WSClientImpl(p)
@@ -141,9 +147,24 @@ namespace SL {
                 asio::const_buffer cert(buf.data(), buf.size());
                 std::error_code ec;
                 sslcontext.add_certificate_authority(cert, ec);
-                ec.clear();
+                if (ec) {
+                    SL_WS_LITE_LOG(Logging_Levels::ERROR_log_level, "add_certificate_authority " << ec.message());
+                    ec.clear();
+                }
                 sslcontext.set_default_verify_paths(ec);
-
+                if (ec) {
+                    SL_WS_LITE_LOG(Logging_Levels::ERROR_log_level, "set_default_verify_paths " << ec.message());
+                    ec.clear();
+                }
+                add_other_root_certs(sslcontext);
+            }        
+            WSClientImpl(std::shared_ptr<WSContextImpl>& p, bool dummyargtoenabletls) : WSClientImpl(p)
+            {
+                UNUSED(dummyargtoenabletls);
+                TLSEnabled = true;
+                std::error_code ec;
+                sslcontext.set_default_verify_paths(ec);
+                add_other_root_certs(sslcontext);
             }
             WSClientImpl(std::shared_ptr<WSContextImpl>& p) :WSInternal(p)
             {
@@ -196,7 +217,7 @@ namespace SL {
                     SL_WS_LITE_LOG(Logging_Levels::ERROR_log_level, "use_private_key_file " << ec.message());
                     ec.clear();
                 }
-
+                add_other_root_certs(sslcontext);
             }
 
             WSListenerImpl(std::shared_ptr<WSContextImpl>& p, PortNumber port) :

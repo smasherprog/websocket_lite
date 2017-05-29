@@ -172,7 +172,7 @@ namespace SL {
             //send a close message and close the socket
             void close(const WSocket& s, unsigned short code = 1000, const std::string& msg = "");
             //connect to an endpoint. This is non-blocking and will return immediatly. If the library is unable to establish a connection, ondisconnection will be called. 
-            void connect(const char* host, PortNumber port);
+            void connect(const std::string& host, PortNumber port, const std::string& endpoint = "/", const std::unordered_map<std::string, std::string>& extraheaders = {});
             friend WSContext;
         };
         class WSContextImpl;
@@ -181,19 +181,17 @@ namespace SL {
         public:
             WSContext(ThreadCount threadcount);
 
-            //Use this if you ARE NOT using TLS
             WSListener CreateListener(PortNumber port);
-            //Use this if you ARE using TLS
-            WSListener CreateListener(
+            WSListener CreateTLSListener(
                 PortNumber port,
                 std::string Password,
                 std::string Privatekey_File,
                 std::string Publiccertificate_File,
                 std::string dh_File);
-            //factory to create clients. Use this if you ARE NOT using TLS
+
             WSClient CreateClient();
-            //factory to create clients. Use this if you ARE using TLS
-            WSClient CreateClient(std::string Publiccertificate_File);
+            WSClient CreateTLSClient();
+            WSClient CreateTLSClient(std::string Publiccertificate_File);
 
         };
     }

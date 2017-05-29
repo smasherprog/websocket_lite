@@ -42,7 +42,7 @@ void wssautobahntest() {
     
    SL::WS_LITE::WSContext tlsctx(SL::WS_LITE::ThreadCount(1));
    
-    auto tlslistener = tlsctx.CreateListener(SL::WS_LITE::PortNumber(3001), TEST_CERTIFICATE_PRIVATE_PASSWORD, TEST_CERTIFICATE_PRIVATE_PATH, TEST_CERTIFICATE_PUBLIC_PATH, TEST_DH_PATH);
+    auto tlslistener = tlsctx.CreateTLSListener(SL::WS_LITE::PortNumber(3001), TEST_CERTIFICATE_PRIVATE_PASSWORD, TEST_CERTIFICATE_PRIVATE_PATH, TEST_CERTIFICATE_PUBLIC_PATH, TEST_DH_PATH);
     tlslistener.set_ReadTimeout(std::chrono::seconds(100));
     tlslistener.set_WriteTimeout(std::chrono::seconds(100));
     tlslistener.onHttpUpgrade([&](const SL::WS_LITE::WSocket& socket) {
@@ -77,8 +77,8 @@ void generaltest() {
     std::cout << "Starting General test..." << std::endl;
 
     SL::WS_LITE::PortNumber port(3002);
-    SL::WS_LITE::WSContext ctx(SL::WS_LITE::ThreadCount(1));
-    auto listener = ctx.CreateListener(port);
+    SL::WS_LITE::WSContext listenerctx(SL::WS_LITE::ThreadCount(1));
+    auto listener = listenerctx.CreateListener(port);
     auto lastheard = std::chrono::high_resolution_clock::now();
     listener.onHttpUpgrade([&](const SL::WS_LITE::WSocket& socket) {
         lastheard = std::chrono::high_resolution_clock::now();
@@ -106,7 +106,8 @@ void generaltest() {
     });
     listener.startlistening();
 
-    auto client = ctx.CreateClient();
+    SL::WS_LITE::WSContext clientctx(SL::WS_LITE::ThreadCount(1));
+    auto client = clientctx.CreateClient();
     client.onHttpUpgrade([&](const SL::WS_LITE::WSocket& socket) {
         lastheard = std::chrono::high_resolution_clock::now();
         SL_WS_LITE_LOG(SL::WS_LITE::Logging_Levels::INFO_log_level, "Client::onHttpUpgrade");
@@ -126,6 +127,62 @@ void generaltest() {
         std::this_thread::sleep_for(200ms);
     }
 }
+void generalTLStest() {
+    std::cout << "Starting General TLS test..." << std::endl;
+
+    SL::WS_LITE::PortNumber port(3005);
+    SL::WS_LITE::WSContext listenerctx(SL::WS_LITE::ThreadCount(1));
+
+    auto listener = listenerctx.CreateTLSListener(port, TEST_CERTIFICATE_PRIVATE_PASSWORD, TEST_CERTIFICATE_PRIVATE_PATH, TEST_CERTIFICATE_PUBLIC_PATH, TEST_DH_PATH);
+    auto lastheard = std::chrono::high_resolution_clock::now();
+    listener.onHttpUpgrade([&](const SL::WS_LITE::WSocket& socket) {
+        lastheard = std::chrono::high_resolution_clock::now();
+        SL_WS_LITE_LOG(SL::WS_LITE::Logging_Levels::INFO_log_level, "listener::onHttpUpgrade");
+
+    });
+    listener.onConnection([&](const SL::WS_LITE::WSocket& socket, const std::unordered_map<std::string, std::string>& header) {
+        lastheard = std::chrono::high_resolution_clock::now();
+        SL_WS_LITE_LOG(SL::WS_LITE::Logging_Levels::INFO_log_level, "listener::onConnection");
+
+    });
+    listener.onMessage([&](const SL::WS_LITE::WSocket& socket, const SL::WS_LITE::WSMessage& message) {
+        lastheard = std::chrono::high_resolution_clock::now();
+        SL::WS_LITE::WSMessage msg;
+        msg.Buffer = std::shared_ptr<unsigned char>(new unsigned char[message.len], [](unsigned char* p) { delete[] p; });
+        msg.len = message.len;
+        msg.code = message.code;
+        msg.data = msg.Buffer.get();
+        memcpy(msg.data, message.data, message.len);
+        listener.send(socket, msg, false);
+    });
+    listener.onDisconnection([&](const SL::WS_LITE::WSocket& socket, unsigned short code, const std::string& msg) {
+        lastheard = std::chrono::high_resolution_clock::now();
+        SL_WS_LITE_LOG(SL::WS_LITE::Logging_Levels::INFO_log_level, "listener::onDisconnection");
+    });
+    listener.startlistening();
+
+    SL::WS_LITE::WSContext clientctx(SL::WS_LITE::ThreadCount(1));
+    auto client = clientctx.CreateTLSClient(TEST_CERTIFICATE_PUBLIC_PATH);
+    client.onHttpUpgrade([&](const SL::WS_LITE::WSocket& socket) {
+        lastheard = std::chrono::high_resolution_clock::now();
+        SL_WS_LITE_LOG(SL::WS_LITE::Logging_Levels::INFO_log_level, "Client::onHttpUpgrade");
+
+    });
+    client.onConnection([&](const SL::WS_LITE::WSocket& socket, const std::unordered_map<std::string, std::string>& header) {
+        lastheard = std::chrono::high_resolution_clock::now();
+        SL_WS_LITE_LOG(SL::WS_LITE::Logging_Levels::INFO_log_level, "Client::onConnection");
+    });
+    client.onDisconnection([&](const SL::WS_LITE::WSocket& socket, unsigned short code, const std::string& msg) {
+        lastheard = std::chrono::high_resolution_clock::now();
+        SL_WS_LITE_LOG(SL::WS_LITE::Logging_Levels::INFO_log_level, "client::onDisconnection");
+    });
+    client.connect("localhost", port);
+
+    while (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - lastheard).count() < 2000) {
+        std::this_thread::sleep_for(200ms);
+    }
+}
+
 void multithreadtest() {
     std::cout << "Starting Multi threaded test..." << std::endl;
 
@@ -262,9 +319,11 @@ void multithreadthroughputtest() {
     std::cout << "Received " << mbsreceived<<"  bytes"<< std::endl;
 }
 int main(int argc, char* argv[]) {
-    //wssautobahntest();
+    wssautobahntest();
     std::this_thread::sleep_for(1s);
     generaltest();
+    std::this_thread::sleep_for(1s);
+    generalTLStest();
     std::this_thread::sleep_for(1s);
     multithreadtest();
     std::this_thread::sleep_for(1s);

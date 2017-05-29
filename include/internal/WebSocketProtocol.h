@@ -2,15 +2,16 @@
 #include "WS_Lite.h"
 #include "DataStructures.h"
 #include "Utils.h"
-#if WIN32
-#include <SDKDDKVer.h>
-#endif
 
 #include <string>
 #include <unordered_map>
 #include <memory>
 #include <random>
 #include <deque>
+
+#if WIN32
+#include <SDKDDKVer.h>
+#endif
 
 #include "asio.hpp"
 #include "asio/ssl.hpp"

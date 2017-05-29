@@ -187,7 +187,7 @@ namespace SL {
             return tmp;
         }
 
-        WSListener WSContext::CreateListener(
+        WSListener WSContext::CreateTLSListener(
             PortNumber port,
             std::string Password,
             std::string Privatekey_File,
