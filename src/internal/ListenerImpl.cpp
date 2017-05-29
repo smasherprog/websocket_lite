@@ -118,38 +118,20 @@ namespace SL {
                 Listen(Impl_, createsocket);
             }
         }
-        void WSListener::onConnection(std::function<void(WSocket&, const std::unordered_map<std::string, std::string>&)>& handle) {
-            Impl_->onConnection = handle;
-        }
         void WSListener::onConnection(const std::function<void(WSocket&, const std::unordered_map<std::string, std::string>&)>& handle) {
             Impl_->onConnection = handle;
-        }
-        void WSListener::onMessage(std::function<void(WSocket&, const WSMessage&)>& handle) {
-            Impl_->onMessage = handle;
         }
         void WSListener::onMessage(const std::function<void(WSocket&, const WSMessage&)>& handle) {
             Impl_->onMessage = handle;
         }
-        void WSListener::onDisconnection(std::function<void(WSocket&, unsigned short, const std::string&)>& handle) {
-            Impl_->onDisconnection = handle;
-        }
         void WSListener::onDisconnection(const std::function<void(WSocket&, unsigned short, const std::string&)>& handle) {
             Impl_->onDisconnection = handle;
-        }
-        void WSListener::onPing(std::function<void(WSocket&, const unsigned char *, size_t)>& handle) {
-            Impl_->onPing = handle;
         }
         void WSListener::onPing(const std::function<void(WSocket&, const unsigned char *, size_t)>& handle) {
             Impl_->onPing = handle;
         }
-        void WSListener::onPong(std::function<void(WSocket&, const unsigned char *, size_t)>& handle) {
-            Impl_->onPong = handle;
-        }
         void WSListener::onPong(const std::function<void(WSocket&, const unsigned char *, size_t)>& handle) {
             Impl_->onPong = handle;
-        }
-        void WSListener::onHttpUpgrade(std::function<void(WSocket&)>& handle) {
-            Impl_->onHttpUpgrade = handle;
         }
         void WSListener::onHttpUpgrade(const std::function<void(WSocket&)>& handle) {
             Impl_->onHttpUpgrade = handle;
@@ -169,7 +151,7 @@ namespace SL {
         void WSListener::set_MaxPayload(size_t bytes) {
             Impl_->MaxPayload = bytes;
         }
-        unsigned long long int WSListener::get_MaxPayload() {
+        size_t WSListener::get_MaxPayload() {
             return  Impl_->MaxPayload;
         }
 

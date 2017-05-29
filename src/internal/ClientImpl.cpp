@@ -194,38 +194,20 @@ namespace SL {
             }
         }
 
-        void WSClient::onConnection(std::function<void(WSocket&, const std::unordered_map<std::string, std::string>&)>& handle) {
-            Impl_->onConnection = handle;
-        }
         void WSClient::onConnection(const std::function<void(WSocket&, const std::unordered_map<std::string, std::string>&)>& handle) {
             Impl_->onConnection = handle;
-        }
-        void WSClient::onMessage(std::function<void(WSocket&, const WSMessage&)>& handle) {
-            Impl_->onMessage = handle;
         }
         void WSClient::onMessage(const std::function<void(WSocket&, const WSMessage&)>& handle) {
             Impl_->onMessage = handle;
         }
-        void WSClient::onDisconnection(std::function<void(WSocket&, unsigned short, const std::string&)>& handle) {
-            Impl_->onDisconnection = handle;
-        }
         void WSClient::onDisconnection(const std::function<void(WSocket&, unsigned short, const std::string&)>& handle) {
             Impl_->onDisconnection = handle;
-        }
-        void WSClient::onPing(std::function<void(WSocket&, const unsigned char *, size_t)>& handle) {
-            Impl_->onPing = handle;
         }
         void WSClient::onPing(const std::function<void(WSocket&, const unsigned char *, size_t)>& handle) {
             Impl_->onPing = handle;
         }
-        void WSClient::onPong(std::function<void(WSocket&, const unsigned char *, size_t)>& handle) {
-            Impl_->onPong = handle;
-        }
         void WSClient::onPong(const std::function<void(WSocket&, const unsigned char *, size_t)>& handle) {
             Impl_->onPong = handle;
-        }
-        void WSClient::onHttpUpgrade(std::function<void(WSocket&)>& handle) {
-            Impl_->onHttpUpgrade = handle;
         }
         void WSClient::onHttpUpgrade(const std::function<void(WSocket&)>& handle) {
             Impl_->onHttpUpgrade = handle;
@@ -245,7 +227,7 @@ namespace SL {
         void WSClient::set_MaxPayload(size_t bytes) {
             Impl_->MaxPayload = bytes;
         }
-        unsigned long long int WSClient::get_MaxPayload() {
+        size_t WSClient::get_MaxPayload() {
             return  Impl_->MaxPayload;
         }
 
