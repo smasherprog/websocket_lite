@@ -156,7 +156,7 @@ namespace SL {
             }
             unsigned char* ReceiveBuffer = nullptr;
             size_t ReceiveBufferSize = 0;
-            unsigned char ReceiveHeader[14];
+            unsigned char ReceiveHeader[14] = {};
             bool CompressionEnabled = false;
 
             OpCode LastOpCode = OpCode::INVALID;

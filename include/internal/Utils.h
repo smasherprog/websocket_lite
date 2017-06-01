@@ -74,16 +74,16 @@ namespace SL {
 
 
         template<class PARENTTYPE>inline bool DidPassMaskRequirement(unsigned char* h) { UNUSED(h); return true; }
-        template<> inline bool DidPassMaskRequirement<WSListenerImpl>(unsigned char* h) { return getMask(h); }
-        template<> inline bool DidPassMaskRequirement<WSClientImpl>(unsigned char* h) { return !getMask(h); }
+        template<> inline bool DidPassMaskRequirement<std::shared_ptr<WSListenerImpl>>(unsigned char* h) { return getMask(h); }
+        template<> inline bool DidPassMaskRequirement<std::shared_ptr<WSClientImpl>>(unsigned char* h) { return !getMask(h); }
 
         template<class PARENTTYPE>inline size_t AdditionalBodyBytesToRead() { return 0; }
-        template<>inline size_t AdditionalBodyBytesToRead<WSListenerImpl>() { return 4; }
-        template<>inline size_t AdditionalBodyBytesToRead<WSClientImpl>() { return 0; }
+        template<>inline size_t AdditionalBodyBytesToRead<std::shared_ptr<WSListenerImpl>>() { return 4; }
+        template<>inline size_t AdditionalBodyBytesToRead<std::shared_ptr<WSClientImpl >>() { return 0; }
 
-        template<class PARENTTYPE>inline void set_MaskBitForSending(unsigned char* frame) {  }
-        template<>inline void set_MaskBitForSending<WSListenerImpl>(unsigned char* frame) { setMask(frame, 0x00); }
-        template<>inline void set_MaskBitForSending<WSClientImpl>(unsigned char* frame) { setMask(frame, 0xff); }
+        template<class PARENTTYPE>inline void set_MaskBitForSending(unsigned char* frame) { UNUSED(frame); }
+        template<>inline void set_MaskBitForSending<std::shared_ptr<WSListenerImpl>>(unsigned char* frame) { setMask(frame, 0x00); }
+        template<>inline void set_MaskBitForSending<std::shared_ptr<WSClientImpl >>(unsigned char* frame) { setMask(frame, 0xff); }
 
         template<class T>std::string get_address(T& _socket)
         {

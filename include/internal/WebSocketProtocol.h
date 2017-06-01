@@ -150,7 +150,7 @@ namespace SL {
             write_end(parent, socket, msg);
         }
 
-        template<class PARENTTYPE, class SOCKETTYPE, class SENDBUFFERTYPE>inline void write(const std::shared_ptr<PARENTTYPE>& parent, const SOCKETTYPE& socket, const SENDBUFFERTYPE& msg) {
+        template<class PARENTTYPE, class SOCKETTYPE, class SENDBUFFERTYPE>inline void write(const PARENTTYPE& parent, const SOCKETTYPE& socket, const SENDBUFFERTYPE& msg) {
             size_t sendsize = 0;
             unsigned char header[10] = {};
 
@@ -273,7 +273,7 @@ namespace SL {
             }
             return closeImpl(parent, socket, 1000, "");
         }
-        template <class PARENTTYPE, class SOCKETTYPE>inline void ProcessControlMessage(const std::shared_ptr<PARENTTYPE>& parent, const SOCKETTYPE& socket, const std::shared_ptr<unsigned char>& buffer, size_t size) {
+        template <class PARENTTYPE, class SOCKETTYPE>inline void ProcessControlMessage(const PARENTTYPE& parent, const SOCKETTYPE& socket, const std::shared_ptr<unsigned char>& buffer, size_t size) {
             if (!getFin(socket->ReceiveHeader)) {
                 return closeImpl(parent, socket, 1002, "Closing connection. Control Frames must be Fin");
             }
