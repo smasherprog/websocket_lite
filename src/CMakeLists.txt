@@ -48,6 +48,7 @@ set(WEBSOCKET_LITE_COMMON_SRC
 	${CMAKE_CURRENT_SOURCE_DIR}/../src/internal/ListenerImpl.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/../src/internal/ClientImpl.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/../include/internal/DataStructures.h
+	${CMAKE_CURRENT_SOURCE_DIR}/../src/internal/WSContext.cpp
 )
 
 find_package(OpenSSL REQUIRED)

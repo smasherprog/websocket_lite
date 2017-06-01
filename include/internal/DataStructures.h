@@ -34,45 +34,6 @@ namespace SL {
         };
 
 
-        struct SendQueueItem {
-            WSMessage msg;
-            bool compressmessage;
-        };
-        struct WSocketImpl
-        {
-            WSocketImpl(asio::io_service& s) :read_deadline(s), write_deadline(s), strand(s) {}
-            ~WSocketImpl() {
-                canceltimers();
-                if (ReceiveBuffer) {
-                    free(ReceiveBuffer);
-                }
-            }
-            asio::basic_waitable_timer<std::chrono::steady_clock> read_deadline;
-            asio::basic_waitable_timer<std::chrono::steady_clock> write_deadline;
-            unsigned char* ReceiveBuffer = nullptr;
-            size_t ReceiveBufferSize = 0;
-            unsigned char ReceiveHeader[14];
-            bool CompressionEnabled = false;
-
-            OpCode LastOpCode = OpCode::INVALID;
-            std::shared_ptr<asio::ip::tcp::socket> Socket;
-            std::shared_ptr<asio::ssl::stream<asio::ip::tcp::socket>> TLSSocket;
-            asio::strand strand;
-            std::deque<SendQueueItem> SendMessageQueue;
-
-            void canceltimers() {
-                read_deadline.cancel();
-                write_deadline.cancel();
-            }
-        };
-        inline void set_Socket(std::shared_ptr<WSocketImpl>& ws, std::shared_ptr<asio::ssl::stream<asio::ip::tcp::socket>> s) {
-            ws->TLSSocket = s;
-        }
-        inline void set_Socket(std::shared_ptr<WSocketImpl>& ws, std::shared_ptr<asio::ip::tcp::socket>  s) {
-            ws->Socket = s;
-        }
-
-
         struct ThreadContext {
             std::unique_ptr<char[]> inflationBuffer;
             z_stream inflationStream = {};
@@ -113,8 +74,10 @@ namespace SL {
 
         };
 
-        struct WSInternal {
+        class WSInternal : std::enable_shared_from_this<WSInternal> {
+        public:
             WSInternal(std::shared_ptr<WSContextImpl>& p) :WSContextImpl_(p), sslcontext(asio::ssl::context::tlsv11) {}
+            virtual ~WSInternal() {}
             std::shared_ptr<WSContextImpl> WSContextImpl_;
             asio::ssl::context sslcontext;
             std::chrono::seconds ReadTimeout = std::chrono::seconds(30);
@@ -122,16 +85,89 @@ namespace SL {
             size_t MaxPayload = 1024 * 1024 * 20;//20 MB
             bool TLSEnabled = false;
 
-            std::function<void(WSocket&, const std::unordered_map<std::string, std::string>&)> onConnection;
-            std::function<void(WSocket&, const WSMessage&)> onMessage;
-            std::function<void(WSocket&, unsigned short, const std::string&)> onDisconnection;
-            std::function<void(WSocket&, const unsigned char *, size_t)> onPing;
-            std::function<void(WSocket&, const unsigned char *, size_t)> onPong;
-            std::function<void(WSocket&)> onHttpUpgrade;
+            std::function<void(const std::shared_ptr<IWSocket>&, const std::unordered_map<std::string, std::string>&)> onConnection;
+            std::function<void(const std::shared_ptr<IWSocket>&, const WSMessage&)> onMessage;
+            std::function<void(const std::shared_ptr<IWSocket>&, unsigned short, const std::string&)> onDisconnection;
+            std::function<void(const std::shared_ptr<IWSocket>&, const unsigned char *, size_t)> onPing;
+            std::function<void(const std::shared_ptr<IWSocket>&, const unsigned char *, size_t)> onPong;
+            std::function<bool(bool, X509_STORE_CTX*)> onVerifyPeer;
 
         };
 
+        struct SendQueueItem {
+            WSMessage msg;
+            bool compressmessage;
+        };
 
+        template<class SOCKETTYPE, class PARENTTYPE>class WSocket : public IWSocket {
+
+        public:
+            WSocket(std::shared_ptr<PARENTTYPE>& s, asio::ssl::context& sslcontext) :
+                Parent(s),
+                Socket(s->WSContextImpl_->io_service, sslcontext),
+                read_deadline(s->WSContextImpl_->io_service),
+                write_deadline(s->WSContextImpl_->io_service),
+                strand(s->WSContextImpl_->io_service) {}
+            WSocket(std::shared_ptr<PARENTTYPE>& s) :
+                Parent(s),
+                Socket(s->WSContextImpl_->io_service),
+                read_deadline(s->WSContextImpl_->io_service),
+                write_deadline(s->WSContextImpl_->io_service),
+                strand(s->WSContextImpl_->io_service) {}
+            virtual ~WSocket() {
+                canceltimers();
+                if (ReceiveBuffer) {
+                    free(ReceiveBuffer);
+                }
+            }
+            virtual bool is_open() const {
+                return true;
+            }
+            virtual std::string get_address() const {
+                return SL::WS_LITE::get_address(Socket);
+            }
+            virtual unsigned short get_port() const {
+                return SL::WS_LITE::get_port(Socket);
+            }
+            virtual bool is_v4() const {
+                return SL::WS_LITE::is_v4(Socket);
+            }
+            virtual bool is_v6() const {
+                return SL::WS_LITE::is_v6(Socket);
+            }
+            virtual bool is_loopback() const {
+                return SL::WS_LITE::is_loopback(Socket);
+            }
+            virtual void send(WSMessage& msg, bool compressmessage) {
+                auto self(std::static_pointer_cast<WSocket<SOCKETTYPE, PARENTTYPE>>( shared_from_this()));
+                auto p(Parent.lock());
+                sendImpl(p, self, msg, compressmessage);
+            }
+            //send a close message and close the socket
+            virtual void close(unsigned short code, const std::string& msg) {
+                auto self(std::static_pointer_cast<WSocket<SOCKETTYPE, PARENTTYPE>>(shared_from_this()));
+                auto p(Parent.lock());
+                closeImpl(p, self, code, msg);
+            }
+
+            void canceltimers() {
+                read_deadline.cancel();
+                write_deadline.cancel();
+            }
+            asio::basic_waitable_timer<std::chrono::steady_clock> read_deadline;
+            asio::basic_waitable_timer<std::chrono::steady_clock> write_deadline;
+            unsigned char* ReceiveBuffer = nullptr;
+            size_t ReceiveBufferSize = 0;
+            unsigned char ReceiveHeader[14];
+            bool CompressionEnabled = false;
+
+            OpCode LastOpCode = OpCode::INVALID;
+            SOCKETTYPE Socket;
+            std::weak_ptr<PARENTTYPE> Parent;
+
+            asio::strand strand;
+            std::deque<SendQueueItem> SendMessageQueue;
+        };
 
         class WSClientImpl : public WSInternal {
         public:
@@ -156,7 +192,7 @@ namespace SL {
                     ec.clear();
                 }
                 add_other_root_certs(sslcontext);
-            }        
+            }
             WSClientImpl(std::shared_ptr<WSContextImpl>& p, bool dummyargtoenabletls) : WSClientImpl(p)
             {
                 UNUSED(dummyargtoenabletls);
@@ -168,7 +204,7 @@ namespace SL {
             WSClientImpl(std::shared_ptr<WSContextImpl>& p) :WSInternal(p)
             {
             }
-            ~WSClientImpl() {}
+            virtual ~WSClientImpl() {}
         };
 
         class WSListenerImpl : public WSInternal {
@@ -225,7 +261,7 @@ namespace SL {
 
             }
 
-            ~WSListenerImpl() {
+            virtual ~WSListenerImpl() {
                 std::error_code ec;
                 acceptor.close(ec);
             }

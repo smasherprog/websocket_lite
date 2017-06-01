@@ -72,7 +72,7 @@ namespace SL {
         inline void setrsv1(unsigned char *frame, unsigned char val) { frame[0] = (val & 64) | (~64 & frame[0]); }
 
 
-        template<class PARENTTYPE>inline bool DidPassMaskRequirement(unsigned char* h) { return true; }
+        template<class PARENTTYPE>inline bool DidPassMaskRequirement(unsigned char* h) { UNUSED(h); return true; }
         template<> inline bool DidPassMaskRequirement<WSListenerImpl>(unsigned char* h) { return getMask(h); }
         template<> inline bool DidPassMaskRequirement<WSClientImpl>(unsigned char* h) { return !getMask(h); }
 
@@ -87,35 +87,35 @@ namespace SL {
         template<class T>std::string get_address(T& _socket)
         {
             std::error_code ec;
-            auto rt(_socket->lowest_layer().remote_endpoint(ec));
+            auto rt(_socket.lowest_layer().remote_endpoint(ec));
             if (!ec) return rt.address().to_string();
             else return "";
         }
         template<class T> unsigned short get_port(T& _socket)
         {
             std::error_code ec;
-            auto rt(_socket->lowest_layer().remote_endpoint(ec));
+            auto rt(_socket.lowest_layer().remote_endpoint(ec));
             if (!ec) return rt.port();
             else return static_cast<unsigned short>(-1);
         }
         template<class T> bool is_v4(T& _socket)
         {
             std::error_code ec;
-            auto rt(_socket->lowest_layer().remote_endpoint(ec));
+            auto rt(_socket.lowest_layer().remote_endpoint(ec));
             if (!ec) return rt.address().is_v4();
             else return true;
         }
         template<class T> bool is_v6(T& _socket)
         {
             std::error_code ec;
-            auto rt(_socket->lowest_layer().remote_endpoint(ec));
+            auto rt(_socket.lowest_layer().remote_endpoint(ec));
             if (!ec) return rt.address().is_v6();
             else return true;
         }
         template<class T> bool is_loopback(T& _socket)
         {
             std::error_code ec;
-            auto rt(_socket->lowest_layer().remote_endpoint(ec));
+            auto rt(_socket.lowest_layer().remote_endpoint(ec));
             if (!ec) return rt.address().is_loopback();
             else return true;
         }
