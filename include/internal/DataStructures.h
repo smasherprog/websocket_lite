@@ -154,17 +154,17 @@ namespace SL {
                 read_deadline.cancel();
                 write_deadline.cancel();
             }
-            asio::basic_waitable_timer<std::chrono::steady_clock> read_deadline;
-            asio::basic_waitable_timer<std::chrono::steady_clock> write_deadline;
             unsigned char* ReceiveBuffer = nullptr;
             size_t ReceiveBufferSize = 0;
             unsigned char ReceiveHeader[14];
             bool CompressionEnabled = false;
 
             OpCode LastOpCode = OpCode::INVALID;
-            SOCKETTYPE Socket;
             std::weak_ptr<PARENTTYPE> Parent;
+            SOCKETTYPE Socket;
 
+            asio::basic_waitable_timer<std::chrono::steady_clock> read_deadline;
+            asio::basic_waitable_timer<std::chrono::steady_clock> write_deadline;
             asio::strand strand;
             std::deque<SendQueueItem> SendMessageQueue;
         };
