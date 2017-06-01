@@ -1,5 +1,6 @@
 #pragma once
 #include "WS_Lite.h"
+#include "Logging.h"
 
 #include <sstream>
 #include <string>
