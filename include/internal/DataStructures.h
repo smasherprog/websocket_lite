@@ -74,7 +74,7 @@ namespace SL {
 
         };
 
-        class WSInternal : std::enable_shared_from_this<WSInternal> {
+        class WSInternal : public std::enable_shared_from_this<WSInternal> {
         public:
             WSInternal(std::shared_ptr<WSContextImpl>& p) :WSContextImpl_(p), sslcontext(asio::ssl::context::tlsv11) {}
             virtual ~WSInternal() {}
@@ -141,13 +141,13 @@ namespace SL {
             virtual void send(WSMessage& msg, bool compressmessage) {
                 auto self(std::static_pointer_cast<WSocket<SOCKETTYPE, PARENTTYPE>>( shared_from_this()));
                 auto p(Parent.lock());
-                sendImpl(p, self, msg, compressmessage);
+                if(p) sendImpl(p, self, msg, compressmessage);
             }
             //send a close message and close the socket
             virtual void close(unsigned short code, const std::string& msg) {
                 auto self(std::static_pointer_cast<WSocket<SOCKETTYPE, PARENTTYPE>>(shared_from_this()));
                 auto p(Parent.lock());
-                closeImpl(p, self, code, msg);
+                if(p) closeImpl(p, self, code, msg);
             }
 
             void canceltimers() {
