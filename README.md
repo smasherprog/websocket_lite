@@ -22,6 +22,9 @@ Extendable
 <li>
 Latest standards: c++ 17 
 </li>
+<li>
+All functions are thread-safe and can be called from any thread at any time
+</li>
 </ul>
 <h2>USAGE</h2>
 <p>To get started check out the example here<p>
