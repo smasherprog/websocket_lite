@@ -18,10 +18,11 @@ namespace SL {
                         SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "Parse Handshake failed ");
                         return;
                     }
-                    if (handshakecontainer->Read.size() > 0) {
+               /*     if (handshakecontainer->Read.size() > 0) {
+
                         SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "READ MORE DATA " << handshakecontainer->Read.size());
                         return;
-                    }
+                    }*/
 
                     std::ostream handshake(&handshakecontainer->Write);
                     if (Generate_Handshake(handshakecontainer->Header, handshake)) {

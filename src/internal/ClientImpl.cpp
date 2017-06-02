@@ -72,10 +72,10 @@ namespace SL {
 
                                 if (self->onConnection) {
                                     self->onConnection(socket, header);
-                                }
+                                }/*
                                 if (read_buffer->size() > bytes_transferred) {
                                     SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "Read Extra Data " << read_buffer->size() - bytes_transferred);
-                                }
+                                }*/
                                 ReadHeaderStart(self, socket);
                             }
                             else {

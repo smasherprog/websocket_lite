@@ -252,12 +252,12 @@ void multithreadthroughputtest() {
 int main(int argc, char* argv[]) {
     wssautobahntest();
     std::this_thread::sleep_for(1s);
-    /*generaltest();
+    generaltest();
     std::this_thread::sleep_for(1s);
     generalTLStest();
     std::this_thread::sleep_for(1s);
     multithreadtest();
     std::this_thread::sleep_for(1s);
-    multithreadthroughputtest();*/
+    multithreadthroughputtest();
     return 0;
 }
