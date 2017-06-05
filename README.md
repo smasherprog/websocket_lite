@@ -30,21 +30,21 @@ All functions are thread-safe and can be called from any thread at any time
 <p>To get started check out the example here<p>
 https://github.com/smasherprog/websocket_lite/blob/master/Test/main.cpp
 
-```
-   auto listener = SL::WS_LITE::CreateContext(SL::WS_LITE::ThreadCount(1))
-        .CreateListener(SL::WS_LITE::PortNumber(3000))
-        .onConnection([&](const std::shared_ptr<SL::WS_LITE::IWSocket>& socket, const std::unordered_map<std::string, std::string>& header) {
+```c++
+auto listener = SL::WS_LITE::CreateContext(SL::WS_LITE::ThreadCount(1))
+  .CreateListener(SL::WS_LITE::PortNumber(3000))
+  .onConnection([&](const std::shared_ptr<SL::WS_LITE::IWSocket>& socket, const std::unordered_map<std::string, std::string>& header) {
         
-    }).onMessage([&](const std::shared_ptr<SL::WS_LITE::IWSocket>& socket, const SL::WS_LITE::WSMessage& message) {
+  }).onMessage([&](const std::shared_ptr<SL::WS_LITE::IWSocket>& socket, const SL::WS_LITE::WSMessage& message) {
 
-    }).listen();
+  }).listen();
     
- auto clientctx = SL::WS_LITE::CreateContext(SL::WS_LITE::ThreadCount(1))
-        .CreateClient()
-        .onConnection([&](const std::shared_ptr<SL::WS_LITE::IWSocket>& socket, const std::unordered_map<std::string, std::string>& header) {
+auto clientctx = SL::WS_LITE::CreateContext(SL::WS_LITE::ThreadCount(1))
+  .CreateClient()
+  .onConnection([&](const std::shared_ptr<SL::WS_LITE::IWSocket>& socket, const std::unordered_map<std::string, std::string>& header) {
         
-    }).onDisconnection([&](const std::shared_ptr<SL::WS_LITE::IWSocket>& socket, unsigned short code, const std::string& msg) {
+  }).onDisconnection([&](const std::shared_ptr<SL::WS_LITE::IWSocket>& socket, unsigned short code, const std::string& msg) {
 
-    }).connect("localhost", SL::WS_LITE::PortNumber(3000));
+  }).connect("localhost", SL::WS_LITE::PortNumber(3000));
 
 ```
