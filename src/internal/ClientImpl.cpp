@@ -120,7 +120,7 @@ namespace SL {
                 }
             });
         }
-        template<class PARENTTYPE, typename SOCKETCREATOR>void Connect(PARENTTYPE self, const std::string& host, PortNumber port, SOCKETCREATOR&& socketcreator, const std::string& endpoint, const std::unordered_map<std::string, std::string>& extraheaders) {
+        template<class PARENTTYPE, typename SOCKETCREATOR>void Connect(PARENTTYPE self, const std::string& host, PortNumber port, bool no_delay, SOCKETCREATOR&& socketcreator, const std::string& endpoint, const std::unordered_map<std::string, std::string>& extraheaders) {
 
             auto socket = socketcreator(self);
             std::error_code ec;
@@ -137,10 +137,10 @@ namespace SL {
                 }
             }
             else {
-                asio::async_connect(socket->Socket.lowest_layer(), resolvedendpoint, [socket, self, host, endpoint, extraheaders](const std::error_code& ec, asio::ip::tcp::resolver::iterator)
+                asio::async_connect(socket->Socket.lowest_layer(), resolvedendpoint, [socket, self, host, no_delay, endpoint, extraheaders](const std::error_code& ec, asio::ip::tcp::resolver::iterator)
                 {
                     std::error_code e;
-                    socket->Socket.lowest_layer().set_option(asio::ip::tcp::no_delay(true), e);
+                    socket->Socket.lowest_layer().set_option(asio::ip::tcp::no_delay(no_delay), e);
                     if (e) {
                         SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "set_option error " << e.message());
                         e.clear();
@@ -206,7 +206,7 @@ namespace SL {
             return WSClient_Configuration(Impl_);
         }
 
-        WSClient WSClient_Configuration::connect(const std::string& host, PortNumber port, const std::string& endpoint, const std::unordered_map<std::string, std::string>& extraheaders) {
+        WSClient WSClient_Configuration::connect(const std::string& host, PortNumber port,bool no_delay, const std::string& endpoint, const std::unordered_map<std::string, std::string>& extraheaders) {
             if (Impl_->TLSEnabled) {
                 auto createsocket = [](auto c) {
                     auto socket = std::make_shared<WSocket<asio::ssl::stream<asio::ip::tcp::socket>, WSClientImpl>>(c, c->sslcontext);
@@ -221,13 +221,13 @@ namespace SL {
                     }
                     return socket;
                 };
-                Connect(Impl_, host, port, createsocket, endpoint, extraheaders);
+                Connect(Impl_, host, port,  no_delay, createsocket, endpoint, extraheaders);
             }
             else {
                 auto createsocket = [](auto c) {
                     return std::make_shared<WSocket<asio::ip::tcp::socket, WSClientImpl>>(c);
                 };
-                Connect(Impl_, host, port, createsocket, endpoint, extraheaders);
+                Connect(Impl_, host, port, no_delay,createsocket,   endpoint, extraheaders);
             }
             return WSClient(Impl_);
         }

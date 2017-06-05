@@ -69,18 +69,18 @@ namespace SL {
 
         }
 
-        template<class PARENTTYPE, typename SOCKETCREATOR>void Listen(PARENTTYPE& listener, SOCKETCREATOR&& socketcreator) {
+        template<class PARENTTYPE, typename SOCKETCREATOR>void Listen(PARENTTYPE& listener, SOCKETCREATOR&& socketcreator, bool no_delay, bool reuse_address) {
 
             auto socket = socketcreator(listener);
-            listener->acceptor.async_accept(socket->Socket.lowest_layer(), [listener, socket, socketcreator](const std::error_code& ec)
+            listener->acceptor.async_accept(socket->Socket.lowest_layer(), [listener, socket, socketcreator, no_delay, reuse_address](const std::error_code& ec)
             {   
                 std::error_code e;
-                socket->Socket.lowest_layer().set_option(asio::socket_base::reuse_address(true), e);
+                socket->Socket.lowest_layer().set_option(asio::socket_base::reuse_address(reuse_address), e);
                 if (e) {
                     SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "set_option reuse_address error " << e.message());
                     e.clear();
                 }
-                socket->Socket.lowest_layer().set_option(asio::ip::tcp::no_delay(true), e);
+                socket->Socket.lowest_layer().set_option(asio::ip::tcp::no_delay(no_delay), e);
                 if (e) {
                     SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "set_option no_delay error " << e.message());
                     e.clear();
@@ -89,7 +89,7 @@ namespace SL {
                 {
                     async_handshake(listener, socket);
                 }
-                Listen(listener, socketcreator);
+                Listen(listener, socketcreator, no_delay, reuse_address);
             });
         }
 
@@ -137,19 +137,19 @@ namespace SL {
             Impl_->onPong = handle;
             return WSListener_Configuration(Impl_);
         }
-        WSListener WSListener_Configuration::listen()
+        WSListener WSListener_Configuration::listen(bool no_delay, bool reuse_address)
         {
             if (Impl_->TLSEnabled) {
                 auto createsocket = [](auto c) {
                     return std::make_shared<WSocket<asio::ssl::stream<asio::ip::tcp::socket>, WSListenerImpl>>(c, c->sslcontext);
                 };
-                Listen(Impl_, createsocket);
+                Listen(Impl_, createsocket, no_delay, reuse_address);
             }
             else {
                 auto createsocket = [](auto c) {
                     return std::make_shared<WSocket<asio::ip::tcp::socket, WSListenerImpl>>(c);
                 };
-                Listen(Impl_, createsocket);
+                Listen(Impl_, createsocket, no_delay, reuse_address);
             }
             return WSListener(Impl_);
         }

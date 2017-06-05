@@ -52,10 +52,10 @@ namespace SL {
             INVALID = 255
         };
         enum ExtentionOptions : unsigned char {
-            NO_OPTIONS,
-            DEFLATE,
-            SERVER_NO_CONTEXT_TAKEOVER,
-            CLIENT_NO_CONTEXT_TAKEOVER,
+            NO_OPTIONS=0,
+            DEFLATE=1,
+            SERVER_NO_CONTEXT_TAKEOVER=2,
+            CLIENT_NO_CONTEXT_TAKEOVER=4,
         };
         struct WSMessage {
             unsigned char *data;
@@ -114,7 +114,7 @@ namespace SL {
             //when a pong is received from a client
             WSListener_Configuration onPong(const std::function<void(const std::shared_ptr<IWSocket>&, const unsigned char *, size_t)>& handle);
             //start the process to listen for clients. This is non-blocking and will return immediatly
-            WSListener listen();
+            WSListener listen(bool no_delay=true, bool reuse_address=true);
         };
 
 
@@ -154,7 +154,7 @@ namespace SL {
             //when a pong is received from a client
             WSClient_Configuration onPong(const std::function<void(const std::shared_ptr<IWSocket>&, const unsigned char *, size_t)>& handle);
             //connect to an endpoint. This is non-blocking and will return immediatly. If the library is unable to establish a connection, ondisconnection will be called. 
-            WSClient connect(const std::string& host, PortNumber port, const std::string& endpoint = "/", const std::unordered_map<std::string, std::string>& extraheaders = {});
+            WSClient connect(const std::string& host, PortNumber port, bool no_delay=true, const std::string& endpoint = "/", const std::unordered_map<std::string, std::string>& extraheaders = {});
         };
 
         class WSSClient_Configuration: public WSClient_Configuration {
