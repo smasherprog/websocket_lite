@@ -51,11 +51,10 @@ namespace SL {
             PONG = 10,
             INVALID = 255
         };
-        enum ExtentionOptions : unsigned char {
-            NO_OPTIONS=0,
-            DEFLATE=1,
-            SERVER_NO_CONTEXT_TAKEOVER=2,
-            CLIENT_NO_CONTEXT_TAKEOVER=4,
+        enum ExtensionOptions : unsigned char {
+            NO_OPTIONS = 0,
+            DEFLATE = 1,
+            NO_CONTEXT_TAKEOVER = 2
         };
         struct WSMessage {
             unsigned char *data;
@@ -169,17 +168,18 @@ namespace SL {
         public:
             WSContext(const std::shared_ptr<WSContextImpl>& impl) :Impl_(impl) {}
 
-            WSListener_Configuration CreateListener(PortNumber port);
+            WSListener_Configuration CreateListener(PortNumber port, ExtensionOptions options = ExtensionOptions::NO_OPTIONS);
             WSListener_Configuration CreateTLSListener(
                 PortNumber port,
                 std::string Password,
                 std::string Privatekey_File,
                 std::string Publiccertificate_File,
-                std::string dh_File);
+                std::string dh_File, 
+                ExtensionOptions options = ExtensionOptions::NO_OPTIONS);
 
-            WSClient_Configuration CreateClient();
-            WSSClient_Configuration CreateTLSClient();
-            WSSClient_Configuration CreateTLSClient(std::string Publiccertificate_File);
+            WSClient_Configuration CreateClient(ExtensionOptions options = ExtensionOptions::NO_OPTIONS);
+            WSSClient_Configuration CreateTLSClient(ExtensionOptions options = ExtensionOptions::NO_OPTIONS);
+            WSSClient_Configuration CreateTLSClient(std::string Publiccertificate_File, ExtensionOptions options = ExtensionOptions::NO_OPTIONS);
 
         };
 

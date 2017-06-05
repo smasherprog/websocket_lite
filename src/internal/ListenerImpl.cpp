@@ -154,8 +154,9 @@ namespace SL {
             return WSListener(Impl_);
         }
 
-        WSListener_Configuration WSContext::CreateListener(PortNumber port)
+        WSListener_Configuration WSContext::CreateListener(PortNumber port, ExtensionOptions options)
         {
+            UNUSED(options);
             return WSListener_Configuration(std::make_shared<WSListenerImpl>(Impl_, port));
         }
 
@@ -164,8 +165,10 @@ namespace SL {
             std::string Password,
             std::string Privatekey_File,
             std::string Publiccertificate_File,
-            std::string dh_File)
+            std::string dh_File, 
+            ExtensionOptions options)
         {
+            UNUSED(options);
             return WSListener_Configuration(std::make_shared<WSListenerImpl>(Impl_, port, Password, Privatekey_File, Publiccertificate_File, dh_File));
         }
     }

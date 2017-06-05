@@ -237,13 +237,16 @@ namespace SL {
             Impl_->onVerifyPeer = handle;
             return WSClient_Configuration(Impl_);
         }
-        WSSClient_Configuration WSContext::CreateTLSClient(std::string Publiccertificate_File) {
+        WSSClient_Configuration WSContext::CreateTLSClient(std::string Publiccertificate_File, ExtensionOptions options) {
+            UNUSED(options);
             return WSSClient_Configuration(std::make_shared<WSClientImpl>(Impl_, Publiccertificate_File));
         }
-        WSSClient_Configuration WSContext::CreateTLSClient() {
+        WSSClient_Configuration WSContext::CreateTLSClient(ExtensionOptions options) {
+            UNUSED(options);
             return WSSClient_Configuration(std::make_shared<WSClientImpl>(Impl_, true));
         }
-        WSClient_Configuration WSContext::CreateClient() {
+        WSClient_Configuration WSContext::CreateClient(ExtensionOptions options) {
+            UNUSED(options);
             return WSClient_Configuration(std::make_shared<WSClientImpl>(Impl_));
         }
     }
