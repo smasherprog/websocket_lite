@@ -8,16 +8,13 @@
 <h3>To get started, follow the setup here https://github.com/smasherprog/Projects_Setup</h3>
 <ul>
 <li>
-Cross-platform:Windows desktop, windows phone, Linux, Andriod, Mac desktop, iphone
+Cross-platform: Asio https://github.com/chriskohlhoff/asio/
 </li>
 <li>
 Performance 
 </li>
 <li>
-Encryption (openssl)
-</li>
-<li>
-Extendable 
+Simple and easy to use
 </li>
 <li>
 Latest standards: c++ 17 
