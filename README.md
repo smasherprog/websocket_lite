@@ -8,16 +8,13 @@
 <h3>To get started, follow the setup here https://github.com/smasherprog/Projects_Setup</h3>
 <ul>
 <li>
-Cross-platform:Windows desktop, windows phone, Linux, Andriod, Mac desktop, iphone
+Cross-platform: Asio https://github.com/chriskohlhoff/asio/
 </li>
 <li>
 Performance 
 </li>
 <li>
-Encryption (openssl)
-</li>
-<li>
-Extendable 
+Simple and easy to use
 </li>
 <li>
 Latest standards: c++ 17 
@@ -30,21 +27,21 @@ All functions are thread-safe and can be called from any thread at any time
 <p>To get started check out the example here<p>
 https://github.com/smasherprog/websocket_lite/blob/master/Test/main.cpp
 
-```
-   auto listener = SL::WS_LITE::CreateContext(SL::WS_LITE::ThreadCount(1))
-        .CreateListener(SL::WS_LITE::PortNumber(3000))
-        .onConnection([&](const std::shared_ptr<SL::WS_LITE::IWSocket>& socket, const std::unordered_map<std::string, std::string>& header) {
+```c++
+auto listener = SL::WS_LITE::CreateContext(SL::WS_LITE::ThreadCount(1))
+  .CreateListener(SL::WS_LITE::PortNumber(3000))
+  .onConnection([&](const std::shared_ptr<SL::WS_LITE::IWSocket>& socket, const std::unordered_map<std::string, std::string>& header) {
         
-    }).onMessage([&](const std::shared_ptr<SL::WS_LITE::IWSocket>& socket, const SL::WS_LITE::WSMessage& message) {
+  }).onMessage([&](const std::shared_ptr<SL::WS_LITE::IWSocket>& socket, const SL::WS_LITE::WSMessage& message) {
 
-    }).listen();
+  }).listen();
     
- auto clientctx = SL::WS_LITE::CreateContext(SL::WS_LITE::ThreadCount(1))
-        .CreateClient()
-        .onConnection([&](const std::shared_ptr<SL::WS_LITE::IWSocket>& socket, const std::unordered_map<std::string, std::string>& header) {
+auto clientctx = SL::WS_LITE::CreateContext(SL::WS_LITE::ThreadCount(1))
+  .CreateClient()
+  .onConnection([&](const std::shared_ptr<SL::WS_LITE::IWSocket>& socket, const std::unordered_map<std::string, std::string>& header) {
         
-    }).onDisconnection([&](const std::shared_ptr<SL::WS_LITE::IWSocket>& socket, unsigned short code, const std::string& msg) {
+  }).onDisconnection([&](const std::shared_ptr<SL::WS_LITE::IWSocket>& socket, unsigned short code, const std::string& msg) {
 
-    }).connect("localhost", SL::WS_LITE::PortNumber(3000));
+  }).connect("localhost", SL::WS_LITE::PortNumber(3000));
 
 ```
