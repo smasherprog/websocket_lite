@@ -1,6 +1,8 @@
 #pragma once
 #include "WS_Lite.h"
 #include "Utils.h"
+#include "Logging.h"
+
 #if WIN32
 #include <SDKDDKVer.h>
 #endif
@@ -15,9 +17,9 @@
 #include "asio/ssl.hpp"
 #include "asio/deadline_timer.hpp"
 
+
 namespace SL {
     namespace WS_LITE {
-
         struct HandshakeContainer {
             asio::streambuf Read;
             asio::streambuf Write;
@@ -30,45 +32,6 @@ namespace SL {
             //compress the outgoing message?
             bool Compress;
         };
-
-
-        struct SendQueueItem {
-            WSMessage msg;
-            bool compressmessage;
-        };
-        struct WSocketImpl
-        {
-            WSocketImpl(asio::io_service& s) :read_deadline(s), write_deadline(s), strand(s) {}
-            ~WSocketImpl() {
-                canceltimers();
-                if (ReceiveBuffer) {
-                    free(ReceiveBuffer);
-                }
-            }
-            asio::basic_waitable_timer<std::chrono::steady_clock> read_deadline;
-            asio::basic_waitable_timer<std::chrono::steady_clock> write_deadline;
-            unsigned char* ReceiveBuffer = nullptr;
-            size_t ReceiveBufferSize = 0;
-            unsigned char ReceiveHeader[14];
-            bool CompressionEnabled = false;
-
-            OpCode LastOpCode = OpCode::INVALID;
-            std::shared_ptr<asio::ip::tcp::socket> Socket;
-            std::shared_ptr<asio::ssl::stream<asio::ip::tcp::socket>> TLSSocket;
-            asio::strand strand;
-            std::deque<SendQueueItem> SendMessageQueue;
-
-            void canceltimers() {
-                read_deadline.cancel();
-                write_deadline.cancel();
-            }
-        };
-        inline void set_Socket(std::shared_ptr<WSocketImpl>& ws, std::shared_ptr<asio::ssl::stream<asio::ip::tcp::socket>> s) {
-            ws->TLSSocket = s;
-        }
-        inline void set_Socket(std::shared_ptr<WSocketImpl>& ws, std::shared_ptr<asio::ip::tcp::socket>  s) {
-            ws->Socket = s;
-        }
 
 
         struct ThreadContext {
@@ -111,8 +74,10 @@ namespace SL {
 
         };
 
-        struct WSInternal {
+        class WSInternal : public std::enable_shared_from_this<WSInternal> {
+        public:
             WSInternal(std::shared_ptr<WSContextImpl>& p) :WSContextImpl_(p), sslcontext(asio::ssl::context::tlsv11) {}
+            virtual ~WSInternal() {}
             std::shared_ptr<WSContextImpl> WSContextImpl_;
             asio::ssl::context sslcontext;
             std::chrono::seconds ReadTimeout = std::chrono::seconds(30);
@@ -120,14 +85,90 @@ namespace SL {
             size_t MaxPayload = 1024 * 1024 * 20;//20 MB
             bool TLSEnabled = false;
 
-            std::function<void(WSocket&, const std::unordered_map<std::string, std::string>&)> onConnection;
-            std::function<void(WSocket&, const WSMessage&)> onMessage;
-            std::function<void(WSocket&, unsigned short, const std::string&)> onDisconnection;
-            std::function<void(WSocket&, const unsigned char *, size_t)> onPing;
-            std::function<void(WSocket&, const unsigned char *, size_t)> onPong;
-            std::function<void(WSocket&)> onHttpUpgrade;
+            std::function<void(const std::shared_ptr<IWSocket>&, const std::unordered_map<std::string, std::string>&)> onConnection;
+            std::function<void(const std::shared_ptr<IWSocket>&, const WSMessage&)> onMessage;
+            std::function<void(const std::shared_ptr<IWSocket>&, unsigned short, const std::string&)> onDisconnection;
+            std::function<void(const std::shared_ptr<IWSocket>&, const unsigned char *, size_t)> onPing;
+            std::function<void(const std::shared_ptr<IWSocket>&, const unsigned char *, size_t)> onPong;
+            std::function<bool(bool, X509_STORE_CTX*)> onVerifyPeer;
 
         };
+
+        struct SendQueueItem {
+            WSMessage msg;
+            bool compressmessage;
+        };
+
+        template<class SOCKETTYPE, class PARENTTYPE>class WSocket : public IWSocket {
+
+        public:
+            WSocket(std::shared_ptr<PARENTTYPE>& s, asio::ssl::context& sslcontext) :
+                Parent(s),
+                Socket(s->WSContextImpl_->io_service, sslcontext),
+                read_deadline(s->WSContextImpl_->io_service),
+                write_deadline(s->WSContextImpl_->io_service),
+                strand(s->WSContextImpl_->io_service) {}
+            WSocket(std::shared_ptr<PARENTTYPE>& s) :
+                Parent(s),
+                Socket(s->WSContextImpl_->io_service),
+                read_deadline(s->WSContextImpl_->io_service),
+                write_deadline(s->WSContextImpl_->io_service),
+                strand(s->WSContextImpl_->io_service) {}
+            virtual ~WSocket() {
+                canceltimers();
+                if (ReceiveBuffer) {
+                    free(ReceiveBuffer);
+                }
+            }
+            virtual bool is_open() const {
+                return true;
+            }
+            virtual std::string get_address() const {
+                return SL::WS_LITE::get_address(Socket);
+            }
+            virtual unsigned short get_port() const {
+                return SL::WS_LITE::get_port(Socket);
+            }
+            virtual bool is_v4() const {
+                return SL::WS_LITE::is_v4(Socket);
+            }
+            virtual bool is_v6() const {
+                return SL::WS_LITE::is_v6(Socket);
+            }
+            virtual bool is_loopback() const {
+                return SL::WS_LITE::is_loopback(Socket);
+            }
+            virtual void send(WSMessage& msg, bool compressmessage) {
+                auto self(std::static_pointer_cast<WSocket<SOCKETTYPE, PARENTTYPE>>( shared_from_this()));
+                auto p(Parent.lock());
+                if(p) sendImpl(p, self, msg, compressmessage);
+            }
+            //send a close message and close the socket
+            virtual void close(unsigned short code, const std::string& msg) {
+                auto self(std::static_pointer_cast<WSocket<SOCKETTYPE, PARENTTYPE>>(shared_from_this()));
+                auto p(Parent.lock());
+                if(p) closeImpl(p, self, code, msg);
+            }
+
+            void canceltimers() {
+                read_deadline.cancel();
+                write_deadline.cancel();
+            }
+            unsigned char* ReceiveBuffer = nullptr;
+            size_t ReceiveBufferSize = 0;
+            unsigned char ReceiveHeader[14] = {};
+            bool CompressionEnabled = false;
+
+            OpCode LastOpCode = OpCode::INVALID;
+            std::weak_ptr<PARENTTYPE> Parent;
+            SOCKETTYPE Socket;
+
+            asio::basic_waitable_timer<std::chrono::steady_clock> read_deadline;
+            asio::basic_waitable_timer<std::chrono::steady_clock> write_deadline;
+            asio::strand strand;
+            std::deque<SendQueueItem> SendMessageQueue;
+        };
+
         class WSClientImpl : public WSInternal {
         public:
             WSClientImpl(std::shared_ptr<WSContextImpl>& p, std::string Publiccertificate_File) : WSClientImpl(p)
@@ -141,14 +182,29 @@ namespace SL {
                 asio::const_buffer cert(buf.data(), buf.size());
                 std::error_code ec;
                 sslcontext.add_certificate_authority(cert, ec);
-                ec.clear();
+                if (ec) {
+                    SL_WS_LITE_LOG(Logging_Levels::ERROR_log_level, "add_certificate_authority " << ec.message());
+                    ec.clear();
+                }
                 sslcontext.set_default_verify_paths(ec);
-
+                if (ec) {
+                    SL_WS_LITE_LOG(Logging_Levels::ERROR_log_level, "set_default_verify_paths " << ec.message());
+                    ec.clear();
+                }
+                add_other_root_certs(sslcontext);
+            }
+            WSClientImpl(std::shared_ptr<WSContextImpl>& p, bool dummyargtoenabletls) : WSClientImpl(p)
+            {
+                UNUSED(dummyargtoenabletls);
+                TLSEnabled = true;
+                std::error_code ec;
+                sslcontext.set_default_verify_paths(ec);
+                add_other_root_certs(sslcontext);
             }
             WSClientImpl(std::shared_ptr<WSContextImpl>& p) :WSInternal(p)
             {
             }
-            ~WSClientImpl() {}
+            virtual ~WSClientImpl() {}
         };
 
         class WSListenerImpl : public WSInternal {
@@ -196,7 +252,7 @@ namespace SL {
                     SL_WS_LITE_LOG(Logging_Levels::ERROR_log_level, "use_private_key_file " << ec.message());
                     ec.clear();
                 }
-
+                add_other_root_certs(sslcontext);
             }
 
             WSListenerImpl(std::shared_ptr<WSContextImpl>& p, PortNumber port) :
@@ -205,7 +261,7 @@ namespace SL {
 
             }
 
-            ~WSListenerImpl() {
+            virtual ~WSListenerImpl() {
                 std::error_code ec;
                 acceptor.close(ec);
             }

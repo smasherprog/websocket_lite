@@ -8,51 +8,40 @@
 <h3>To get started, follow the setup here https://github.com/smasherprog/Projects_Setup</h3>
 <ul>
 <li>
-Cross-platform:Windows desktop, windows phone, Linux, Andriod, Mac desktop, iphone
+Cross-platform: Asio https://github.com/chriskohlhoff/asio/
 </li>
 <li>
 Performance 
 </li>
 <li>
-Encryption (openssl)
-</li>
-<li>
-Extendable 
+Simple and easy to use
 </li>
 <li>
 Latest standards: c++ 17 
+</li>
+<li>
+All functions are thread-safe and can be called from any thread at any time
 </li>
 </ul>
 <h2>USAGE</h2>
 <p>To get started check out the example here<p>
 https://github.com/smasherprog/websocket_lite/blob/master/Test/main.cpp
 
-```
-    SL::WS_LITE::PortNumber port(3001);
-    SL::WS_LITE::WSContext listenerctx(SL::WS_LITE::ThreadCount(1));
-    auto listener = listenerctx.CreateListener(port);
-    listener.onHttpUpgrade([&](const SL::WS_LITE::WSocket& socket) {
-    
-    });
-    listener.onConnection([&](const SL::WS_LITE::WSocket& socket, const std::unordered_map<std::string, std::string>& header) {
-    
-    });
-    listener.onMessage([&](const SL::WS_LITE::WSocket& socket, const SL::WS_LITE::WSMessage& message) {
-    
-    });
+```c++
+auto listener = SL::WS_LITE::CreateContext(SL::WS_LITE::ThreadCount(1))
+  .CreateListener(SL::WS_LITE::PortNumber(3000))
+  .onConnection([&](const std::shared_ptr<SL::WS_LITE::IWSocket>& socket, const std::unordered_map<std::string, std::string>& header) {
+        
+  }).onMessage([&](const std::shared_ptr<SL::WS_LITE::IWSocket>& socket, const SL::WS_LITE::WSMessage& message) {
 
-    listener.startlistening();
-    SL::WS_LITE::WSContext clientctx(SL::WS_LITE::ThreadCount(1));
-    auto client = clientctx.CreateClient();
-    client.onHttpUpgrade([&](const SL::WS_LITE::WSocket& socket) {
+  }).listen();
     
-    });
-    client.onConnection([&](const SL::WS_LITE::WSocket& socket, const std::unordered_map<std::string, std::string>& header) {
-    
-    });
-    client.onDisconnection([&](const SL::WS_LITE::WSocket& socket, unsigned short code, const std::string& msg) {
-    
-    });
-    client.connect("localhost", port);
+auto clientctx = SL::WS_LITE::CreateContext(SL::WS_LITE::ThreadCount(1))
+  .CreateClient()
+  .onConnection([&](const std::shared_ptr<SL::WS_LITE::IWSocket>& socket, const std::unordered_map<std::string, std::string>& header) {
+        
+  }).onDisconnection([&](const std::shared_ptr<SL::WS_LITE::IWSocket>& socket, unsigned short code, const std::string& msg) {
+
+  }).connect("localhost", SL::WS_LITE::PortNumber(3000));
 
 ```
