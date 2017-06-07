@@ -96,6 +96,9 @@ namespace SL {
             void set_WriteTimeout(std::chrono::seconds seconds);
             //get the current write timeout in seconds
             std::chrono::seconds get_WriteTimeout();
+            operator bool() const { return Impl_.operator bool(); }
+            //will stop the library from processing and release all memory
+            void destroy() { Impl_.reset(); }
         };
 
         class WSListener_Configuration {
@@ -134,7 +137,9 @@ namespace SL {
             void set_WriteTimeout(std::chrono::seconds seconds);
             //get the current write timeout in seconds
             std::chrono::seconds get_WriteTimeout();
-
+            operator bool() const { return Impl_.operator bool(); }
+            //will stop the library from processing and release all memory
+            void destroy() { Impl_.reset();  }
         };
         class WSContextImpl;
         class WSClient_Configuration {
