@@ -83,6 +83,7 @@ namespace SL {
         class WSListener {
             std::shared_ptr<WSListenerImpl> Impl_;
         public:
+            WSListener() {}
             WSListener(const std::shared_ptr<WSListenerImpl>& impl) : Impl_(impl) {}
             //the maximum payload size
             void set_MaxPayload(size_t bytes);
@@ -124,6 +125,7 @@ namespace SL {
         class WSClient {
             std::shared_ptr<WSClientImpl> Impl_;
         public:
+            WSClient() {}
             WSClient(const std::shared_ptr<WSClientImpl>& impl) : Impl_(impl) {}
             //the maximum payload size
             void set_MaxPayload(size_t bytes);
@@ -172,7 +174,7 @@ namespace SL {
             std::shared_ptr<WSContextImpl> Impl_;
         public:
             WSContext(const std::shared_ptr<WSContextImpl>& impl) :Impl_(impl) {}
-
+            WSContext() {}
             WSListener_Configuration CreateListener(PortNumber port, ExtensionOptions options = ExtensionOptions::NO_OPTIONS);
             WSListener_Configuration CreateTLSListener(
                 PortNumber port,
