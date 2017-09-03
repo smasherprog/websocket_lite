@@ -303,9 +303,6 @@ add_subdirectory(include)
 if(NOT MSVC)
 	add_subdirectory(man)
 endif()
-if(NOT MSVC OR ENABLE_VSTEST)
-	add_subdirectory(tests)
-endif()
 
 configure_file(
 	"${CMAKE_CURRENT_SOURCE_DIR}/cmake_uninstall.cmake.in"
