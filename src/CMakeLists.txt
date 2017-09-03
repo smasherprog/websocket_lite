@@ -25,7 +25,6 @@ elseif(APPLE)
 	set(WEBSOCKET_LITE_PLATFORM_LIBS
 
     )
-    set(OPENSSL_ROOT_DIR /usr/local/opt/openssl/*)
 else()
 	find_package(Threads REQUIRED)
 
@@ -51,12 +50,10 @@ set(WEBSOCKET_LITE_COMMON_SRC
 	${CMAKE_CURRENT_SOURCE_DIR}/../src/internal/WSContext.cpp
 )
 
-find_package(OpenSSL REQUIRED)
-
 set(WEBSOCKET_LITE_INCLUDE_DIRS 
-	${OPENSSL_INCLUDE_DIR}
 	${CMAKE_CURRENT_SOURCE_DIR}/../asio
 	${CMAKE_CURRENT_SOURCE_DIR}/../zlib
+	${CMAKE_CURRENT_SOURCE_DIR}/../libressl/include
 	${CMAKE_CURRENT_SOURCE_DIR}/../include
 	${CMAKE_CURRENT_SOURCE_DIR}/../src
 	${WEBSOCKET_LITE_PLATFORM_INC}
@@ -65,7 +62,9 @@ set(WEBSOCKET_LITE_INCLUDE_DIRS
 
 set(WEBSOCKET_LITE_LIBS
 	${PROJECT_NAME}
-	${OPENSSL_LIBRARIES} 
+	ssl
+	tls
+	crypto
 	zlibstatic
 	${WEBSOCKET_LITE_PLATFORM_LIBS}
 	CACHE INTERNAL "${PROJECT_NAME}: Include Libraries" FORCE

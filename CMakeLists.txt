@@ -8,6 +8,7 @@ add_definitions(-DBOOST_REGEX_NO_LIB -DBOOST_DATE_TIME_NO_LIB -DASIO_STANDALONE 
 
 add_subdirectory(src)
 add_subdirectory(zlib)
+add_subdirectory(libressl)
 
 enable_testing() 
 add_subdirectory(Test)
