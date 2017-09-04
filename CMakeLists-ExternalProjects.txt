@@ -46,7 +46,7 @@ ExternalProject_Add(
 set(ASIO_INCLUDE_DIRS "${GLOBAL_OUTPUT_PATH}/asio/asio/include") 
 include_directories(${ASIO_INCLUDE_DIRS})
 
-
+set(OPENSSLBUILDOPTIONS no-ssl2 no-ssl3 no-shared no-weak-ssl-ciphers)
 if(WIN32) 
 
 	if(CMAKE_SIZEOF_VOID_P EQUAL 8)
@@ -61,7 +61,7 @@ if(WIN32)
 	ExternalProject_Add(
 		openssl
 		URL https://github.com/openssl/openssl/archive/OpenSSL_1_0_2l.tar.gz
-		CONFIGURE_COMMAND perl Configure no-shared ${PERLCONFIGURECOMMAND} "--prefix=${GLOBAL_OUTPUT_PATH}/openssl"
+		CONFIGURE_COMMAND perl Configure ${OPENSSLBUILDOPTIONS} ${PERLCONFIGURECOMMAND} "--prefix=${GLOBAL_OUTPUT_PATH}/openssl"
 		BUILD_COMMAND "ms\\${PERLBUILDCOMMAND}.bat"
 		COMMAND nmake -f "ms\\ntdll.mak"
 		BUILD_IN_SOURCE 1
@@ -71,13 +71,11 @@ if(WIN32)
 		${CMAKE_STATIC_LIBRARY_PREFIX}libeay32${CMAKE_STATIC_LIBRARY_SUFFIX} 
 		${CMAKE_STATIC_LIBRARY_PREFIX}ssleay32${CMAKE_STATIC_LIBRARY_SUFFIX}
 	)
-elseif(APPLE) 
-
 else()
 	ExternalProject_Add(
 		openssl
 		URL https://github.com/openssl/openssl/archive/OpenSSL_1_0_2l.tar.gz
-		CONFIGURE_COMMAND ./config no-shared ${PERLCONFIGURECOMMAND} "--prefix=${GLOBAL_OUTPUT_PATH}/openssl"
+		CONFIGURE_COMMAND ./config ${OPENSSLBUILDOPTIONS} ${PERLCONFIGURECOMMAND} "--prefix=${GLOBAL_OUTPUT_PATH}/openssl"
 		BUILD_COMMAND make 
 		BUILD_IN_SOURCE 1
 		INSTALL_COMMAND make install
