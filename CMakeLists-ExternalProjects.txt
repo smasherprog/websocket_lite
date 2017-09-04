@@ -1,9 +1,5 @@
 include(ExternalProject)
 
-if(MSVC)
-    set(CMAKE_DEBUG_POSTFIX "d")
-endif()
-
 ExternalProject_Add(
   libressl
 
@@ -41,11 +37,12 @@ ExternalProject_Add(
   
   TEST_COMMAND ""
 )
-
 set(ZLIB_INCLUDE_DIRS "${GLOBAL_OUTPUT_PATH}/zlib/include")
 link_directories(${GLOBAL_OUTPUT_PATH}/zlib/lib)
-set(ZLIB_LIBRARIES ${CMAKE_STATIC_LIBRARY_PREFIX}zlibstatic${CMAKE_STATIC_LIBRARY_SUFFIX})
-
+set(ZLIB_LIBRARIES optimized ${CMAKE_STATIC_LIBRARY_PREFIX}zlibstatic${CMAKE_STATIC_LIBRARY_SUFFIX}
+             debug ${CMAKE_STATIC_LIBRARY_PREFIX}zlibstaticd${CMAKE_STATIC_LIBRARY_SUFFIX}
+)
+			 
 include_directories(${ZLIB_INCLUDE_DIRS})
 ExternalProject_Add(
   asio
