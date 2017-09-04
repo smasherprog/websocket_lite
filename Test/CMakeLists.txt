@@ -20,12 +20,15 @@ add_definitions(
 include_directories(${CMAKE_SOURCE_DIR}/include)
 add_executable(${PROJECT_NAME} ${${PROJECT_NAME}_EXAMPLE_SRC} ${${PROJECT_NAME}_PLATFORM_SRC})
 
-if(MSVC)
+if(WIN32) 
 	target_link_libraries(${PROJECT_NAME} libwebsocket_lite ${ZLIB_LIBRARIES} ${OPENSSL_LIBRARIES} Crypt32)
+	
+elseif(APPLE) 
+	find_package(Threads REQUIRED)
+	target_link_libraries(${PROJECT_NAME} libwebsocket_lite ${ZLIB_LIBRARIES} ${OPENSSL_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} )
 else()
 	find_package(Threads REQUIRED)
-	target_link_libraries(${PROJECT_NAME} libwebsocket_lite ${ZLIB_LIBRARIES} ${OPENSSL_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
+	target_link_libraries(${PROJECT_NAME} libwebsocket_lite ${ZLIB_LIBRARIES} ${OPENSSL_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} dl)
 endif()
-
 
 add_test (NAME ${PROJECT_NAME} COMMAND ${PROJECT_NAME})
