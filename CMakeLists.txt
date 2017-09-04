@@ -27,7 +27,7 @@ endforeach(OUTPUTCONFIG CMAKE_CONFIGURATION_TYPES)
 include(CMakeLists-ExternalProjects.txt)
 
 add_subdirectory(src) 
-add_dependencies(libwebsocket_lite libressl zlib asio)
+add_dependencies(libwebsocket_lite openssl zlib asio)
 
 enable_testing() 
 add_subdirectory(Test)

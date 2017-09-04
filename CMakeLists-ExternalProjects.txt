@@ -1,29 +1,6 @@
 include(ExternalProject)
 
 ExternalProject_Add(
-  libressl
-
-  URL https://ftp.openbsd.org/pub/OpenBSD/LibreSSL/libressl-2.5.5.tar.gz
-  
-  UPDATE_COMMAND ""
-  PATCH_COMMAND ""
-  
-  SOURCE_DIR "${CMAKE_SOURCE_DIR}/libs/libressl"
-  CMAKE_ARGS -DBUILD_SHARED=OFF -DBUILD_SHARED_LIBS=OFF -DCMAKE_INSTALL_PREFIX=${GLOBAL_OUTPUT_PATH}/libressl
-  
-  TEST_COMMAND ""
-)
-
-set(LIBRESSL_INCLUDE_DIRS "${GLOBAL_OUTPUT_PATH}/libressl/include")
-link_directories(${GLOBAL_OUTPUT_PATH}/libressl/lib)
-set(LIBRESSL_LIBRARIES 
-	${CMAKE_STATIC_LIBRARY_PREFIX}ssl${CMAKE_STATIC_LIBRARY_SUFFIX} 
-	${CMAKE_STATIC_LIBRARY_PREFIX}tls${CMAKE_STATIC_LIBRARY_SUFFIX} 
-	${CMAKE_STATIC_LIBRARY_PREFIX}crypto${CMAKE_STATIC_LIBRARY_SUFFIX}
-)
-include_directories(${LIBRESSL_INCLUDE_DIRS})
-
-ExternalProject_Add(
   zlib
 
   GIT_REPOSITORY "https://github.com/madler/zlib.git"
@@ -37,6 +14,7 @@ ExternalProject_Add(
   
   TEST_COMMAND ""
 )
+
 set(ZLIB_INCLUDE_DIRS "${GLOBAL_OUTPUT_PATH}/zlib/include")
 link_directories(${GLOBAL_OUTPUT_PATH}/zlib/lib)
 
@@ -67,3 +45,49 @@ ExternalProject_Add(
 
 set(ASIO_INCLUDE_DIRS "${GLOBAL_OUTPUT_PATH}/asio/asio/include") 
 include_directories(${ASIO_INCLUDE_DIRS})
+
+
+if(WIN32) 
+
+	if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+		# 64 bits
+		set(PERLCONFIGURECOMMAND VC-WIN64A)
+		set(PERLBUILDCOMMAND do_win64a)
+	elseif(CMAKE_SIZEOF_VOID_P EQUAL 4)
+		# 32 bits
+		set(PERLCONFIGURECOMMAND VC-WIN32)
+		set(PERLBUILDCOMMAND do_nasm)
+	endif()
+	ExternalProject_Add(
+		openssl
+		URL https://github.com/openssl/openssl/archive/OpenSSL_1_0_2l.tar.gz
+		CONFIGURE_COMMAND perl Configure no-shared ${PERLCONFIGURECOMMAND} "--prefix=${GLOBAL_OUTPUT_PATH}/openssl"
+		BUILD_COMMAND "ms\\${PERLBUILDCOMMAND}.bat"
+		COMMAND nmake -f "ms\\ntdll.mak"
+		BUILD_IN_SOURCE 1
+		INSTALL_COMMAND nmake -f "ms\\ntdll.mak" install
+	)
+
+elseif(APPLE) 
+
+else()
+	ExternalProject_Add(
+		openssl
+		URL https://github.com/openssl/openssl/archive/OpenSSL_1_0_2l.tar.gz
+		CONFIGURE_COMMAND ./config no-shared ${PERLCONFIGURECOMMAND} "--prefix=${GLOBAL_OUTPUT_PATH}/openssl"
+		BUILD_COMMAND make 
+		BUILD_IN_SOURCE 1
+		INSTALL_COMMAND make install
+	)
+endif()
+
+
+
+set(OPENSSL_INCLUDE_DIRS "${GLOBAL_OUTPUT_PATH}/openssl/include")
+link_directories(${GLOBAL_OUTPUT_PATH}/openssl/lib)
+set(OPENSSL_LIBRARIES 
+	${CMAKE_STATIC_LIBRARY_PREFIX}libeay32${CMAKE_STATIC_LIBRARY_SUFFIX} 
+	${CMAKE_STATIC_LIBRARY_PREFIX}ssleay32${CMAKE_STATIC_LIBRARY_SUFFIX}
+)
+include_directories(${OPENSSL_INCLUDE_DIRS})
+
