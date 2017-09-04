@@ -1,5 +1,6 @@
 project(libwebsocket_lite)
 
+
 if(MSVC)
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W4")
 else()
@@ -69,7 +70,11 @@ set(WEBSOCKET_LITE_LIBS
 	${WEBSOCKET_LITE_PLATFORM_LIBS}
 	CACHE INTERNAL "${PROJECT_NAME}: Include Libraries" FORCE
 )
-add_definitions(-DASIO_STANDALONE)
+add_definitions()
+ 
+
+
+add_definitions(-DBOOST_REGEX_NO_LIB -DBOOST_DATE_TIME_NO_LIB -DASIO_STANDALONE -DBOOST_NO_EXCEPTIONS)
 include_directories(${WEBSOCKET_LITE_INCLUDE_DIRS})
 add_library(${PROJECT_NAME} ${WEBSOCKET_LITE_COMMON_SRC} ${WEBSOCKET_LITE_PLATFORM_SRC})
 
