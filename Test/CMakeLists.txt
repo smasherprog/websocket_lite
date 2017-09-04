@@ -17,17 +17,14 @@ add_definitions(
 	-DTEST_CERTIFICATE_PRIVATE_PASSWORD="Test pass"
 	-DTEST_FUZZING_PATH="${CMAKE_CURRENT_SOURCE_DIR}/../Test/fuzzingclient.json"
 )
-if(NOT WIN32)
-	find_package(Threads REQUIRED)
-endif()
-
 include_directories(${CMAKE_SOURCE_DIR}/include)
 add_executable(${PROJECT_NAME} ${${PROJECT_NAME}_EXAMPLE_SRC} ${${PROJECT_NAME}_PLATFORM_SRC})
 
 if(MSVC)
-	target_link_libraries(${PROJECT_NAME} ${CMAKE_THREAD_LIBS_INIT} libwebsocket_lite ${ZLIB_LIBRARIES} ${LIBRESSL_LIBRARIES} Crypt32)
+	target_link_libraries(${PROJECT_NAME} libwebsocket_lite ${ZLIB_LIBRARIES} ${LIBRESSL_LIBRARIES} Crypt32)
 else()
-	target_link_libraries(${PROJECT_NAME} ${CMAKE_THREAD_LIBS_INIT} libwebsocket_lite ${ZLIB_LIBRARIES} ${LIBRESSL_LIBRARIES})
+	find_package(Threads REQUIRED)
+	target_link_libraries(${PROJECT_NAME} libwebsocket_lite ${ZLIB_LIBRARIES} ${LIBRESSL_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
 endif()
 
 
