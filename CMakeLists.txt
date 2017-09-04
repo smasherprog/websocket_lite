@@ -24,7 +24,7 @@ endforeach(OUTPUTCONFIG CMAKE_CONFIGURATION_TYPES)
 
 
 # 3rdparty Libraries
-include(libs/CMakeLists-ExternalProjects.txt)
+include(CMakeLists-ExternalProjects.txt)
 
 add_subdirectory(src) 
 add_dependencies(libwebsocket_lite libressl zlib asio)

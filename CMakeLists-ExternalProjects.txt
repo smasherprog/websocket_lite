@@ -1,0 +1,67 @@
+include(ExternalProject)
+
+if(MSVC)
+    set(CMAKE_DEBUG_POSTFIX "d")
+endif()
+
+ExternalProject_Add(
+  libressl
+
+  URL https://ftp.openbsd.org/pub/OpenBSD/LibreSSL/libressl-2.5.5.tar.gz
+  
+  UPDATE_COMMAND ""
+  PATCH_COMMAND ""
+  
+  SOURCE_DIR "${CMAKE_SOURCE_DIR}/libs/libressl"
+  CMAKE_ARGS -DBUILD_SHARED=OFF -DBUILD_SHARED_LIBS=OFF -DCMAKE_INSTALL_PREFIX=${GLOBAL_OUTPUT_PATH}/libressl
+  
+  TEST_COMMAND ""
+)
+
+set(LIBRESSL_INCLUDE_DIRS "${GLOBAL_OUTPUT_PATH}/libressl/include")
+link_directories(${GLOBAL_OUTPUT_PATH}/libressl/lib)
+set(LIBRESSL_LIBRARIES 
+	${CMAKE_STATIC_LIBRARY_PREFIX}ssl${CMAKE_STATIC_LIBRARY_SUFFIX} 
+	${CMAKE_STATIC_LIBRARY_PREFIX}tls${CMAKE_STATIC_LIBRARY_SUFFIX} 
+	${CMAKE_STATIC_LIBRARY_PREFIX}crypto${CMAKE_STATIC_LIBRARY_SUFFIX}
+)
+include_directories(${LIBRESSL_INCLUDE_DIRS})
+
+ExternalProject_Add(
+  zlib
+
+  GIT_REPOSITORY "https://github.com/madler/zlib.git"
+  GIT_TAG "v1.2.11"
+  
+  UPDATE_COMMAND ""
+  PATCH_COMMAND ""
+  
+  SOURCE_DIR "${CMAKE_SOURCE_DIR}/libs/zlib"
+  CMAKE_ARGS -DBUILD_SHARED_LIBS=OFF -DCMAKE_INSTALL_PREFIX=${GLOBAL_OUTPUT_PATH}/zlib
+  
+  TEST_COMMAND ""
+)
+
+set(ZLIB_INCLUDE_DIRS "${GLOBAL_OUTPUT_PATH}/zlib/include")
+link_directories(${GLOBAL_OUTPUT_PATH}/zlib/lib)
+set(ZLIB_LIBRARIES ${CMAKE_STATIC_LIBRARY_PREFIX}zlibstatic${CMAKE_STATIC_LIBRARY_SUFFIX})
+
+include_directories(${ZLIB_INCLUDE_DIRS})
+ExternalProject_Add(
+  asio
+
+  GIT_REPOSITORY "https://github.com/chriskohlhoff/asio.git"
+  GIT_TAG "asio-1-10-branch"
+  
+  UPDATE_COMMAND ""
+  PATCH_COMMAND ""
+  
+  SOURCE_DIR "${CMAKE_SOURCE_DIR}/libs/asio"
+  CONFIGURE_COMMAND ""
+  BUILD_COMMAND ""
+  INSTALL_COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/libs/asio ${GLOBAL_OUTPUT_PATH}/asio
+  TEST_COMMAND ""
+)
+
+set(ASIO_INCLUDE_DIRS "${GLOBAL_OUTPUT_PATH}/asio/asio/include") 
+include_directories(${ASIO_INCLUDE_DIRS})
