@@ -71,11 +71,19 @@ if(WIN32)
 		${CMAKE_STATIC_LIBRARY_PREFIX}libeay32${CMAKE_STATIC_LIBRARY_SUFFIX} 
 		${CMAKE_STATIC_LIBRARY_PREFIX}ssleay32${CMAKE_STATIC_LIBRARY_SUFFIX}
 	)
-else()
+
+	else()
+	if(APPLE) 
+		set(CONFIGURECOMMAND ./Configure darwin64-x86_64-cc)
+	else()	
+		set(CONFIGURECOMMAND ./config)
+	endif()
+
+	
 	ExternalProject_Add(
 		openssl
 		URL https://github.com/openssl/openssl/archive/OpenSSL_1_0_2l.tar.gz
-		CONFIGURE_COMMAND ./config ${OPENSSLBUILDOPTIONS} ${PERLCONFIGURECOMMAND} "--prefix=${GLOBAL_OUTPUT_PATH}/openssl"
+		CONFIGURE_COMMAND ${CONFIGURECOMMAND} ${OPENSSLBUILDOPTIONS} ${PERLCONFIGURECOMMAND} "--prefix=${GLOBAL_OUTPUT_PATH}/openssl"
 		BUILD_COMMAND make 
 		BUILD_IN_SOURCE 1
 		INSTALL_COMMAND make install
