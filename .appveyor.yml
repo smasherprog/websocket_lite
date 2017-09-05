@@ -20,13 +20,19 @@ install:
   - start /wait msiexec /i c:\projects\proj\VCForPython27.msi /quiet /qn /norestart
   - pip install autobahntestsuite
   - ps: If ($env:Platform -Match "x86"){ $env:CMAKE_ARCH="" } Else { $env:CMAKE_ARCH=" Win64"}
-  - cd c:\projects
+
+  
+build_script:
   - cd c:\projects\proj
   - mkdir build
   - cd build
-  - cmake .. 
-  
-build_script:
+  - cmake -DBUILD_SHARED_LIBS=ON  .. 
+  - cmake --build .
+  - cd ..
+  - ps: rd -r build
+  - mkdir build
+  - cd build
+  - cmake -DBUILD_SHARED_LIBS=OFF  .. 
   - cmake --build .
   
 test_script:
