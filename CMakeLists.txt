@@ -4,6 +4,7 @@ project(websocket_lite)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
+option(BUILD_SHARED_LIBS "Build the shared library" OFF)
 
 # Global settings
 set(GLOBAL_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
