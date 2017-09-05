@@ -42,15 +42,10 @@ add_library(${PROJECT_NAME}
 
 add_dependencies(${PROJECT_NAME} openssl zlib asio)
 
-if(BUILD_SHARED_LIBS)
-	install (TARGETS ${PROJECT_NAME}  
-		LIBRARY DESTINATION bin
-	)
-else()
-	install (TARGETS ${PROJECT_NAME} 
-		ARCHIVE DESTINATION lib
-	)
-endif()
+install (TARGETS ${PROJECT_NAME}  
+	ARCHIVE DESTINATION lib
+	LIBRARY DESTINATION lib
+)
 
 install (FILES 
 	include/WS_Lite.h
