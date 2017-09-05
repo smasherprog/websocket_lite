@@ -32,7 +32,7 @@ else()
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -pedantic")
 endif()
 add_definitions(-DBOOST_REGEX_NO_LIB -DBOOST_DATE_TIME_NO_LIB -DASIO_STANDALONE -DBOOST_NO_EXCEPTIONS)
-include_directories(include src)
+include_directories(include)
 add_library(${PROJECT_NAME} 	
 	src/Utils.cpp
 	src/ListenerImpl.cpp
