@@ -40,16 +40,20 @@ add_library(${PROJECT_NAME}
 	src/ClientImpl.cpp
 	src/WSContext.cpp
 )
-
 add_dependencies(${PROJECT_NAME} openssl zlib asio)
+set(COMMONLIBRARIES  
+	${ZLIB_LIBRARIES} 
+	${OPENSSL_LIBRARIES}
+)
+
 if(WIN32) 
-	target_link_libraries(${PROJECT_NAME} ${ZLIB_LIBRARIES} ${OPENSSL_LIBRARIES} Crypt32)
+	target_link_libraries(${PROJECT_NAME} ${COMMONLIBRARIES} Crypt32)
 elseif(APPLE) 
 	find_package(Threads REQUIRED)
-	target_link_libraries(${PROJECT_NAME} ${ZLIB_LIBRARIES} ${OPENSSL_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} )
+	target_link_libraries(${PROJECT_NAME} ${COMMONLIBRARIES} ${CMAKE_THREAD_LIBS_INIT} )
 else()
 	find_package(Threads REQUIRED)
-	target_link_libraries(${PROJECT_NAME} ${ZLIB_LIBRARIES} ${OPENSSL_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} dl)
+	target_link_libraries(${PROJECT_NAME} ${COMMONLIBRARIES} ${CMAKE_THREAD_LIBS_INIT} dl)
 endif()
 
 install (TARGETS ${PROJECT_NAME}  
