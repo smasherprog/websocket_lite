@@ -31,7 +31,6 @@ if(MSVC)
 else()
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -pedantic")
 endif()
-
 add_definitions(-DBOOST_REGEX_NO_LIB -DBOOST_DATE_TIME_NO_LIB -DASIO_STANDALONE -DBOOST_NO_EXCEPTIONS)
 include_directories(include src)
 add_library(${PROJECT_NAME} 	
@@ -41,9 +40,18 @@ add_library(${PROJECT_NAME}
 	src/WSContext.cpp
 )
 
-add_dependencies(websocket_lite openssl zlib asio)
+add_dependencies(${PROJECT_NAME} openssl zlib asio)
 
-install (TARGETS websocket_lite DESTINATION bin)
+if(BUILD_SHARED_LIBS)
+	install (TARGETS ${PROJECT_NAME}  
+		LIBRARY DESTINATION bin
+	)
+else()
+	install (TARGETS ${PROJECT_NAME} 
+		ARCHIVE DESTINATION lib
+	)
+endif()
+
 install (FILES 
 	include/WS_Lite.h
 	include/Logging.h
