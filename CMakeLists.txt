@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.8)
-project(WebSocket_Lite)
+project(websocket_lite)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -26,8 +26,29 @@ endforeach(OUTPUTCONFIG CMAKE_CONFIGURATION_TYPES)
 # 3rdparty Libraries
 include(CMakeLists-ExternalProjects.txt)
 
-add_subdirectory(src) 
-add_dependencies(libwebsocket_lite openssl zlib asio)
+if(MSVC)
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W4")
+else()
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -pedantic")
+endif()
 
+add_definitions(-DBOOST_REGEX_NO_LIB -DBOOST_DATE_TIME_NO_LIB -DASIO_STANDALONE -DBOOST_NO_EXCEPTIONS)
+include_directories(include src)
+add_library(${PROJECT_NAME} 	
+	src/Utils.cpp
+	src/ListenerImpl.cpp
+	src/ClientImpl.cpp
+	src/WSContext.cpp
+)
+
+add_dependencies(websocket_lite openssl zlib asio)
+
+install (TARGETS websocket_lite DESTINATION bin)
+install (FILES 
+	include/WS_Lite.h
+	include/Logging.h
+	DESTINATION include
+)
+		 
 enable_testing() 
 add_subdirectory(Test)
