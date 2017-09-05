@@ -22,8 +22,9 @@ ExternalProject_Add(
 )
 
 set(ZLIB_INCLUDE_DIRS "${GLOBAL_OUTPUT_PATH}/zlib/include")
-link_directories(${GLOBAL_OUTPUT_PATH}/zlib/lib)
 if(BUILD_SHARED_LIBS)
+	link_directories(${GLOBAL_OUTPUT_PATH}/zlib/bin)
+	link_directories(${GLOBAL_OUTPUT_PATH}/zlib/lib)
 	if(UNIX)
 		set(ZLIB_LIBRARIES ${CMAKE_SHARED_LIBRARY_PREFIX}z${CMAKE_SHARED_LIBRARY_SUFFIX})
 	else()
@@ -33,6 +34,7 @@ if(BUILD_SHARED_LIBS)
 		)
 	endif()
 else()
+	link_directories(${GLOBAL_OUTPUT_PATH}/zlib/lib)
 	if(UNIX)
 		set(ZLIB_LIBRARIES ${CMAKE_STATIC_LIBRARY_PREFIX}z${CMAKE_STATIC_LIBRARY_SUFFIX})
 	else()
@@ -90,11 +92,14 @@ if(WIN32)
 		INSTALL_COMMAND nmake -f "ms\\ntdll.mak" install
 	)
 	if(BUILD_SHARED_LIBS)
+		link_directories(${GLOBAL_OUTPUT_PATH}/openssl/bin)
+		link_directories(${GLOBAL_OUTPUT_PATH}/openssl/lib)
 		set(OPENSSL_LIBRARIES 
 			${CMAKE_SHARED_LIBRARY_PREFIX}libeay32${CMAKE_SHARED_LIBRARY_SUFFIX} 
 			${CMAKE_SHARED_LIBRARY_PREFIX}ssleay32${CMAKE_SHARED_LIBRARY_SUFFIX}
 		)
 	else()
+		link_directories(${GLOBAL_OUTPUT_PATH}/openssl/lib)
 		set(OPENSSL_LIBRARIES 
 			${CMAKE_STATIC_LIBRARY_PREFIX}libeay32${CMAKE_STATIC_LIBRARY_SUFFIX} 
 			${CMAKE_STATIC_LIBRARY_PREFIX}ssleay32${CMAKE_STATIC_LIBRARY_SUFFIX}
@@ -131,7 +136,6 @@ if(WIN32)
 	endif() 
 endif()
 
-set(OPENSSL_INCLUDE_DIRS "${GLOBAL_OUTPUT_PATH}/openssl/include")
-link_directories(${GLOBAL_OUTPUT_PATH}/openssl/lib)
+set(OPENSSL_INCLUDE_DIRS "${GLOBAL_OUTPUT_PATH}/openssl/include") 
 include_directories(${OPENSSL_INCLUDE_DIRS})
 

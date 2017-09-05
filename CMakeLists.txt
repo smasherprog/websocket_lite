@@ -42,6 +42,15 @@ add_library(${PROJECT_NAME}
 )
 
 add_dependencies(${PROJECT_NAME} openssl zlib asio)
+if(WIN32) 
+	target_link_libraries(${PROJECT_NAME} ${ZLIB_LIBRARIES} ${OPENSSL_LIBRARIES} Crypt32)
+elseif(APPLE) 
+	find_package(Threads REQUIRED)
+	target_link_libraries(${PROJECT_NAME} ${ZLIB_LIBRARIES} ${OPENSSL_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} )
+else()
+	find_package(Threads REQUIRED)
+	target_link_libraries(${PROJECT_NAME} ${ZLIB_LIBRARIES} ${OPENSSL_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} dl)
+endif()
 
 install (TARGETS ${PROJECT_NAME}  
 	ARCHIVE DESTINATION lib
