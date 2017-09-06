@@ -17,6 +17,7 @@ typedef struct x509_store_ctx_st X509_STORE_CTX;
 #endif
 #else
 #define WS_LITE_EXTERN
+#define EXPIMP_TEMPLATE
 #endif
 
 namespace SL {
