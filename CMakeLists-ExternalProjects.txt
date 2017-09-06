@@ -22,9 +22,8 @@ ExternalProject_Add(
 )
 
 set(ZLIB_INCLUDE_DIRS "${GLOBAL_OUTPUT_PATH}/zlib/include")
+link_directories(${GLOBAL_OUTPUT_PATH}/zlib/lib)
 if(BUILD_SHARED_LIBS)
-	link_directories(${GLOBAL_OUTPUT_PATH}/zlib/bin)
-	link_directories(${GLOBAL_OUTPUT_PATH}/zlib/lib)
 	if(UNIX)
 		set(ZLIB_LIBRARIES ${CMAKE_SHARED_LIBRARY_PREFIX}z${CMAKE_SHARED_LIBRARY_SUFFIX})
 	else()
@@ -34,7 +33,7 @@ if(BUILD_SHARED_LIBS)
 		)
 	endif()
 else()
-	link_directories(${GLOBAL_OUTPUT_PATH}/zlib/lib)
+
 	if(UNIX)
 		set(ZLIB_LIBRARIES ${CMAKE_STATIC_LIBRARY_PREFIX}z${CMAKE_STATIC_LIBRARY_SUFFIX})
 	else()
@@ -43,7 +42,6 @@ else()
 	endif()
 endif()
 include_directories(${ZLIB_INCLUDE_DIRS})
-
 
 ExternalProject_Add(
   asio
