@@ -93,7 +93,7 @@ else()
 		if(APPLE) 
 			set(CONFIGURECOMMAND ./Configure darwin64-x86_64-cc)
 		else()	
-			set(CONFIGURECOMMAND ./config)
+			set(CONFIGURECOMMAND ./Configure linux-x86_64-clang)
 		endif()
 		ExternalProject_Add(
 			openssl
