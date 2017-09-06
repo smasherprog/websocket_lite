@@ -28,10 +28,6 @@ build_script:
   - cd build
   - cmake -DBUILD_SHARED_LIBS=ON .. 
   - cmake --build .
-  - cd ..
-  - ps: rd -r build
-  - mkdir build
-  - cd build
   - cmake -DBUILD_SHARED_LIBS=OFF .. 
   - cmake --build .
   
