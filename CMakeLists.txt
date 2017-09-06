@@ -5,6 +5,8 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 option(BUILD_SHARED_LIBS "Build the shared library" OFF)
+option(CUSTOM_OPENSSL "Build the library using a custom openssl version" OFF)
+option(CUSTOM_ZLIB "Build the library using a custom zlib version" OFF)
 
 # Global settings
 set(GLOBAL_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
@@ -35,10 +37,15 @@ endif()
 add_definitions(-DBOOST_REGEX_NO_LIB -DBOOST_DATE_TIME_NO_LIB -DASIO_STANDALONE -DBOOST_NO_EXCEPTIONS)
 include_directories(include)
 
-set(COMMONLIBRARIES  
+set(COMMON_LIBRARIES  
 	${ZLIB_LIBRARIES} 
 	${OPENSSL_LIBRARIES}
 )	
+set(COMMON_INCLUDE_DIRS 
+	${ZLIB_INCLUDE_DIRS} 
+	${OPENSSL_INCLUDE_DIRS}
+)	
+
 add_library(${PROJECT_NAME} 	
 	src/Utils.cpp
 	src/ListenerImpl.cpp
@@ -49,13 +56,13 @@ add_library(${PROJECT_NAME}
 if(BUILD_SHARED_LIBS)
 	set_target_properties(${PROJECT_NAME} PROPERTIES DEFINE_SYMBOL WS_LITE_DLL)
 	if(WIN32) 
-		target_link_libraries(${PROJECT_NAME} ${COMMONLIBRARIES} Crypt32)
+		target_link_libraries(${PROJECT_NAME} ${COMMON_LIBRARIES} Crypt32)
 	elseif(APPLE) 
 		find_package(Threads REQUIRED)
-		target_link_libraries(${PROJECT_NAME} ${COMMONLIBRARIES} ${CMAKE_THREAD_LIBS_INIT} )
+		target_link_libraries(${PROJECT_NAME} ${COMMON_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} )
 	else()
 		find_package(Threads REQUIRED)
-		target_link_libraries(${PROJECT_NAME} ${COMMONLIBRARIES} ${CMAKE_THREAD_LIBS_INIT} dl)
+		target_link_libraries(${PROJECT_NAME} ${COMMON_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} dl)
 	endif()
 endif()
 add_dependencies(${PROJECT_NAME} openssl zlib asio)
