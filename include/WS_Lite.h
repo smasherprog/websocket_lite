@@ -82,7 +82,6 @@ namespace WS_LITE {
         virtual void close(unsigned short code = 1000, const std::string &msg = "") = 0;
     };
     class WSListenerImpl;
-    EXPIMP_TEMPLATE template class WS_LITE_EXTERN std::shared_ptr<WSListenerImpl>;
     class WS_LITE_EXTERN WSListener {
         std::shared_ptr<WSListenerImpl> Impl_;
 
@@ -123,7 +122,6 @@ namespace WS_LITE {
         std::shared_ptr<WSListener> listen(bool no_delay = true, bool reuse_address = true);
     };
     class WSClientImpl;
-    EXPIMP_TEMPLATE template class WS_LITE_EXTERN std::shared_ptr<WSClientImpl>;
     class WS_LITE_EXTERN WSClient {
         std::shared_ptr<WSClientImpl> Impl_;
 
@@ -143,7 +141,6 @@ namespace WS_LITE {
         std::chrono::seconds get_WriteTimeout();
     };
     class WSContextImpl;
-    EXPIMP_TEMPLATE template class WS_LITE_EXTERN std::shared_ptr<WSContextImpl>;
     class WS_LITE_EXTERN WSClient_Configuration {
       protected:
         std::shared_ptr<WSClientImpl> Impl_;
@@ -190,3 +187,6 @@ namespace WS_LITE {
     WSContext WS_LITE_EXTERN CreateContext(ThreadCount threadcount);
 } // namespace WS_LITE
 } // namespace SL
+EXPIMP_TEMPLATE template class WS_LITE_EXTERN std::shared_ptr<SL::WS_LITE::WSListenerImpl>;
+EXPIMP_TEMPLATE template class WS_LITE_EXTERN std::shared_ptr<SL::WS_LITE::WSContextImpl>;
+EXPIMP_TEMPLATE template class WS_LITE_EXTERN std::shared_ptr<SL::WS_LITE::WSClientImpl>;

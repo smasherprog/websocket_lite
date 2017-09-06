@@ -147,7 +147,7 @@ namespace WS_LITE {
         return hash;
     }
 
-    template <class type> void Base64encode(const type &ascii, type &base64)
+    template <class type> type Base64encode(const type &ascii)
     {
         BIO *bio, *b64;
         BUF_MEM *bptr;
@@ -160,6 +160,7 @@ namespace WS_LITE {
 
         // Write directly to base64-buffer to avoid copy
         int base64_length = static_cast<int>(round(4 * ceil((double)ascii.size() / 3.0)));
+        type base64;
         base64.resize(base64_length);
         bptr->length = 0;
         bptr->max = base64_length + 1;
@@ -174,14 +175,8 @@ namespace WS_LITE {
         bptr->data = nullptr;
 
         BIO_free_all(b64);
-    }
-    template <class type> type Base64encode(const type &ascii)
-    {
-        type base64;
-        Base64encode(ascii, base64);
         return base64;
     }
-
     template <class type> void Base64decode(const type &base64, type &ascii)
     {
         // Resize ascii, however, the size is a up to two bytes too large.
