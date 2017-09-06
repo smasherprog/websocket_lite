@@ -12,7 +12,7 @@ typedef struct x509_store_ctx_st X509_STORE_CTX;
 #define WS_LITE_EXTERN __declspec(dllexport)
 #define EXPIMP_TEMPLATE
 #else
-#define WS_LITE_EXTERN __declspec(dllimport)
+#define WS_LITE_EXTERN
 #define EXPIMP_TEMPLATE extern
 #endif
 #else
