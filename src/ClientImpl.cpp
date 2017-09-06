@@ -216,8 +216,8 @@ namespace WS_LITE {
         return WSClient_Configuration(Impl_);
     }
 
-    WSClient WSClient_Configuration::connect(const std::string &host, PortNumber port, bool no_delay, const std::string &endpoint,
-                                             const std::unordered_map<std::string, std::string> &extraheaders)
+    std::shared_ptr<WSClient> WSClient_Configuration::connect(const std::string &host, PortNumber port, bool no_delay, const std::string &endpoint,
+                                                              const std::unordered_map<std::string, std::string> &extraheaders)
     {
         if (Impl_->TLSEnabled) {
             auto createsocket = [](auto c) {
@@ -240,7 +240,7 @@ namespace WS_LITE {
             auto createsocket = [](auto c) { return std::make_shared<WSocket<asio::ip::tcp::socket, WSClientImpl>>(c); };
             Connect(Impl_, host, port, no_delay, createsocket, endpoint, extraheaders);
         }
-        return WSClient(Impl_);
+        return std::make_shared<WSClient>(Impl_);
     }
 
     WSClient_Configuration WSSClient_Configuration::onVerifyPeer(const std::function<bool(bool, X509_STORE_CTX *)> &handle)

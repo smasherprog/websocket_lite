@@ -7,6 +7,19 @@
 
 typedef struct x509_store_ctx_st X509_STORE_CTX;
 
+#if defined(WINDOWS) || defined(WIN32)
+#if defined(WS_LITE_DLL)
+#define WS_LITE_EXTERN __declspec(dllexport)
+#define EXPIMP_TEMPLATE
+#else
+#define WS_LITE_EXTERN
+#define EXPIMP_TEMPLATE extern
+#endif
+#else
+#define WS_LITE_EXTERN
+#define EXPIMP_TEMPLATE
+#endif
+
 namespace SL {
 namespace WS_LITE {
     template <typename T, typename Meaning> struct Explicit {
@@ -69,11 +82,11 @@ namespace WS_LITE {
         virtual void close(unsigned short code = 1000, const std::string &msg = "") = 0;
     };
     class WSListenerImpl;
-    class WSListener {
+    EXPIMP_TEMPLATE template class WS_LITE_EXTERN std::shared_ptr<WSListenerImpl>;
+    class WS_LITE_EXTERN WSListener {
         std::shared_ptr<WSListenerImpl> Impl_;
 
       public:
-        WSListener() {}
         WSListener(const std::shared_ptr<WSListenerImpl> &impl) : Impl_(impl) {}
         // the maximum payload size
         void set_MaxPayload(size_t bytes);
@@ -87,12 +100,9 @@ namespace WS_LITE {
         void set_WriteTimeout(std::chrono::seconds seconds);
         // get the current write timeout in seconds
         std::chrono::seconds get_WriteTimeout();
-        operator bool() const { return Impl_.operator bool(); }
-        // will stop the library from processing and release all memory
-        void destroy() { Impl_.reset(); }
     };
 
-    class WSListener_Configuration {
+    class WS_LITE_EXTERN WSListener_Configuration {
         std::shared_ptr<WSListenerImpl> Impl_;
 
       public:
@@ -110,15 +120,14 @@ namespace WS_LITE {
         // when a pong is received from a client
         WSListener_Configuration onPong(const std::function<void(const std::shared_ptr<IWSocket> &, const unsigned char *, size_t)> &handle);
         // start the process to listen for clients. This is non-blocking and will return immediatly
-        WSListener listen(bool no_delay = true, bool reuse_address = true);
+        std::shared_ptr<WSListener> listen(bool no_delay = true, bool reuse_address = true);
     };
-
     class WSClientImpl;
-    class WSClient {
+    EXPIMP_TEMPLATE template class WS_LITE_EXTERN std::shared_ptr<WSClientImpl>;
+    class WS_LITE_EXTERN WSClient {
         std::shared_ptr<WSClientImpl> Impl_;
 
       public:
-        WSClient() {}
         WSClient(const std::shared_ptr<WSClientImpl> &impl) : Impl_(impl) {}
         // the maximum payload size
         void set_MaxPayload(size_t bytes);
@@ -132,12 +141,10 @@ namespace WS_LITE {
         void set_WriteTimeout(std::chrono::seconds seconds);
         // get the current write timeout in seconds
         std::chrono::seconds get_WriteTimeout();
-        operator bool() const { return Impl_.operator bool(); }
-        // will stop the library from processing and release all memory
-        void destroy() { Impl_.reset(); }
     };
     class WSContextImpl;
-    class WSClient_Configuration {
+    EXPIMP_TEMPLATE template class WS_LITE_EXTERN std::shared_ptr<WSContextImpl>;
+    class WS_LITE_EXTERN WSClient_Configuration {
       protected:
         std::shared_ptr<WSClientImpl> Impl_;
 
@@ -157,18 +164,16 @@ namespace WS_LITE {
         WSClient_Configuration onPong(const std::function<void(const std::shared_ptr<IWSocket> &, const unsigned char *, size_t)> &handle);
         // connect to an endpoint. This is non-blocking and will return immediatly. If the library is unable to establish a connection,
         // ondisconnection will be called.
-        WSClient connect(const std::string &host, PortNumber port, bool no_delay = true, const std::string &endpoint = "/",
-                         const std::unordered_map<std::string, std::string> &extraheaders = {});
+        std::shared_ptr<WSClient> connect(const std::string &host, PortNumber port, bool no_delay = true, const std::string &endpoint = "/",
+                                          const std::unordered_map<std::string, std::string> &extraheaders = {});
     };
-
-    class WSSClient_Configuration : public WSClient_Configuration {
+    class WS_LITE_EXTERN WSSClient_Configuration : public WSClient_Configuration {
       public:
         WSSClient_Configuration(const std::shared_ptr<WSClientImpl> &impl) : WSClient_Configuration(impl) {}
         // set this if you want to verify the server's cert
         WSClient_Configuration onVerifyPeer(const std::function<bool(bool, X509_STORE_CTX *)> &handle);
     };
-
-    class WSContext {
+    class WS_LITE_EXTERN WSContext {
         std::shared_ptr<WSContextImpl> Impl_;
 
       public:
@@ -178,12 +183,10 @@ namespace WS_LITE {
         WSListener_Configuration CreateTLSListener(PortNumber port, std::string Password, std::string Privatekey_File,
                                                    std::string Publiccertificate_File, std::string dh_File,
                                                    ExtensionOptions options = ExtensionOptions::NO_OPTIONS);
-
         WSClient_Configuration CreateClient(ExtensionOptions options = ExtensionOptions::NO_OPTIONS);
         WSSClient_Configuration CreateTLSClient(ExtensionOptions options = ExtensionOptions::NO_OPTIONS);
         WSSClient_Configuration CreateTLSClient(std::string Publiccertificate_File, ExtensionOptions options = ExtensionOptions::NO_OPTIONS);
     };
-
-    WSContext CreateContext(ThreadCount threadcount);
+    WSContext WS_LITE_EXTERN CreateContext(ThreadCount threadcount);
 } // namespace WS_LITE
 } // namespace SL
