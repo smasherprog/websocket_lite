@@ -34,31 +34,35 @@ else()
 endif()
 add_definitions(-DBOOST_REGEX_NO_LIB -DBOOST_DATE_TIME_NO_LIB -DASIO_STANDALONE -DBOOST_NO_EXCEPTIONS)
 include_directories(include)
+
+set(COMMONLIBRARIES  
+	${ZLIB_LIBRARIES} 
+	${OPENSSL_LIBRARIES}
+)	
 add_library(${PROJECT_NAME} 	
 	src/Utils.cpp
 	src/ListenerImpl.cpp
 	src/ClientImpl.cpp
 	src/WSContext.cpp
 )
-add_dependencies(${PROJECT_NAME} openssl zlib asio)
-set(COMMONLIBRARIES  
-	${ZLIB_LIBRARIES} 
-	${OPENSSL_LIBRARIES}
-)
 
-if(WIN32) 
-	target_link_libraries(${PROJECT_NAME} ${COMMONLIBRARIES} Crypt32)
-elseif(APPLE) 
-	find_package(Threads REQUIRED)
-	target_link_libraries(${PROJECT_NAME} ${COMMONLIBRARIES} ${CMAKE_THREAD_LIBS_INIT} )
-else()
-	find_package(Threads REQUIRED)
-	target_link_libraries(${PROJECT_NAME} ${COMMONLIBRARIES} ${CMAKE_THREAD_LIBS_INIT} dl)
+if(BUILD_SHARED_LIBS)
+	set_target_properties(${PROJECT_NAME} PROPERTIES DEFINE_SYMBOL WS_LITE_DLL)
+	if(WIN32) 
+		target_link_libraries(${PROJECT_NAME} ${COMMONLIBRARIES} Crypt32)
+	elseif(APPLE) 
+		find_package(Threads REQUIRED)
+		target_link_libraries(${PROJECT_NAME} ${COMMONLIBRARIES} ${CMAKE_THREAD_LIBS_INIT} )
+	else()
+		find_package(Threads REQUIRED)
+		target_link_libraries(${PROJECT_NAME} ${COMMONLIBRARIES} ${CMAKE_THREAD_LIBS_INIT} dl)
+	endif()
 endif()
-
+add_dependencies(${PROJECT_NAME} openssl zlib asio)
 install (TARGETS ${PROJECT_NAME}  
 	ARCHIVE DESTINATION lib
 	LIBRARY DESTINATION lib
+	RUNTIME DESTINATION bin
 )
 
 install (FILES 

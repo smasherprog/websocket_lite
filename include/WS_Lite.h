@@ -7,6 +7,18 @@
 
 typedef struct x509_store_ctx_st X509_STORE_CTX;
 
+#if defined(WINDOWS) || defined(WIN32)
+#if defined(WS_LITE_DLL)
+#define WS_LITE_EXTERN __declspec(dllexport)
+#define EXPIMP_TEMPLATE
+#else
+#define WS_LITE_EXTERN __declspec(dllimport)
+#define EXPIMP_TEMPLATE extern
+#endif
+#else
+#define WS_LITE_EXTERN
+#endif
+
 namespace SL {
 namespace WS_LITE {
     template <typename T, typename Meaning> struct Explicit {
@@ -69,7 +81,8 @@ namespace WS_LITE {
         virtual void close(unsigned short code = 1000, const std::string &msg = "") = 0;
     };
     class WSListenerImpl;
-    class WSListener {
+    EXPIMP_TEMPLATE template class WS_LITE_EXTERN std::shared_ptr<WSListenerImpl>;
+    class WS_LITE_EXTERN WSListener {
         std::shared_ptr<WSListenerImpl> Impl_;
 
       public:
@@ -92,7 +105,7 @@ namespace WS_LITE {
         void destroy() { Impl_.reset(); }
     };
 
-    class WSListener_Configuration {
+    class WS_LITE_EXTERN WSListener_Configuration {
         std::shared_ptr<WSListenerImpl> Impl_;
 
       public:
@@ -112,9 +125,9 @@ namespace WS_LITE {
         // start the process to listen for clients. This is non-blocking and will return immediatly
         WSListener listen(bool no_delay = true, bool reuse_address = true);
     };
-
     class WSClientImpl;
-    class WSClient {
+    EXPIMP_TEMPLATE template class WS_LITE_EXTERN std::shared_ptr<WSClientImpl>;
+    class WS_LITE_EXTERN WSClient {
         std::shared_ptr<WSClientImpl> Impl_;
 
       public:
@@ -137,7 +150,8 @@ namespace WS_LITE {
         void destroy() { Impl_.reset(); }
     };
     class WSContextImpl;
-    class WSClient_Configuration {
+    EXPIMP_TEMPLATE template class WS_LITE_EXTERN std::shared_ptr<WSContextImpl>;
+    class WS_LITE_EXTERN WSClient_Configuration {
       protected:
         std::shared_ptr<WSClientImpl> Impl_;
 
@@ -161,14 +175,14 @@ namespace WS_LITE {
                          const std::unordered_map<std::string, std::string> &extraheaders = {});
     };
 
-    class WSSClient_Configuration : public WSClient_Configuration {
+    class WS_LITE_EXTERN WSSClient_Configuration : public WSClient_Configuration {
       public:
         WSSClient_Configuration(const std::shared_ptr<WSClientImpl> &impl) : WSClient_Configuration(impl) {}
         // set this if you want to verify the server's cert
         WSClient_Configuration onVerifyPeer(const std::function<bool(bool, X509_STORE_CTX *)> &handle);
     };
 
-    class WSContext {
+    class WS_LITE_EXTERN WSContext {
         std::shared_ptr<WSContextImpl> Impl_;
 
       public:
@@ -184,6 +198,6 @@ namespace WS_LITE {
         WSSClient_Configuration CreateTLSClient(std::string Publiccertificate_File, ExtensionOptions options = ExtensionOptions::NO_OPTIONS);
     };
 
-    WSContext CreateContext(ThreadCount threadcount);
+    WSContext WS_LITE_EXTERN CreateContext(ThreadCount threadcount);
 } // namespace WS_LITE
 } // namespace SL
