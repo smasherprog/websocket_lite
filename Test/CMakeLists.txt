@@ -13,7 +13,7 @@ add_definitions(
 	-DTEST_CERTIFICATE_PRIVATE_PASSWORD="Test pass"
 	-DTEST_FUZZING_PATH="${CMAKE_CURRENT_SOURCE_DIR}/../Test/fuzzingclient.json"
 )
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${CMAKE_SOURCE_DIR}/include ${COMMON_INCLUDE_DIRS})
 add_executable(${PROJECT_NAME} main.cpp)
 
 if(WIN32) 
