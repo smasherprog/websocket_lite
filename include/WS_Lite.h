@@ -10,14 +10,14 @@ typedef struct x509_store_ctx_st X509_STORE_CTX;
 #if defined(WINDOWS) || defined(WIN32)
 #if defined(WS_LITE_DLL)
 #define WS_LITE_EXTERN __declspec(dllexport)
-#define EXPIMP_TEMPLATE
+#define WS_EXPIMP_TEMPLATE
 #else
 #define WS_LITE_EXTERN
-#define EXPIMP_TEMPLATE extern
+#define WS_EXPIMP_TEMPLATE extern
 #endif
 #else
 #define WS_LITE_EXTERN
-#define EXPIMP_TEMPLATE
+#define WS_EXPIMP_TEMPLATE
 #endif
 
 namespace SL {
@@ -187,6 +187,6 @@ namespace WS_LITE {
     WSContext WS_LITE_EXTERN CreateContext(ThreadCount threadcount);
 } // namespace WS_LITE
 } // namespace SL
-EXPIMP_TEMPLATE template class WS_LITE_EXTERN std::shared_ptr<SL::WS_LITE::WSListenerImpl>;
-EXPIMP_TEMPLATE template class WS_LITE_EXTERN std::shared_ptr<SL::WS_LITE::WSContextImpl>;
-EXPIMP_TEMPLATE template class WS_LITE_EXTERN std::shared_ptr<SL::WS_LITE::WSClientImpl>;
+WS_EXPIMP_TEMPLATE template class WS_LITE_EXTERN std::shared_ptr<SL::WS_LITE::WSListenerImpl>;
+WS_EXPIMP_TEMPLATE template class WS_LITE_EXTERN std::shared_ptr<SL::WS_LITE::WSContextImpl>;
+WS_EXPIMP_TEMPLATE template class WS_LITE_EXTERN std::shared_ptr<SL::WS_LITE::WSClientImpl>;

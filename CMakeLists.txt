@@ -69,7 +69,9 @@ if(BUILD_SHARED_LIBS)
 		target_link_libraries(${PROJECT_NAME} ${COMMON_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} dl)
 	endif()
 endif()
+
 add_dependencies(${PROJECT_NAME} openssl zlib asio)
+
 install (TARGETS ${PROJECT_NAME}  
 	ARCHIVE DESTINATION lib
 	LIBRARY DESTINATION lib
