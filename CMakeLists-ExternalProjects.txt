@@ -16,7 +16,9 @@ set(ASIO_INCLUDE_DIRS "${GLOBAL_OUTPUT_PATH}/asio/asio/include")
 include_directories(${ASIO_INCLUDE_DIRS})
 
 if(CUSTOM_ZLIB)
-	find_package(ZLIB REQUIRED) 
+	if(NOT ZLIB_FOUND)
+		find_package(ZLIB REQUIRED) 
+	endif()
 else()
 	ExternalProject_Add(
 	  zlib
@@ -50,7 +52,9 @@ else()
 endif()
 
 if(CUSTOM_OPENSSL)
-	find_package(OPENSSL REQUIRED) 
+	if(NOT OPENSSL_FOUND)
+		find_package(OPENSSL REQUIRED) 
+	endif()
 else()
 	if(BUILD_SHARED_LIBS)
 		set(OPENSSLBUILDOPTIONS no-ssl2 no-ssl3 shared no-weak-ssl-ciphers)
