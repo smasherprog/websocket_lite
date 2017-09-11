@@ -19,6 +19,16 @@ typedef struct x509_store_ctx_st X509_STORE_CTX;
 #define WS_LITE_EXTERN
 #define WS_EXPIMP_TEMPLATE
 #endif
+namespace SL {
+namespace WS_LITE {
+    class WSListenerImpl;
+    class WSClientImpl;
+    class WSContextImpl;
+} // namespace WS_LITE
+} // namespace SL
+WS_EXPIMP_TEMPLATE template class WS_LITE_EXTERN std::shared_ptr<SL::WS_LITE::WSListenerImpl>;
+WS_EXPIMP_TEMPLATE template class WS_LITE_EXTERN std::shared_ptr<SL::WS_LITE::WSContextImpl>;
+WS_EXPIMP_TEMPLATE template class WS_LITE_EXTERN std::shared_ptr<SL::WS_LITE::WSClientImpl>;
 
 namespace SL {
 namespace WS_LITE {
@@ -81,7 +91,7 @@ namespace WS_LITE {
         // send a close message and close the socket
         virtual void close(unsigned short code = 1000, const std::string &msg = "") = 0;
     };
-    class WSListenerImpl;
+
     class WS_LITE_EXTERN WSListener {
         std::shared_ptr<WSListenerImpl> Impl_;
 
@@ -121,7 +131,6 @@ namespace WS_LITE {
         // start the process to listen for clients. This is non-blocking and will return immediatly
         std::shared_ptr<WSListener> listen(bool no_delay = true, bool reuse_address = true);
     };
-    class WSClientImpl;
     class WS_LITE_EXTERN WSClient {
         std::shared_ptr<WSClientImpl> Impl_;
 
@@ -140,7 +149,7 @@ namespace WS_LITE {
         // get the current write timeout in seconds
         std::chrono::seconds get_WriteTimeout();
     };
-    class WSContextImpl;
+
     class WS_LITE_EXTERN WSClient_Configuration {
       protected:
         std::shared_ptr<WSClientImpl> Impl_;
@@ -187,6 +196,3 @@ namespace WS_LITE {
     WSContext WS_LITE_EXTERN CreateContext(ThreadCount threadcount);
 } // namespace WS_LITE
 } // namespace SL
-WS_EXPIMP_TEMPLATE template class WS_LITE_EXTERN std::shared_ptr<SL::WS_LITE::WSListenerImpl>;
-WS_EXPIMP_TEMPLATE template class WS_LITE_EXTERN std::shared_ptr<SL::WS_LITE::WSContextImpl>;
-WS_EXPIMP_TEMPLATE template class WS_LITE_EXTERN std::shared_ptr<SL::WS_LITE::WSClientImpl>;

@@ -16,6 +16,7 @@ add_definitions(
 include_directories(${CMAKE_SOURCE_DIR}/include ${COMMON_INCLUDE_DIRS})
 add_executable(${PROJECT_NAME} main.cpp)
 
+
 if(WIN32) 
 	target_link_libraries(${PROJECT_NAME} websocket_lite ${COMMON_LIBRARIES} Crypt32)
 elseif(APPLE) 
