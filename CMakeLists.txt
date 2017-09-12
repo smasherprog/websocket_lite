@@ -8,6 +8,9 @@ option(BUILD_SHARED_LIBS "Build the shared library" OFF)
 option(CUSTOM_OPENSSL "Build the library using a custom openssl version" OFF)
 option(CUSTOM_ZLIB "Build the library using a custom zlib version" OFF)
 
+message(STATUS CUSTOM_OPENSSL=${CUSTOM_OPENSSL})
+message(STATUS CUSTOM_ZLIB=${CUSTOM_ZLIB})
+
 # Global settings
 set(GLOBAL_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
 set(CMAKE_INSTALL_PREFIX ${PROJECT_BINARY_DIR}/install)
