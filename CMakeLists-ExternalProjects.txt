@@ -15,7 +15,7 @@ ExternalProject_Add(
 set(ASIO_INCLUDE_DIRS "${GLOBAL_OUTPUT_PATH}/asio/asio/include") 
 include_directories(${ASIO_INCLUDE_DIRS})
 
-if(CUSTOM_ZLIB)
+if(${CUSTOM_ZLIB})
 	find_package(ZLIB REQUIRED) 
 else()
 	link_directories(${GLOBAL_OUTPUT_PATH}/zlib/lib)
@@ -49,7 +49,7 @@ else()
 	endif()
 endif()
 
-if(CUSTOM_OPENSSL)
+if(${CUSTOM_OPENSSL})
 	find_package(OpenSSL  REQUIRED) 
 else()
 	link_directories(${GLOBAL_OUTPUT_PATH}/openssl/lib)
