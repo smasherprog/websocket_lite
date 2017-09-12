@@ -30,7 +30,7 @@ else()
 	  TEST_COMMAND ""
 	)
 	set(ZLIB_INCLUDE_DIRS "${GLOBAL_OUTPUT_PATH}/zlib/include") 
-	if(BUILD_SHARED_LIBS)
+	if(${BUILD_SHARED_LIBS})
 		if(UNIX)
 			set(ZLIB_LIBRARIES ${CMAKE_SHARED_LIBRARY_PREFIX}z${CMAKE_SHARED_LIBRARY_SUFFIX})
 		else()
@@ -50,10 +50,10 @@ else()
 endif()
 
 if(${CUSTOM_OPENSSL})
-	find_package(OpenSSL  REQUIRED) 
+	find_package(OpenSSL REQUIRED) 
 else()
 	link_directories(${GLOBAL_OUTPUT_PATH}/openssl/lib)
-	if(BUILD_SHARED_LIBS)
+	if(${BUILD_SHARED_LIBS})
 		set(OPENSSLBUILDOPTIONS no-ssl2 no-ssl3 shared no-weak-ssl-ciphers)
 	else()
 		set(OPENSSLBUILDOPTIONS no-ssl2 no-ssl3 no-shared no-weak-ssl-ciphers)
@@ -78,7 +78,7 @@ else()
 			INSTALL_COMMAND nmake -f "ms\\ntdll.mak" install
 		)
 		
-		if(BUILD_SHARED_LIBS)
+		if(${BUILD_SHARED_LIBS})
 			set(OPENSSL_LIBRARIES 
 					${CMAKE_SHARED_LIBRARY_PREFIX}libeay32${CMAKE_SHARED_LIBRARY_SUFFIX} 
 				${CMAKE_SHARED_LIBRARY_PREFIX}ssleay32${CMAKE_SHARED_LIBRARY_SUFFIX}
@@ -104,7 +104,7 @@ else()
 			BUILD_IN_SOURCE 1
 			INSTALL_COMMAND make install
 		)
-		if(BUILD_SHARED_LIBS)
+		if(${BUILD_SHARED_LIBS})
 			set(OPENSSL_LIBRARIES 
 				${CMAKE_SHARED_LIBRARY_PREFIX}ssl${CMAKE_SHARED_LIBRARY_SUFFIX} 
 				${CMAKE_SHARED_LIBRARY_PREFIX}crypto${CMAKE_SHARED_LIBRARY_SUFFIX}
