@@ -46,7 +46,7 @@ set(COMMON_LIBRARIES
 )	
 set(COMMON_INCLUDE_DIRS 
 	${ZLIB_INCLUDE_DIRS} 
-	${OPENSSL_INCLUDE_DIRS}
+	${OPENSSL_INCLUDE_DIR}
 )	
 include_directories(
 	include
@@ -60,7 +60,7 @@ add_library(${PROJECT_NAME}
 	src/WSContext.cpp
 )
 
-if(BUILD_SHARED_LIBS)
+if(${BUILD_SHARED_LIBS})
 	set_target_properties(${PROJECT_NAME} PROPERTIES DEFINE_SYMBOL WS_LITE_DLL)
 	if(WIN32) 
 		target_link_libraries(${PROJECT_NAME} ${COMMON_LIBRARIES} Crypt32)
@@ -73,10 +73,10 @@ if(BUILD_SHARED_LIBS)
 	endif()
 endif()
 add_dependencies(${PROJECT_NAME} asio)
-if(NOT CUSTOM_OPENSSL)
+if(NOT ${CUSTOM_OPENSSL})
 	add_dependencies(${PROJECT_NAME} openssl)
 endif()
-if(NOT CUSTOM_ZLIB)
+if(NOT ${CUSTOM_ZLIB})
 	add_dependencies(${PROJECT_NAME} zlib)
 endif()
 
