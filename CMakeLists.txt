@@ -11,25 +11,6 @@ option(CUSTOM_ZLIB "Build the library using a custom zlib version" OFF)
 message(STATUS CUSTOM_OPENSSL=${CUSTOM_OPENSSL})
 message(STATUS CUSTOM_ZLIB=${CUSTOM_ZLIB})
 
-# Global settings
-set(GLOBAL_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
-set(CMAKE_INSTALL_PREFIX ${PROJECT_BINARY_DIR}/install)
-
-# Sets global output directory for single configuration (GCC)
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${GLOBAL_OUTPUT_PATH})
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${GLOBAL_OUTPUT_PATH})
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${GLOBAL_OUTPUT_PATH})
-
-# Sets global output directory for sub-configurations (msvc, mingw)
-foreach(OUTPUTCONFIG ${CMAKE_CONFIGURATION_TYPES})
-    string(TOUPPER ${OUTPUTCONFIG} OUTPUTCONFIG)
-    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_${OUTPUTCONFIG} ${GLOBAL_OUTPUT_PATH})
-    set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_${OUTPUTCONFIG} ${GLOBAL_OUTPUT_PATH})
-    set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_${OUTPUTCONFIG} ${GLOBAL_OUTPUT_PATH})
-endforeach(OUTPUTCONFIG CMAKE_CONFIGURATION_TYPES)
-
-
-# 3rdparty Libraries
 include(CMakeLists-ExternalProjects.txt)
 
 if(MSVC)
@@ -44,15 +25,12 @@ set(COMMON_LIBRARIES
 	${ZLIB_LIBRARIES} 
 	${OPENSSL_LIBRARIES}
 )	
-set(COMMON_INCLUDE_DIRS 
-	${ZLIB_INCLUDE_DIRS} 
-	${OPENSSL_INCLUDE_DIR}
-)	
+
 include_directories(
 	include
-	${COMMON_INCLUDE_DIRS}
+	${CMAKE_INSTALL_PREFIX}/include
 )
-
+link_directories(${CMAKE_INSTALL_PREFIX}/lib)
 add_library(${PROJECT_NAME} 	
 	src/Utils.cpp
 	src/ListenerImpl.cpp
@@ -81,16 +59,15 @@ if(NOT ${CUSTOM_ZLIB})
 endif()
 
 install (TARGETS ${PROJECT_NAME}  
-	ARCHIVE DESTINATION lib
-	LIBRARY DESTINATION lib
 	RUNTIME DESTINATION bin
-)
+	ARCHIVE DESTINATION lib
+	LIBRARY DESTINATION lib)
 
+		
 install (FILES 
 	include/WS_Lite.h
 	include/Logging.h
-	DESTINATION include
-)
-		 
+	DESTINATION include)
+	 
 enable_testing() 
 add_subdirectory(Test)
