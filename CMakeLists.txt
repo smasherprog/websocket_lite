@@ -5,13 +5,6 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 option(BUILD_SHARED_LIBS "Build the shared library" OFF)
-option(CUSTOM_OPENSSL "Build the library using a custom openssl version" OFF)
-option(CUSTOM_ZLIB "Build the library using a custom zlib version" OFF)
-
-message(STATUS CUSTOM_OPENSSL=${CUSTOM_OPENSSL})
-message(STATUS CUSTOM_ZLIB=${CUSTOM_ZLIB})
-
-include(CMakeLists-ExternalProjects.txt)
 
 if(MSVC)
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W4")
@@ -19,7 +12,9 @@ else()
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -pedantic")
 endif()
 add_definitions(-DBOOST_REGEX_NO_LIB -DBOOST_DATE_TIME_NO_LIB -DASIO_STANDALONE -DBOOST_NO_EXCEPTIONS)
-
+find_package(ZLIB REQUIRED) 
+find_package(OpenSSL REQUIRED) 
+	
 set(COMMON_LIBRARIES  
 	${ZLIB_LIBRARIES} 
 	${OPENSSL_LIBRARIES}
@@ -27,9 +22,9 @@ set(COMMON_LIBRARIES
 
 include_directories(
 	include
-	${CMAKE_INSTALL_PREFIX}/include
+	${OPENSSL_DIR}
+	${ZLIB_DIR}
 )
-link_directories(${CMAKE_INSTALL_PREFIX}/lib)
 add_library(${PROJECT_NAME} 	
 	src/Utils.cpp
 	src/ListenerImpl.cpp
