@@ -22,8 +22,8 @@ set(COMMON_LIBRARIES
 
 include_directories(
 	include
-	${OPENSSL_DIR}
-	${ZLIB_DIR}
+	${OPENSSL_INCLUDE_DIR}
+	${ZLIB_INCLUDE_DIRs}
 )
 add_library(${PROJECT_NAME} 	
 	src/Utils.cpp
