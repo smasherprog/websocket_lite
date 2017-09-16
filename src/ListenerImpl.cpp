@@ -112,42 +112,43 @@ namespace WS_LITE {
     std::chrono::seconds WSListener::get_WriteTimeout() { return Impl_->WriteTimeout; }
     void WSListener::set_MaxPayload(size_t bytes) { Impl_->MaxPayload = bytes; }
     size_t WSListener::get_MaxPayload() { return Impl_->MaxPayload; }
-    WSListener_Configuration WSListener_Configuration::onConnection(
+
+    std::shared_ptr<IWSListener_Configuration> WSListener_Configuration::onConnection(
         const std::function<void(const std::shared_ptr<IWSocket> &, const std::unordered_map<std::string, std::string> &)> &handle)
     {
         assert(!Impl_->onConnection);
         Impl_->onConnection = handle;
-        return WSListener_Configuration(Impl_);
+        return std::make_shared<WSListener_Configuration>(Impl_);
     }
-    WSListener_Configuration
+    std::shared_ptr<IWSListener_Configuration>
     WSListener_Configuration::onMessage(const std::function<void(const std::shared_ptr<IWSocket> &, const WSMessage &)> &handle)
     {
         assert(!Impl_->onMessage);
         Impl_->onMessage = handle;
-        return WSListener_Configuration(Impl_);
+        return std::make_shared<WSListener_Configuration>(Impl_);
     }
-    WSListener_Configuration WSListener_Configuration::onDisconnection(
+    std::shared_ptr<IWSListener_Configuration> WSListener_Configuration::onDisconnection(
         const std::function<void(const std::shared_ptr<IWSocket> &, unsigned short, const std::string &)> &handle)
     {
         assert(!Impl_->onDisconnection);
         Impl_->onDisconnection = handle;
-        return WSListener_Configuration(Impl_);
+        return std::make_shared<WSListener_Configuration>(Impl_);
     }
-    WSListener_Configuration
+    std::shared_ptr<IWSListener_Configuration>
     WSListener_Configuration::onPing(const std::function<void(const std::shared_ptr<IWSocket> &, const unsigned char *, size_t)> &handle)
     {
         assert(!Impl_->onPing);
         Impl_->onPing = handle;
-        return WSListener_Configuration(Impl_);
+        return std::make_shared<WSListener_Configuration>(Impl_);
     }
-    WSListener_Configuration
+    std::shared_ptr<IWSListener_Configuration>
     WSListener_Configuration::onPong(const std::function<void(const std::shared_ptr<IWSocket> &, const unsigned char *, size_t)> &handle)
     {
         assert(!Impl_->onPong);
         Impl_->onPong = handle;
-        return WSListener_Configuration(Impl_);
+        return std::make_shared<WSListener_Configuration>(Impl_);
     }
-    std::shared_ptr<WSListener> WSListener_Configuration::listen(bool no_delay, bool reuse_address)
+    std::shared_ptr<IWSListener> WSListener_Configuration::listen(bool no_delay, bool reuse_address)
     {
         if (Impl_->TLSEnabled) {
             auto createsocket = [](auto c) {
@@ -162,17 +163,5 @@ namespace WS_LITE {
         return std::make_shared<WSListener>(Impl_);
     }
 
-    WSListener_Configuration WSContext::CreateListener(PortNumber port, ExtensionOptions options)
-    {
-        UNUSED(options);
-        return WSListener_Configuration(std::make_shared<WSListenerImpl>(Impl_, port));
-    }
-
-    WSListener_Configuration WSContext::CreateTLSListener(PortNumber port, std::string Password, std::string Privatekey_File,
-                                                          std::string Publiccertificate_File, std::string dh_File, ExtensionOptions options)
-    {
-        UNUSED(options);
-        return WSListener_Configuration(std::make_shared<WSListenerImpl>(Impl_, port, Password, Privatekey_File, Publiccertificate_File, dh_File));
-    }
 } // namespace WS_LITE
 } // namespace SL

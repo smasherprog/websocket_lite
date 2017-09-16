@@ -19,16 +19,6 @@ typedef struct x509_store_ctx_st X509_STORE_CTX;
 #define WS_LITE_EXTERN
 #define WS_EXPIMP_TEMPLATE
 #endif
-namespace SL {
-namespace WS_LITE {
-    class WSListenerImpl;
-    class WSClientImpl;
-    class WSContextImpl;
-} // namespace WS_LITE
-} // namespace SL
-WS_EXPIMP_TEMPLATE template class WS_LITE_EXTERN std::shared_ptr<SL::WS_LITE::WSListenerImpl>;
-WS_EXPIMP_TEMPLATE template class WS_LITE_EXTERN std::shared_ptr<SL::WS_LITE::WSContextImpl>;
-WS_EXPIMP_TEMPLATE template class WS_LITE_EXTERN std::shared_ptr<SL::WS_LITE::WSClientImpl>;
 
 namespace SL {
 namespace WS_LITE {
@@ -92,107 +82,105 @@ namespace WS_LITE {
         virtual void close(unsigned short code = 1000, const std::string &msg = "") = 0;
     };
 
-    class WS_LITE_EXTERN WSListener {
-        std::shared_ptr<WSListenerImpl> Impl_;
-
+    class WS_LITE_EXTERN IWSListener {
       public:
-        WSListener(const std::shared_ptr<WSListenerImpl> &impl) : Impl_(impl) {}
+        virtual ~IWSListener() {}
         // the maximum payload size
-        void set_MaxPayload(size_t bytes);
+        virtual void set_MaxPayload(size_t bytes) = 0;
         // the maximum payload size
-        size_t get_MaxPayload();
+        virtual size_t get_MaxPayload() = 0;
         // maximum time in seconds before a client is considered disconnected -- for reads
-        void set_ReadTimeout(std::chrono::seconds seconds);
+        virtual void set_ReadTimeout(std::chrono::seconds seconds) = 0;
         // get the current read timeout in seconds
-        std::chrono::seconds get_ReadTimeout();
+        virtual std::chrono::seconds get_ReadTimeout() = 0;
         // maximum time in seconds before a client is considered disconnected -- for writes
-        void set_WriteTimeout(std::chrono::seconds seconds);
-        // get the current write timeout in seconds
-        std::chrono::seconds get_WriteTimeout();
+        virtual void set_WriteTimeout(std::chrono::seconds seconds) = 0;
+        virtual // get the current write timeout in seconds
+            std::chrono::seconds
+            get_WriteTimeout() = 0;
     };
 
-    class WS_LITE_EXTERN WSListener_Configuration {
-        std::shared_ptr<WSListenerImpl> Impl_;
-
+    class WS_LITE_EXTERN IWSListener_Configuration {
       public:
-        WSListener_Configuration(const std::shared_ptr<WSListenerImpl> &impl) : Impl_(impl) {}
+        virtual ~IWSListener_Configuration() {}
+
         // when a connection is fully established.  If onconnect is called, then a matching onDisconnection is guaranteed
-        WSListener_Configuration
-        onConnection(const std::function<void(const std::shared_ptr<IWSocket> &, const std::unordered_map<std::string, std::string> &)> &handle);
+        virtual std::shared_ptr<IWSListener_Configuration>
+        onConnection(const std::function<void(const std::shared_ptr<IWSocket> &, const std::unordered_map<std::string, std::string> &)> &handle) = 0;
         // when a message has been received
-        WSListener_Configuration onMessage(const std::function<void(const std::shared_ptr<IWSocket> &, const WSMessage &)> &handle);
+        virtual std::shared_ptr<IWSListener_Configuration>
+        onMessage(const std::function<void(const std::shared_ptr<IWSocket> &, const WSMessage &)> &handle) = 0;
         // when a socket is closed down for ANY reason. If onconnect is called, then a matching onDisconnection is guaranteed
-        WSListener_Configuration
-        onDisconnection(const std::function<void(const std::shared_ptr<IWSocket> &, unsigned short, const std::string &)> &handle);
+        virtual std::shared_ptr<IWSListener_Configuration>
+        onDisconnection(const std::function<void(const std::shared_ptr<IWSocket> &, unsigned short, const std::string &)> &handle) = 0;
         // when a ping is received from a client
-        WSListener_Configuration onPing(const std::function<void(const std::shared_ptr<IWSocket> &, const unsigned char *, size_t)> &handle);
+        virtual std::shared_ptr<IWSListener_Configuration>
+        onPing(const std::function<void(const std::shared_ptr<IWSocket> &, const unsigned char *, size_t)> &handle) = 0;
         // when a pong is received from a client
-        WSListener_Configuration onPong(const std::function<void(const std::shared_ptr<IWSocket> &, const unsigned char *, size_t)> &handle);
+        virtual std::shared_ptr<IWSListener_Configuration>
+        onPong(const std::function<void(const std::shared_ptr<IWSocket> &, const unsigned char *, size_t)> &handle) = 0;
         // start the process to listen for clients. This is non-blocking and will return immediatly
-        std::shared_ptr<WSListener> listen(bool no_delay = true, bool reuse_address = true);
+        virtual std::shared_ptr<IWSListener> listen(bool no_delay = true, bool reuse_address = true) = 0;
     };
-    class WS_LITE_EXTERN WSClient {
-        std::shared_ptr<WSClientImpl> Impl_;
-
+    class WS_LITE_EXTERN IWSClient {
       public:
-        WSClient(const std::shared_ptr<WSClientImpl> &impl) : Impl_(impl) {}
+        virtual ~IWSClient() {}
         // the maximum payload size
-        void set_MaxPayload(size_t bytes);
+        virtual void set_MaxPayload(size_t bytes) = 0;
         // the maximum payload size
-        size_t get_MaxPayload();
+        virtual size_t get_MaxPayload() = 0;
         // maximum time in seconds before a client is considered disconnected -- for reads
-        void set_ReadTimeout(std::chrono::seconds seconds);
+        virtual void set_ReadTimeout(std::chrono::seconds seconds) = 0;
         // get the current read timeout in seconds
-        std::chrono::seconds get_ReadTimeout();
+        virtual std::chrono::seconds get_ReadTimeout() = 0;
         // maximum time in seconds before a client is considered disconnected -- for writes
-        void set_WriteTimeout(std::chrono::seconds seconds);
+        virtual void set_WriteTimeout(std::chrono::seconds seconds) = 0;
         // get the current write timeout in seconds
-        std::chrono::seconds get_WriteTimeout();
+        virtual std::chrono::seconds get_WriteTimeout() = 0;
     };
 
-    class WS_LITE_EXTERN WSClient_Configuration {
-      protected:
-        std::shared_ptr<WSClientImpl> Impl_;
-
+    class WS_LITE_EXTERN IWSClient_Configuration {
       public:
-        WSClient_Configuration(const std::shared_ptr<WSClientImpl> &impl) : Impl_(impl) {}
+        virtual ~IWSClient_Configuration() {}
         // when a connection is fully established.  If onconnect is called, then a matching onDisconnection is guaranteed
-        WSClient_Configuration
-        onConnection(const std::function<void(const std::shared_ptr<IWSocket> &, const std::unordered_map<std::string, std::string> &)> &handle);
+        virtual std::shared_ptr<IWSClient_Configuration>
+        onConnection(const std::function<void(const std::shared_ptr<IWSocket> &, const std::unordered_map<std::string, std::string> &)> &handle) = 0;
         // when a message has been received
-        WSClient_Configuration onMessage(const std::function<void(const std::shared_ptr<IWSocket> &, const WSMessage &)> &handle);
+        virtual std::shared_ptr<IWSClient_Configuration>
+        onMessage(const std::function<void(const std::shared_ptr<IWSocket> &, const WSMessage &)> &handle) = 0;
         // when a socket is closed down for ANY reason. If onconnect is called, then a matching onDisconnection is guaranteed
-        WSClient_Configuration
-        onDisconnection(const std::function<void(const std::shared_ptr<IWSocket> &, unsigned short, const std::string &)> &handle);
+        virtual std::shared_ptr<IWSClient_Configuration>
+        onDisconnection(const std::function<void(const std::shared_ptr<IWSocket> &, unsigned short, const std::string &)> &handle) = 0;
         // when a ping is received from a client
-        WSClient_Configuration onPing(const std::function<void(const std::shared_ptr<IWSocket> &, const unsigned char *, size_t)> &handle);
+        virtual std::shared_ptr<IWSClient_Configuration>
+        onPing(const std::function<void(const std::shared_ptr<IWSocket> &, const unsigned char *, size_t)> &handle) = 0;
         // when a pong is received from a client
-        WSClient_Configuration onPong(const std::function<void(const std::shared_ptr<IWSocket> &, const unsigned char *, size_t)> &handle);
+        virtual std::shared_ptr<IWSClient_Configuration>
+        onPong(const std::function<void(const std::shared_ptr<IWSocket> &, const unsigned char *, size_t)> &handle) = 0;
         // connect to an endpoint. This is non-blocking and will return immediatly. If the library is unable to establish a connection,
         // ondisconnection will be called.
-        std::shared_ptr<WSClient> connect(const std::string &host, PortNumber port, bool no_delay = true, const std::string &endpoint = "/",
-                                          const std::unordered_map<std::string, std::string> &extraheaders = {});
+        virtual std::shared_ptr<IWSClient> connect(const std::string &host, PortNumber port, bool no_delay = true, const std::string &endpoint = "/",
+                                                   const std::unordered_map<std::string, std::string> &extraheaders = {}) = 0;
     };
-    class WS_LITE_EXTERN WSSClient_Configuration : public WSClient_Configuration {
+    class WS_LITE_EXTERN IWSSClient_Configuration {
       public:
-        WSSClient_Configuration(const std::shared_ptr<WSClientImpl> &impl) : WSClient_Configuration(impl) {}
+        virtual ~IWSSClient_Configuration() {}
         // set this if you want to verify the server's cert
-        WSClient_Configuration onVerifyPeer(const std::function<bool(bool, X509_STORE_CTX *)> &handle);
+        virtual std::shared_ptr<IWSClient_Configuration> onVerifyPeer(const std::function<bool(bool, X509_STORE_CTX *)> &handle) = 0;
     };
-    class WS_LITE_EXTERN WSContext {
-        std::shared_ptr<WSContextImpl> Impl_;
-
+    class WS_LITE_EXTERN IWSContext {
       public:
-        WSContext(const std::shared_ptr<WSContextImpl> &impl) : Impl_(impl) {}
-        WSContext() {}
-        WSListener_Configuration CreateListener(PortNumber port, ExtensionOptions options = ExtensionOptions::NO_OPTIONS);
-        WSListener_Configuration CreateTLSListener(PortNumber port, std::string Password, std::string Privatekey_File,
-                                                   std::string Publiccertificate_File, std::string dh_File,
-                                                   ExtensionOptions options = ExtensionOptions::NO_OPTIONS);
-        WSClient_Configuration CreateClient(ExtensionOptions options = ExtensionOptions::NO_OPTIONS);
-        WSSClient_Configuration CreateTLSClient(ExtensionOptions options = ExtensionOptions::NO_OPTIONS);
-        WSSClient_Configuration CreateTLSClient(std::string Publiccertificate_File, ExtensionOptions options = ExtensionOptions::NO_OPTIONS);
+        virtual ~IWSContext() {}
+        virtual std::shared_ptr<IWSListener_Configuration> CreateListener(PortNumber port,
+                                                                          ExtensionOptions options = ExtensionOptions::NO_OPTIONS) = 0;
+        virtual std::shared_ptr<IWSListener_Configuration> CreateTLSListener(PortNumber port, std::string Password, std::string Privatekey_File,
+                                                                             std::string Publiccertificate_File, std::string dh_File,
+                                                                             ExtensionOptions options = ExtensionOptions::NO_OPTIONS) = 0;
+        virtual std::shared_ptr<IWSClient_Configuration> CreateClient(ExtensionOptions options = ExtensionOptions::NO_OPTIONS) = 0;
+        virtual std::shared_ptr<IWSSClient_Configuration> CreateTLSClient(ExtensionOptions options = ExtensionOptions::NO_OPTIONS) = 0;
+        virtual std::shared_ptr<IWSSClient_Configuration> CreateTLSClient(std::string Publiccertificate_File,
+                                                                          ExtensionOptions options = ExtensionOptions::NO_OPTIONS) = 0;
     };
-    WSContext WS_LITE_EXTERN CreateContext(ThreadCount threadcount);
+    std::shared_ptr<IWSContext> WS_LITE_EXTERN CreateContext(ThreadCount threadcount);
 } // namespace WS_LITE
 } // namespace SL

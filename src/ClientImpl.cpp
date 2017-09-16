@@ -181,43 +181,44 @@ namespace WS_LITE {
     void WSClient::set_MaxPayload(size_t bytes) { Impl_->MaxPayload = bytes; }
     size_t WSClient::get_MaxPayload() { return Impl_->MaxPayload; }
 
-    WSClient_Configuration WSClient_Configuration::onConnection(
+    std::shared_ptr<IWSClient_Configuration> WSClient_Configuration::onConnection(
         const std::function<void(const std::shared_ptr<IWSocket> &, const std::unordered_map<std::string, std::string> &)> &handle)
     {
         assert(!Impl_->onConnection);
         Impl_->onConnection = handle;
-        return WSClient_Configuration(Impl_);
+        return std::make_shared<WSClient_Configuration>(Impl_);
     }
-    WSClient_Configuration WSClient_Configuration::onMessage(const std::function<void(const std::shared_ptr<IWSocket> &, const WSMessage &)> &handle)
+    std::shared_ptr<IWSClient_Configuration>
+    WSClient_Configuration::onMessage(const std::function<void(const std::shared_ptr<IWSocket> &, const WSMessage &)> &handle)
     {
         assert(!Impl_->onMessage);
         Impl_->onMessage = handle;
-        return WSClient_Configuration(Impl_);
+        return std::make_shared<WSClient_Configuration>(Impl_);
     }
-    WSClient_Configuration
+    std::shared_ptr<IWSClient_Configuration>
     WSClient_Configuration::onDisconnection(const std::function<void(const std::shared_ptr<IWSocket> &, unsigned short, const std::string &)> &handle)
     {
         assert(!Impl_->onDisconnection);
         Impl_->onDisconnection = handle;
-        return WSClient_Configuration(Impl_);
+        return std::make_shared<WSClient_Configuration>(Impl_);
     }
-    WSClient_Configuration
+    std::shared_ptr<IWSClient_Configuration>
     WSClient_Configuration::onPing(const std::function<void(const std::shared_ptr<IWSocket> &, const unsigned char *, size_t)> &handle)
     {
         assert(!Impl_->onPing);
         Impl_->onPing = handle;
-        return WSClient_Configuration(Impl_);
+        return std::make_shared<WSClient_Configuration>(Impl_);
     }
-    WSClient_Configuration
+    std::shared_ptr<IWSClient_Configuration>
     WSClient_Configuration::onPong(const std::function<void(const std::shared_ptr<IWSocket> &, const unsigned char *, size_t)> &handle)
     {
         assert(!Impl_->onPong);
         Impl_->onPong = handle;
-        return WSClient_Configuration(Impl_);
+        return std::make_shared<WSClient_Configuration>(Impl_);
     }
 
-    std::shared_ptr<WSClient> WSClient_Configuration::connect(const std::string &host, PortNumber port, bool no_delay, const std::string &endpoint,
-                                                              const std::unordered_map<std::string, std::string> &extraheaders)
+    std::shared_ptr<IWSClient> WSClient_Configuration::connect(const std::string &host, PortNumber port, bool no_delay, const std::string &endpoint,
+                                                               const std::unordered_map<std::string, std::string> &extraheaders)
     {
         if (Impl_->TLSEnabled) {
             auto createsocket = [](auto c) {
@@ -242,27 +243,5 @@ namespace WS_LITE {
         }
         return std::make_shared<WSClient>(Impl_);
     }
-
-    WSClient_Configuration WSSClient_Configuration::onVerifyPeer(const std::function<bool(bool, X509_STORE_CTX *)> &handle)
-    {
-        assert(Impl_->onVerifyPeer);
-        Impl_->onVerifyPeer = handle;
-        return WSClient_Configuration(Impl_);
-    }
-    WSSClient_Configuration WSContext::CreateTLSClient(std::string Publiccertificate_File, ExtensionOptions options)
-    {
-        UNUSED(options);
-        return WSSClient_Configuration(std::make_shared<WSClientImpl>(Impl_, Publiccertificate_File));
-    }
-    WSSClient_Configuration WSContext::CreateTLSClient(ExtensionOptions options)
-    {
-        UNUSED(options);
-        return WSSClient_Configuration(std::make_shared<WSClientImpl>(Impl_, true));
-    }
-    WSClient_Configuration WSContext::CreateClient(ExtensionOptions options)
-    {
-        UNUSED(options);
-        return WSClient_Configuration(std::make_shared<WSClientImpl>(Impl_));
-    }
-} // namespace WS_LITE
+}; // namespace WS_LITE
 } // namespace SL

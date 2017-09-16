@@ -69,7 +69,8 @@ namespace WS_LITE {
     inline void setrsv3(unsigned char *frame, unsigned char val) { frame[0] = (val & 16) | (~16 & frame[0]); }
     inline void setrsv2(unsigned char *frame, unsigned char val) { frame[0] = (val & 32) | (~32 & frame[0]); }
     inline void setrsv1(unsigned char *frame, unsigned char val) { frame[0] = (val & 64) | (~64 & frame[0]); }
-
+    class WSListenerImpl;
+    class WSClientImpl;
     template <class PARENTTYPE> inline bool DidPassMaskRequirement(unsigned char *h)
     {
         UNUSED(h);

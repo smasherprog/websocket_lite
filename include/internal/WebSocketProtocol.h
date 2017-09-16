@@ -804,5 +804,84 @@ namespace WS_LITE {
             }
         });
     }
+    class WSClient : public IWSClient {
+        std::shared_ptr<WSClientImpl> Impl_;
+
+      public:
+        WSClient(const std::shared_ptr<WSClientImpl> &c) : Impl_(c) {}
+        virtual ~WSClient() {}
+        virtual void set_MaxPayload(size_t bytes) override;
+        virtual size_t get_MaxPayload() override;
+        virtual void set_ReadTimeout(std::chrono::seconds seconds) override;
+        virtual std::chrono::seconds get_ReadTimeout() override;
+        virtual void set_WriteTimeout(std::chrono::seconds seconds) override;
+        virtual std::chrono::seconds get_WriteTimeout() override;
+    };
+    class WSListener : public IWSListener {
+        std::shared_ptr<WSListenerImpl> Impl_;
+
+      public:
+        WSListener(const std::shared_ptr<WSListenerImpl> &impl) : Impl_(impl) {}
+        virtual ~WSListener() {}
+        void set_MaxPayload(size_t bytes) override;
+        virtual size_t get_MaxPayload() override;
+        virtual void set_ReadTimeout(std::chrono::seconds seconds) override;
+        virtual std::chrono::seconds get_ReadTimeout() override;
+        virtual void set_WriteTimeout(std::chrono::seconds seconds) override;
+        virtual std::chrono::seconds get_WriteTimeout() override;
+    };
+
+    class WSListener_Configuration : public IWSListener_Configuration {
+        std::shared_ptr<WSListenerImpl> Impl_;
+
+      public:
+        virtual ~WSListener_Configuration() {}
+        WSListener_Configuration(const std::shared_ptr<WSListenerImpl> &impl) : Impl_(impl) {}
+        virtual std::shared_ptr<IWSListener_Configuration> onConnection(
+            const std::function<void(const std::shared_ptr<IWSocket> &, const std::unordered_map<std::string, std::string> &)> &handle) override;
+        virtual std::shared_ptr<IWSListener_Configuration>
+        onMessage(const std::function<void(const std::shared_ptr<IWSocket> &, const WSMessage &)> &handle) override;
+        virtual std::shared_ptr<IWSListener_Configuration>
+        onDisconnection(const std::function<void(const std::shared_ptr<IWSocket> &, unsigned short, const std::string &)> &handle) override;
+        virtual std::shared_ptr<IWSListener_Configuration>
+        onPing(const std::function<void(const std::shared_ptr<IWSocket> &, const unsigned char *, size_t)> &handle) override;
+        virtual std::shared_ptr<IWSListener_Configuration>
+        onPong(const std::function<void(const std::shared_ptr<IWSocket> &, const unsigned char *, size_t)> &handle) override;
+        virtual std::shared_ptr<IWSListener> listen(bool no_delay, bool reuse_address) override;
+    };
+
+    class WSClient_Configuration : public IWSClient_Configuration {
+        std::shared_ptr<WSClientImpl> Impl_;
+
+      public:
+        WSClient_Configuration(const std::shared_ptr<WSClientImpl> &impl) : Impl_(impl) {}
+        virtual ~WSClient_Configuration() {}
+        virtual std::shared_ptr<IWSClient_Configuration> onConnection(
+            const std::function<void(const std::shared_ptr<IWSocket> &, const std::unordered_map<std::string, std::string> &)> &handle) override;
+        virtual std::shared_ptr<IWSClient_Configuration>
+        onMessage(const std::function<void(const std::shared_ptr<IWSocket> &, const WSMessage &)> &handle) override;
+        virtual std::shared_ptr<IWSClient_Configuration>
+        onDisconnection(const std::function<void(const std::shared_ptr<IWSocket> &, unsigned short, const std::string &)> &handle) override;
+        virtual std::shared_ptr<IWSClient_Configuration>
+        onPing(const std::function<void(const std::shared_ptr<IWSocket> &, const unsigned char *, size_t)> &handle) override;
+        virtual std::shared_ptr<IWSClient_Configuration>
+        onPong(const std::function<void(const std::shared_ptr<IWSocket> &, const unsigned char *, size_t)> &handle) override;
+
+        virtual std::shared_ptr<IWSClient> connect(const std::string &host, PortNumber port, bool no_delay, const std::string &endpoint,
+                                                   const std::unordered_map<std::string, std::string> &extraheaders) override;
+    };
+    class WSSClient_Configuration : public IWSSClient_Configuration {
+        std::shared_ptr<WSClientImpl> Impl_;
+
+      public:
+        WSSClient_Configuration(const std::shared_ptr<WSClientImpl> &impl) : Impl_(impl) {}
+        virtual ~WSSClient_Configuration() {}
+        virtual std::shared_ptr<IWSClient_Configuration> onVerifyPeer(const std::function<bool(bool, X509_STORE_CTX *)> &handle) override
+        {
+            assert(Impl_->onVerifyPeer);
+            Impl_->onVerifyPeer = handle;
+            return std::make_shared<WSClient_Configuration>(Impl_);
+        }
+    };
 } // namespace WS_LITE
 } // namespace SL
