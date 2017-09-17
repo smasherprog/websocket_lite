@@ -149,7 +149,7 @@ void generalTLStest()
         SL::WS_LITE::CreateContext(SL::WS_LITE::ThreadCount(1))
             ->CreateTLSClient(TEST_CERTIFICATE_PUBLIC_PATH)
             ->onVerifyPeer([&](bool b, X509_STORE_CTX *cert) {
-                return true; // trust all certs, not good but for now yeah
+                return b; // trust all certs, not good but for now yeah
             })
             ->onConnection([&](const std::shared_ptr<SL::WS_LITE::IWSocket> &socket, const std::unordered_map<std::string, std::string> &header) {
                 lastheard = std::chrono::high_resolution_clock::now();
