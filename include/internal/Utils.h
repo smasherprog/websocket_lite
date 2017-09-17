@@ -1,8 +1,8 @@
 #pragma once
 #include "Logging.h"
 #include "WS_Lite.h"
-
 #include <fstream>
+#include <functional>
 #include <sstream>
 #include <string>
 #include <unordered_map>
@@ -247,5 +247,6 @@ namespace WS_LITE {
                       char *inflationBuffer);
 
     void add_other_root_certs(asio::ssl::context &ctx);
+
 } // namespace WS_LITE
 } // namespace SL

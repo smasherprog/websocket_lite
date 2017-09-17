@@ -1,10 +1,10 @@
 #pragma once
+#include "TLS.h"
 #include <chrono>
 #include <functional>
 #include <memory>
 #include <string>
 #include <unordered_map>
-
 typedef struct x509_store_ctx_st X509_STORE_CTX;
 
 #if defined(WINDOWS) || defined(WIN32)

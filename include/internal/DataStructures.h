@@ -77,7 +77,11 @@ namespace WS_LITE {
         std::vector<ThreadContext> Threads;
         std::unique_ptr<asio::io_service::work> work;
     };
-
+    enum method;
+    struct TLSContext {
+        TLSContext(method m) : sslcontext(m) {}
+        asio::ssl::context sslcontext;
+    };
     class WSInternal {
       public:
         WSInternal(std::shared_ptr<WSContextImpl> &p) : WSContextImpl_(p), sslcontext(asio::ssl::context::tlsv11) {}

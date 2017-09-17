@@ -26,6 +26,12 @@ include_directories(
 	${ZLIB_INCLUDE_DIRs}
 )
 add_library(${PROJECT_NAME} 	
+	include/internal/Utils.h
+	include/internal/WebSocketProtocol.h
+	include/internal/DataStructures.h
+	include/TLS.h
+	include/WS_Lite.h
+	src/TLS.cpp
 	src/Utils.cpp
 	src/ListenerImpl.cpp
 	src/ClientImpl.cpp
