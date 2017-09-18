@@ -18,6 +18,17 @@ inline std::ifstream::pos_type filesize(const std::string &filename)
     return in.tellg();
 }
 
+// bool verify_certificate(bool preverified, asio::ssl::verify_context &ctx)
+//{
+//
+//    char subject_name[256];
+//    X509 *cert = X509_STORE_CTX_get_current_cert(ctx.native_handle());
+//    X509_NAME_oneline(X509_get_subject_name(cert), subject_name, 256);
+//    SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "Verifying " << subject_name);
+//
+//    return preverified;
+//}
+
 void wssautobahntest()
 {
 

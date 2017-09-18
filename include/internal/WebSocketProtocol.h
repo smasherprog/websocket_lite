@@ -20,8 +20,8 @@
 namespace SL {
 namespace WS_LITE {
 
-    template <class PARENTTYPE, class SOCKETTYPE>
-    void readexpire_from_now(const PARENTTYPE &parent, const SOCKETTYPE &socket, std::chrono::seconds secs)
+    template <class SOCKETTYPE>
+    void readexpire_from_now(const std::shared_ptr<WSContextImpl> parent, const SOCKETTYPE &socket, std::chrono::seconds secs)
     {
         std::error_code ec;
         if (secs.count() == 0)
@@ -38,7 +38,7 @@ namespace WS_LITE {
             });
         }
     }
-    template <class PARENTTYPE, class SOCKETTYPE> void start_ping(const PARENTTYPE &parent, const SOCKETTYPE &socket, std::chrono::seconds secs)
+    template <class SOCKETTYPE> void start_ping(const std::shared_ptr<WSContextImpl> parent, const SOCKETTYPE &socket, std::chrono::seconds secs)
     {
         std::error_code ec;
         if (secs.count() == 0)
@@ -63,8 +63,8 @@ namespace WS_LITE {
             });
         }
     }
-    template <class PARENTTYPE, class SOCKETTYPE>
-    void writeexpire_from_now(const PARENTTYPE &parent, const SOCKETTYPE &socket, std::chrono::seconds secs)
+    template <class SOCKETTYPE>
+    void writeexpire_from_now(const std::shared_ptr<WSContextImpl> parent, const SOCKETTYPE &socket, std::chrono::seconds secs)
     {
 
         std::error_code ec;
@@ -82,7 +82,7 @@ namespace WS_LITE {
             });
         }
     }
-    template <class PARENTTYPE, class SOCKETTYPE> inline void startwrite(const PARENTTYPE &parent, const SOCKETTYPE &socket)
+    template <class SOCKETTYPE> inline void startwrite(const std::shared_ptr<WSContextImpl> parent, const SOCKETTYPE &socket)
     {
         if (!socket->Writing) {
             if (!socket->SendMessageQueue.empty()) {
@@ -96,8 +96,8 @@ namespace WS_LITE {
             }
         }
     }
-    template <class PARENTTYPE, class SOCKETTYPE>
-    void sendImpl(const PARENTTYPE &parent, const SOCKETTYPE &socket, const WSMessage &msg, bool compressmessage)
+    template <class SOCKETTYPE>
+    void sendImpl(const std::shared_ptr<WSContextImpl> parent, const SOCKETTYPE &socket, const WSMessage &msg, bool compressmessage)
     {
         if (compressmessage) {
             assert(msg.code == OpCode::BINARY || msg.code == OpCode::TEXT);
@@ -115,8 +115,8 @@ namespace WS_LITE {
             }
         });
     }
-    template <class PARENTTYPE, class SOCKETTYPE>
-    void sendclosemessage(const PARENTTYPE &parent, const SOCKETTYPE &socket, unsigned short code, const std::string &msg)
+    template <class SOCKETTYPE>
+    void sendclosemessage(const std::shared_ptr<WSContextImpl> parent, const SOCKETTYPE &socket, unsigned short code, const std::string &msg)
     {
         SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "closeImpl " << msg);
         WSMessage ws;
@@ -129,8 +129,8 @@ namespace WS_LITE {
         sendImpl(parent, socket, ws, false);
     }
 
-    template <class PARENTTYPE, class SOCKETTYPE>
-    inline void handleclose(const PARENTTYPE &parent, const SOCKETTYPE &socket, unsigned short code, const std::string &msg)
+    template <class SOCKETTYPE>
+    inline void handleclose(const std::shared_ptr<WSContextImpl> parent, const SOCKETTYPE &socket, unsigned short code, const std::string &msg)
     {
         SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "Closed: " << code);
         socket->SocketStatus_ = SocketStatus::CLOSED;
@@ -147,8 +147,8 @@ namespace WS_LITE {
         socket->Socket.lowest_layer().close(ec);
     }
 
-    template <class PARENTTYPE, class SOCKETTYPE, class SENDBUFFERTYPE>
-    inline void write_end(const PARENTTYPE &parent, const SOCKETTYPE &socket, const SENDBUFFERTYPE &msg)
+    template <class SOCKETTYPE, class SENDBUFFERTYPE>
+    inline void write_end(const std::shared_ptr<WSContextImpl> parent, const SOCKETTYPE &socket, const SENDBUFFERTYPE &msg)
     {
 
         asio::async_write(socket->Socket, asio::buffer(msg.data, msg.len),
@@ -169,7 +169,7 @@ namespace WS_LITE {
     }
 
     template <class SOCKETTYPE, class SENDBUFFERTYPE>
-    inline void writeend(const std::shared_ptr<WSClientImpl> &parent, const SOCKETTYPE &socket, const SENDBUFFERTYPE &msg)
+    inline void writeend(const std::shared_ptr<WSContextImpl> parent, const SOCKETTYPE &socket, const SENDBUFFERTYPE &msg)
     {
         std::uniform_int_distribution<unsigned int> dist(0, 255);
         std::random_device rd;
@@ -199,13 +199,13 @@ namespace WS_LITE {
         }
     }
     template <class SOCKETTYPE, class SENDBUFFERTYPE>
-    inline void writeend(const std::shared_ptr<WSListenerImpl> &parent, const SOCKETTYPE &socket, const SENDBUFFERTYPE &msg)
+    inline void writeend(const std::shared_ptr<WSContextImpl> parent, const SOCKETTYPE &socket, const SENDBUFFERTYPE &msg)
     {
         write_end(parent, socket, msg);
     }
 
-    template <class PARENTTYPE, class SOCKETTYPE, class SENDBUFFERTYPE>
-    inline void write(const PARENTTYPE &parent, const SOCKETTYPE &socket, const SENDBUFFERTYPE &msg)
+    template <class SOCKETTYPE, class SENDBUFFERTYPE>
+    inline void write(const std::shared_ptr<WSContextImpl> parent, const SOCKETTYPE &socket, const SENDBUFFERTYPE &msg)
     {
         size_t sendsize = 0;
         unsigned char header[10] = {};
@@ -245,7 +245,7 @@ namespace WS_LITE {
             handleclose(parent, socket, 1002, "write header failed " + ec.message());
         }
     }
-    inline void UnMaskMessage(const std::shared_ptr<WSListenerImpl> &parent, size_t readsize, unsigned char *buffer)
+    inline void UnMaskMessage(const std::shared_ptr<WSContextImpl> parent, size_t readsize, unsigned char *buffer)
     {
         UNUSED(parent);
         auto startp = buffer;
@@ -255,13 +255,13 @@ namespace WS_LITE {
             startp[c - 4] = startp[c] ^ mask[c % 4];
         }
     }
-    inline void UnMaskMessage(const std::shared_ptr<WSClientImpl> &parent, size_t readsize, unsigned char *buffer)
+    inline void UnMaskMessage(const std::shared_ptr<WSContextImpl> parent, size_t readsize, unsigned char *buffer)
     {
         UNUSED(parent);
         UNUSED(readsize);
         UNUSED(buffer);
     }
-    template <class PARENTTYPE, class SOCKETTYPE> inline void ProcessMessage(const PARENTTYPE &parent, const SOCKETTYPE &socket)
+    template <class SOCKETTYPE> inline void ProcessMessage(const std::shared_ptr<WSContextImpl> parent, const SOCKETTYPE &socket)
     {
 
         auto opcode = getOpCode(socket->ReceiveHeader);
@@ -299,8 +299,9 @@ namespace WS_LITE {
             ReadHeaderStart(parent, socket);
         }
     }
-    template <class PARENTTYPE, class SOCKETTYPE>
-    inline void ProcessMessage(const PARENTTYPE &parent, const SOCKETTYPE &socket, const std::shared_ptr<asio::streambuf> &extradata)
+    template <class SOCKETTYPE>
+    inline void ProcessMessage(const std::shared_ptr<WSContextImpl> parent, const SOCKETTYPE &socket,
+                               const std::shared_ptr<asio::streambuf> &extradata)
     {
 
         auto opcode = getOpCode(socket->ReceiveHeader);
@@ -338,8 +339,9 @@ namespace WS_LITE {
             ReadHeaderStart(parent, socket, extradata);
         }
     }
-    template <class PARENTTYPE, class SOCKETTYPE>
-    inline void SendPong(const PARENTTYPE &parent, const SOCKETTYPE &socket, const std::shared_ptr<unsigned char> &buffer, size_t size)
+    template <class SOCKETTYPE>
+    inline void SendPong(const std::shared_ptr<WSContextImpl> parent, const SOCKETTYPE &socket, const std::shared_ptr<unsigned char> &buffer,
+                         size_t size)
     {
         WSMessage msg;
         msg.Buffer = buffer;
@@ -349,8 +351,9 @@ namespace WS_LITE {
 
         sendImpl(parent, socket, msg, false);
     }
-    template <class PARENTTYPE, class SOCKETTYPE>
-    inline void ProcessClose(const PARENTTYPE &parent, const SOCKETTYPE &socket, const std::shared_ptr<unsigned char> &buffer, size_t size)
+    template <class SOCKETTYPE>
+    inline void ProcessClose(const std::shared_ptr<WSContextImpl> parent, const SOCKETTYPE &socket, const std::shared_ptr<unsigned char> &buffer,
+                             size_t size)
     {
         if (size >= 2) {
             auto closecode = hton(*reinterpret_cast<unsigned short *>(buffer.get()));
@@ -373,8 +376,9 @@ namespace WS_LITE {
         }
         return sendclosemessage(parent, socket, 1000, "");
     }
-    template <class PARENTTYPE, class SOCKETTYPE>
-    inline void ProcessControlMessage(const PARENTTYPE &parent, const SOCKETTYPE &socket, const std::shared_ptr<unsigned char> &buffer, size_t size)
+    template <class SOCKETTYPE>
+    inline void ProcessControlMessage(const std::shared_ptr<WSContextImpl> parent, const SOCKETTYPE &socket,
+                                      const std::shared_ptr<unsigned char> &buffer, size_t size)
     {
         if (!getFin(socket->ReceiveHeader)) {
             return sendclosemessage(parent, socket, 1002, "Closing connection. Control Frames must be Fin");
@@ -402,9 +406,9 @@ namespace WS_LITE {
         }
         ReadHeaderNext(parent, socket);
     }
-    template <class PARENTTYPE, class SOCKETTYPE>
-    inline void ProcessControlMessage(const PARENTTYPE &parent, const SOCKETTYPE &socket, const std::shared_ptr<unsigned char> &buffer, size_t size,
-                                      const std::shared_ptr<asio::streambuf> &extradata)
+    template <class SOCKETTYPE>
+    inline void ProcessControlMessage(const std::shared_ptr<WSContextImpl> parent, const SOCKETTYPE &socket,
+                                      const std::shared_ptr<unsigned char> &buffer, size_t size, const std::shared_ptr<asio::streambuf> &extradata)
     {
         if (!getFin(socket->ReceiveHeader)) {
             return sendclosemessage(parent, socket, 1002, "Closing connection. Control Frames must be Fin");
@@ -432,7 +436,7 @@ namespace WS_LITE {
         ReadHeaderNext(parent, socket, extradata);
     }
 
-    template <class PARENTTYPE, class SOCKETTYPE> inline void ReadBody(const PARENTTYPE &parent, const SOCKETTYPE &socket)
+    template <class SOCKETTYPE> inline void ReadBody(const std::shared_ptr<WSContextImpl> parent, const SOCKETTYPE &socket)
     {
 
         if (!DidPassMaskRequirement<PARENTTYPE>(socket->ReceiveHeader)) { // Close connection if it did not meet the mask requirement.
@@ -530,10 +534,10 @@ namespace WS_LITE {
             return sendclosemessage(parent, socket, 1002, "Closing connection. nonvalid op code");
         }
     }
-    template <class PARENTTYPE, class SOCKETTYPE>
-    inline void ReadBody(const PARENTTYPE &parent, const SOCKETTYPE &socket, const std::shared_ptr<asio::streambuf> &extradata)
+    template <bool isServer, class SOCKETTYPE>
+    inline void ReadBody(const std::shared_ptr<WSContextImpl> parent, const SOCKETTYPE &socket, const std::shared_ptr<asio::streambuf> &extradata)
     {
-        if (!DidPassMaskRequirement<PARENTTYPE>(socket->ReceiveHeader)) { // Close connection if it did not meet the mask requirement.
+        if (!DidPassMaskRequirement(socket->ReceiveHeader, isServer)) { // Close connection if it did not meet the mask requirement.
             return sendclosemessage(parent, socket, 1002, "Closing connection because mask requirement not met");
         }
         if (getrsv2(socket->ReceiveHeader) || getrsv3(socket->ReceiveHeader) || (getrsv1(socket->ReceiveHeader) && !socket->CompressionEnabled)) {
@@ -556,9 +560,9 @@ namespace WS_LITE {
             break;
         }
 
-        size += AdditionalBodyBytesToRead<PARENTTYPE>();
+        size += AdditionalBodyBytesToRead(isServer);
         if (opcode == OpCode::PING || opcode == OpCode::PONG || opcode == OpCode::CLOSE) {
-            if (size - AdditionalBodyBytesToRead<PARENTTYPE>() > CONTROLBUFFERMAXSIZE) {
+            if (size - AdditionalBodyBytesToRead(isServer) > CONTROLBUFFERMAXSIZE) {
                 return sendclosemessage(parent, socket, 1002, "Payload exceeded for control frames. Size requested " + std::to_string(size));
             }
             else if (size > 0) {
@@ -579,7 +583,7 @@ namespace WS_LITE {
                                  [size, extradata, parent, socket, buffer](const std::error_code &ec, size_t) {
                                      if (!ec) {
                                          UnMaskMessage(parent, size, buffer.get());
-                                         auto tempsize = size - AdditionalBodyBytesToRead<PARENTTYPE>();
+                                         auto tempsize = size - AdditionalBodyBytesToRead(isServer);
                                          if (extradata->size() == 0) {
                                              return ProcessControlMessage(parent, socket, buffer, tempsize);
                                          }
@@ -667,31 +671,33 @@ namespace WS_LITE {
             return sendclosemessage(parent, socket, 1002, "Closing connection. nonvalid op code");
         }
     }
-    template <class PARENTTYPE, class SOCKETTYPE> inline void ReadHeaderStart(const PARENTTYPE &parent, const SOCKETTYPE &socket)
+    template <bool isServer, class SOCKETTYPE> inline void ReadHeaderStart(const std::shared_ptr<WSContextImpl> parent, const SOCKETTYPE &socket)
     {
         free(socket->ReceiveBuffer);
         socket->ReceiveBuffer = nullptr;
         socket->ReceiveBufferSize = 0;
         socket->LastOpCode = OpCode::INVALID;
-        ReadHeaderNext(parent, socket);
+        ReadHeaderNext<isServer>(parent, socket);
     }
-    template <class PARENTTYPE, class SOCKETTYPE>
-    inline void ReadHeaderStart(const PARENTTYPE &parent, const SOCKETTYPE &socket, const std::shared_ptr<asio::streambuf> &extradata)
+    template <bool isServer, class SOCKETTYPE>
+    inline void ReadHeaderStart(const std::shared_ptr<WSContextImpl> parent, const SOCKETTYPE &socket,
+                                const std::shared_ptr<asio::streambuf> &extradata)
     {
         free(socket->ReceiveBuffer);
         socket->ReceiveBuffer = nullptr;
         socket->ReceiveBufferSize = 0;
         socket->LastOpCode = OpCode::INVALID;
         if (extradata->size() == 0) {
-            ReadHeaderNext(parent, socket);
+            ReadHeaderNext<isServer>(parent, socket);
         }
         else {
-            ReadHeaderNext(parent, socket, extradata);
+            ReadHeaderNext<isServer>(parent, socket, extradata);
         }
     }
 
-    template <class PARENTTYPE, class SOCKETTYPE>
-    inline void ReadHeaderNext(const PARENTTYPE &parent, const SOCKETTYPE &socket, const std::shared_ptr<asio::streambuf> &extradata)
+    template <bool isServer, class SOCKETTYPE>
+    inline void ReadHeaderNext(const std::shared_ptr<WSContextImpl> parent, const SOCKETTYPE &socket,
+                               const std::shared_ptr<asio::streambuf> &extradata)
     {
         readexpire_from_now(parent, socket, parent->ReadTimeout);
         size_t dataconsumed = 0;
@@ -741,10 +747,10 @@ namespace WS_LITE {
                                                       [parent, socket, extradata](const std::error_code &ec, size_t) {
                                                           if (!ec) {
                                                               if (extradata->size() > 0) {
-                                                                  ReadBody(parent, socket, extradata);
+                                                                  ReadBody<isServer>(parent, socket, extradata);
                                                               }
                                                               else {
-                                                                  ReadBody(parent, socket);
+                                                                  ReadBody<isServer>(parent, socket);
                                                               }
                                                           }
                                                           else {
@@ -755,10 +761,10 @@ namespace WS_LITE {
                                  }
                                  else {
                                      if (extradata->size() > 0) {
-                                         ReadBody(parent, socket, extradata);
+                                         ReadBody<isServer>(parent, socket, extradata);
                                      }
                                      else {
-                                         ReadBody(parent, socket);
+                                         ReadBody<isServer>(parent, socket);
                                      }
                                  }
                              }
@@ -768,7 +774,7 @@ namespace WS_LITE {
                          });
     }
 
-    template <class PARENTTYPE, class SOCKETTYPE> inline void ReadHeaderNext(const PARENTTYPE &parent, const SOCKETTYPE &socket)
+    template <bool isServer, class SOCKETTYPE> inline void ReadHeaderNext(const std::shared_ptr<WSContextImpl> parent, const SOCKETTYPE &socket)
     {
         readexpire_from_now(parent, socket, parent->ReadTimeout);
         asio::async_read(socket->Socket, asio::buffer(socket->ReceiveHeader, 2), [parent, socket](const std::error_code &ec, size_t) {
@@ -788,7 +794,7 @@ namespace WS_LITE {
                     asio::async_read(socket->Socket, asio::buffer(socket->ReceiveHeader + 2, readbytes),
                                      [parent, socket](const std::error_code &ec, size_t) {
                                          if (!ec) {
-                                             ReadBody(parent, socket);
+                                             ReadBody<isServer>(parent, socket);
                                          }
                                          else {
                                              return sendclosemessage(parent, socket, 1002, "readheader ExtendedPayloadlen " + ec.message());
@@ -796,7 +802,7 @@ namespace WS_LITE {
                                      });
                 }
                 else {
-                    ReadBody(parent, socket);
+                    ReadBody<isServer>(parent, socket);
                 }
             }
             else {
@@ -872,7 +878,6 @@ namespace WS_LITE {
     };
     struct DelayedInfo {
         ThreadCount threadcount;
-        bool isclient;
     };
 } // namespace WS_LITE
 } // namespace SL

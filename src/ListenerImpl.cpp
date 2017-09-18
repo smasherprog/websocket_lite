@@ -5,7 +5,7 @@
 namespace SL {
 namespace WS_LITE {
 
-    template <class SOCKETTYPE> void read_handshake(const std::shared_ptr<WSContextImpl> listener, const SOCKETTYPE &socket)
+    template <bool isServer, class SOCKETTYPE> void read_handshake(const std::shared_ptr<WSContextImpl> listener, const SOCKETTYPE &socket)
     {
         auto handshakecontainer(std::make_shared<HandshakeContainer>());
         asio::async_read_until(
@@ -40,7 +40,7 @@ namespace WS_LITE {
                                                   if (listener->onConnection) {
                                                       listener->onConnection(socket, handshakecontainer->Header);
                                                   }
-                                                  ReadHeaderStart(listener, socket);
+                                                  ReadHeaderStart<isServer>(listener, socket);
                                               }
                                               else {
                                                   socket->SocketStatus_ = SocketStatus::CLOSED;
@@ -59,16 +59,17 @@ namespace WS_LITE {
                 }
             });
     }
-    void async_handshake(const std::shared_ptr<WSContextImpl> listener, std::shared_ptr<WSocket<asio::ip::tcp::socket, true>> socket)
+    template <bool isServer>
+    void async_handshake(const std::shared_ptr<WSContextImpl> listener, std::shared_ptr<WSocket<asio::ip::tcp::socket>> socket)
     {
         read_handshake(listener, socket);
     }
-    void async_handshake(const std::shared_ptr<WSContextImpl> listener,
-                         std::shared_ptr<WSocket<asio::ssl::stream<asio::ip::tcp::socket>, true>> socket)
+    template <bool isServer>
+    void async_handshake(const std::shared_ptr<WSContextImpl> listener, std::shared_ptr<WSocket<asio::ssl::stream<asio::ip::tcp::socket>>> socket)
     {
         socket->Socket.async_handshake(asio::ssl::stream_base::server, [listener, socket](const std::error_code &ec) {
             if (!ec) {
-                read_handshake(listener, socket);
+                read_handshake<isServer>(listener, socket);
             }
             else {
                 socket->SocketStatus_ = SocketStatus::CLOSED;
@@ -97,7 +98,7 @@ namespace WS_LITE {
                                                 e.clear();
                                             }
                                             if (!ec) {
-                                                async_handshake(listener, socket);
+                                                async_handshake<true>(listener, socket);
                                             }
                                             else {
                                                 socket->SocketStatus_ = SocketStatus::CLOSED;
@@ -151,11 +152,11 @@ namespace WS_LITE {
     std::shared_ptr<IWSHub> WSListener_Configuration::listen(bool no_delay, bool reuse_address)
     {
         if (Impl_->TLSEnabled) {
-            auto createsocket = [](auto c) { return std::make_shared<WSocket<asio::ssl::stream<asio::ip::tcp::socket>, true>>(c, c->sslcontext); };
+            auto createsocket = [](auto c) { return std::make_shared<WSocket<asio::ssl::stream<asio::ip::tcp::socket>>>(c, c->sslcontext); };
             Listen(Impl_, createsocket, no_delay, reuse_address);
         }
         else {
-            auto createsocket = [](auto c) { return std::make_shared<WSocket<asio::ip::tcp::socket, true>>(c); };
+            auto createsocket = [](auto c) { return std::make_shared<WSocket<asio::ip::tcp::socket>>(c); };
             Listen(Impl_, createsocket, no_delay, reuse_address);
         }
         return std::make_shared<WSListener>(Impl_);

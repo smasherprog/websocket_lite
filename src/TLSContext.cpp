@@ -1,11 +1,6 @@
 #include "TLSContext.h"
 #include "internal/DataStructures.h"
-#if WIN32
-#include <SDKDDKVer.h>
-#endif
 
-#include "asio.hpp"
-#include "asio/deadline_timer.hpp"
 #include "asio/ssl.hpp"
 
 namespace SL {

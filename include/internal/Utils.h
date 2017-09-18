@@ -1,6 +1,5 @@
 #pragma once
 #include "Logging.h"
-#include "WS_Lite.h"
 #include <fstream>
 #include <functional>
 #include <sstream>
@@ -14,12 +13,6 @@
 
 #include <math.h>
 #include <zlib.h>
-
-namespace asio {
-namespace ssl {
-    class context;
-}
-} // namespace asio
 
 namespace SL {
 namespace WS_LITE {
@@ -69,23 +62,35 @@ namespace WS_LITE {
     inline void setrsv3(unsigned char *frame, unsigned char val) { frame[0] = (val & 16) | (~16 & frame[0]); }
     inline void setrsv2(unsigned char *frame, unsigned char val) { frame[0] = (val & 32) | (~32 & frame[0]); }
     inline void setrsv1(unsigned char *frame, unsigned char val) { frame[0] = (val & 64) | (~64 & frame[0]); }
-    class WSListenerImpl;
-    class WSClientImpl;
-    template <class PARENTTYPE> inline bool DidPassMaskRequirement(unsigned char *h)
+
+    constexpr bool DidPassMaskRequirement(unsigned char *h, bool isServer)
     {
-        UNUSED(h);
-        return true;
+        if (isServer) {
+            return getMask(h);
+        }
+        else {
+            return !getMask(h);
+        }
     }
-    template <> inline bool DidPassMaskRequirement<std::shared_ptr<WSListenerImpl>>(unsigned char *h) { return getMask(h); }
-    template <> inline bool DidPassMaskRequirement<std::shared_ptr<WSClientImpl>>(unsigned char *h) { return !getMask(h); }
 
-    template <class PARENTTYPE> inline size_t AdditionalBodyBytesToRead() { return 0; }
-    template <> inline size_t AdditionalBodyBytesToRead<std::shared_ptr<WSListenerImpl>>() { return 4; }
-    template <> inline size_t AdditionalBodyBytesToRead<std::shared_ptr<WSClientImpl>>() { return 0; }
-
-    template <class PARENTTYPE> inline void set_MaskBitForSending(unsigned char *frame) { UNUSED(frame); }
-    template <> inline void set_MaskBitForSending<std::shared_ptr<WSListenerImpl>>(unsigned char *frame) { setMask(frame, 0x00); }
-    template <> inline void set_MaskBitForSending<std::shared_ptr<WSClientImpl>>(unsigned char *frame) { setMask(frame, 0xff); }
+    constexpr size_t AdditionalBodyBytesToRead(bool isServer)
+    {
+        if (isServer) {
+            return 4;
+        }
+        else {
+            return 0;
+        }
+    }
+    constexpr void set_MaskBitForSending(unsigned char *frame, bool isServer)
+    {
+        if (isServer) {
+            setMask(frame, 0x00);
+        }
+        else {
+            setMask(frame, 0xff);
+        }
+    }
 
     template <class T> std::string get_address(T &_socket)
     {

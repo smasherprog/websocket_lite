@@ -9,19 +9,8 @@
 namespace SL {
 namespace WS_LITE {
 
-    bool verify_certificate(bool preverified, asio::ssl::verify_context &ctx)
-    {
-
-        char subject_name[256];
-        X509 *cert = X509_STORE_CTX_get_current_cert(ctx.native_handle());
-        X509_NAME_oneline(X509_get_subject_name(cert), subject_name, 256);
-        SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "Verifying " << subject_name);
-
-        return preverified;
-    }
-
-    template <class PARENTTYPE, class SOCKETTYPE>
-    void ConnectHandshake(PARENTTYPE &self, SOCKETTYPE &socket, const std::string &host, const std::string &endpoint,
+    template <class SOCKETTYPE>
+    void ConnectHandshake(const std::shared_ptr<WSContextImpl> self, SOCKETTYPE &socket, const std::string &host, const std::string &endpoint,
                           const std::unordered_map<std::string, std::string> &extraheaders)
     {
         auto write_buffer(std::make_shared<asio::streambuf>());
@@ -109,12 +98,12 @@ namespace WS_LITE {
                 }
             });
     }
-    void async_handshake(std::shared_ptr<WSClientImpl> self, std::shared_ptr<WSocket<asio::ip::tcp::socket, WSClientImpl>> socket,
-                         const std::string &host, const std::string &endpoint, const std::unordered_map<std::string, std::string> &extraheaders)
+    void async_handshake(const std::shared_ptr<WSContextImpl> self, std::shared_ptr<WSocket<asio::ip::tcp::socket>> socket, const std::string &host,
+                         const std::string &endpoint, const std::unordered_map<std::string, std::string> &extraheaders)
     {
         ConnectHandshake(self, socket, host, endpoint, extraheaders);
     }
-    void async_handshake(std::shared_ptr<WSClientImpl> self, std::shared_ptr<WSocket<asio::ssl::stream<asio::ip::tcp::socket>, WSClientImpl>> socket,
+    void async_handshake(const std::shared_ptr<WSContextImpl> self, std::shared_ptr<WSocket<asio::ssl::stream<asio::ip::tcp::socket>>> socket,
                          const std::string &host, const std::string &endpoint, const std::unordered_map<std::string, std::string> &extraheaders)
     {
         socket->Socket.async_handshake(asio::ssl::stream_base::client, [socket, self, host, endpoint, extraheaders](const std::error_code &ec) {
@@ -130,9 +119,9 @@ namespace WS_LITE {
             }
         });
     }
-    template <class PARENTTYPE, typename SOCKETCREATOR>
-    void Connect(PARENTTYPE self, const std::string &host, PortNumber port, bool no_delay, SOCKETCREATOR &&socketcreator, const std::string &endpoint,
-                 const std::unordered_map<std::string, std::string> &extraheaders)
+    template <typename SOCKETCREATOR>
+    void Connect(const std::shared_ptr<WSContextImpl> self, const std::string &host, PortNumber port, bool no_delay, SOCKETCREATOR &&socketcreator,
+                 const std::string &endpoint, const std::unordered_map<std::string, std::string> &extraheaders)
     {
 
         auto socket = socketcreator(self);
@@ -217,29 +206,15 @@ namespace WS_LITE {
         return std::make_shared<WSClient_Configuration>(Impl_);
     }
 
-    std::shared_ptr<IWSClient> WSClient_Configuration::connect(const std::string &host, PortNumber port, bool no_delay, const std::string &endpoint,
-                                                               const std::unordered_map<std::string, std::string> &extraheaders)
+    std::shared_ptr<IWSHub> WSClient_Configuration::connect(const std::string &host, PortNumber port, bool no_delay, const std::string &endpoint,
+                                                            const std::unordered_map<std::string, std::string> &extraheaders)
     {
         if (Impl_->TLSEnabled) {
-            auto createsocket = [](auto c) {
-                auto socket = std::make_shared<WSocket<asio::ssl::stream<asio::ip::tcp::socket>, WSClientImpl>>(c, c->sslcontext);
-                /*        std::error_code e;
-                        if (c->onVerifyPeer) {
-                            socket->Socket.set_verify_mode(asio::ssl::verify_peer);
-                            socket->Socket.set_verify_callback(
-                                [c](bool preverified, asio::ssl::verify_context &ctx) { return c->onVerifyPeer(preverified, ctx.native_handle()); },
-                   e);
-                        }
-                        else {
-                            socket->Socket.set_verify_mode(asio::ssl::verify_fail_if_no_peer_cert);
-                            socket->Socket.set_verify_callback(std::bind(&verify_certificate, std::placeholders::_1, std::placeholders::_2), e);
-                        }*/
-                return socket;
-            };
+            auto createsocket = [](auto c) { return std::make_shared<WSocket<asio::ssl::stream<asio::ip::tcp::socket>>>(c, c->sslcontext); };
             Connect(Impl_, host, port, no_delay, createsocket, endpoint, extraheaders);
         }
         else {
-            auto createsocket = [](auto c) { return std::make_shared<WSocket<asio::ip::tcp::socket, WSClientImpl>>(c); };
+            auto createsocket = [](auto c) { return std::make_shared<WSocket<asio::ip::tcp::socket>>(c); };
             Connect(Impl_, host, port, no_delay, createsocket, endpoint, extraheaders);
         }
         return std::make_shared<WSClient>(Impl_);
