@@ -223,16 +223,17 @@ namespace WS_LITE {
         if (Impl_->TLSEnabled) {
             auto createsocket = [](auto c) {
                 auto socket = std::make_shared<WSocket<asio::ssl::stream<asio::ip::tcp::socket>, WSClientImpl>>(c, c->sslcontext);
-                std::error_code e;
-                if (c->onVerifyPeer) {
-                    socket->Socket.set_verify_mode(asio::ssl::verify_peer);
-                    socket->Socket.set_verify_callback(
-                        [c](bool preverified, asio::ssl::verify_context &ctx) { return c->onVerifyPeer(preverified, ctx.native_handle()); }, e);
-                }
-                else {
-                    socket->Socket.set_verify_mode(asio::ssl::verify_fail_if_no_peer_cert);
-                    socket->Socket.set_verify_callback(std::bind(&verify_certificate, std::placeholders::_1, std::placeholders::_2), e);
-                }
+                /*        std::error_code e;
+                        if (c->onVerifyPeer) {
+                            socket->Socket.set_verify_mode(asio::ssl::verify_peer);
+                            socket->Socket.set_verify_callback(
+                                [c](bool preverified, asio::ssl::verify_context &ctx) { return c->onVerifyPeer(preverified, ctx.native_handle()); },
+                   e);
+                        }
+                        else {
+                            socket->Socket.set_verify_mode(asio::ssl::verify_fail_if_no_peer_cert);
+                            socket->Socket.set_verify_callback(std::bind(&verify_certificate, std::placeholders::_1, std::placeholders::_2), e);
+                        }*/
                 return socket;
             };
             Connect(Impl_, host, port, no_delay, createsocket, endpoint, extraheaders);

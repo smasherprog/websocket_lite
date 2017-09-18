@@ -7,9 +7,33 @@
 
 namespace SL {
 namespace WS_LITE {
+    /*
+    THE FOLLOWING IS JUST A THIN WRAPPER AROUND ASIO context.hpp
+    THE PURPOSE IS SO USERS OF THIS LIBRARY DO NOT NEED TO INCLUDE ASIO IN THEIR PROJECT
+    */
 
-    /// Bitmask type for SSL options.
-    typedef long options;
+    enum options : unsigned long {
+        default_workarounds = SSL_OP_ALL,
+        single_dh_use = SSL_OP_SINGLE_DH_USE,
+        no_sslv2 = SSL_OP_NO_SSLv2,
+        no_sslv3 = SSL_OP_NO_SSLv3,
+        no_tlsv1 = SSL_OP_NO_TLSv1,
+#if defined(SSL_OP_NO_TLSv1_1)
+        no_tlsv1_1 = SSL_OP_NO_TLSv1_1,
+#else  // defined(SSL_OP_NO_TLSv1_1)
+        no_tlsv1_1 = 0x10000000L,
+#endif // defined(SSL_OP_NO_TLSv1_1)
+#if defined(SSL_OP_NO_TLSv1_2)
+        no_tlsv1_2 = SSL_OP_NO_TLSv1_2,
+#else  // defined(SSL_OP_NO_TLSv1_2)
+        no_tlsv1_2 = 0x08000000L,
+#endif // defined(SSL_OP_NO_TLSv1_2)
+#if defined(SSL_OP_NO_COMPRESSION)
+        no_compression = SSL_OP_NO_COMPRESSION
+#else  // defined(SSL_OP_NO_COMPRESSION)
+        no_compression = 0x20000L
+#endif // defined(SSL_OP_NO_COMPRESSION)
+    };
     enum password_purpose {
         /// The password is needed for reading/decryption.
         for_reading,
@@ -94,13 +118,12 @@ namespace WS_LITE {
         verify_fail_if_no_peer_cert = SSL_VERIFY_FAIL_IF_NO_PEER_CERT,
         verify_client_once = SSL_VERIFY_CLIENT_ONCE
     };
-    struct TLSContext;
-    class context {
-        std::shared_ptr<TLSContext> impl;
-
+    struct WSContextImpl;
+    class TLSContext {
       public:
-        explicit context(method m);
-        ~context();
+        std::shared_ptr<WSContextImpl> impl;
+        TLSContext() {}
+        ~TLSContext() {}
 
         /// Clear options on the context.
         /**
@@ -294,7 +317,7 @@ namespace WS_LITE {
          *
          * @note Calls @c SSL_CTX_get_cert_store and @c X509_STORE_add_cert.
          */
-        void add_certificate_authority(const std::vector<unsigned char> &ca);
+        void add_certificate_authority(const unsigned char *buffer, size_t buffer_size);
 
         /// Add certification authority for performing verification.
         /**
@@ -308,7 +331,7 @@ namespace WS_LITE {
          *
          * @note Calls @c SSL_CTX_get_cert_store and @c X509_STORE_add_cert.
          */
-        std::error_code add_certificate_authority(const std::vector<unsigned char> &ca, std::error_code &ec);
+        std::error_code add_certificate_authority(const unsigned char *buffer, size_t buffer_size, std::error_code &ec);
 
         /// Configures the context to use the default directories for finding
         /// certification authority certificates.
@@ -380,7 +403,7 @@ namespace WS_LITE {
          *
          * @note Calls @c SSL_CTX_use_certificate or SSL_CTX_use_certificate_ASN1.
          */
-        void use_certificate(const std::vector<unsigned char> &certificate, file_format format);
+        void use_certificate(const unsigned char *buffer, size_t buffer_size, file_format format);
 
         /// Use a certificate from a memory buffer.
         /**
@@ -394,7 +417,7 @@ namespace WS_LITE {
          *
          * @note Calls @c SSL_CTX_use_certificate or SSL_CTX_use_certificate_ASN1.
          */
-        std::error_code use_certificate(const std::vector<unsigned char> &certificate, file_format format, std::error_code &ec);
+        std::error_code use_certificate(const unsigned char *buffer, size_t buffer_size, file_format format, std::error_code &ec);
 
         /// Use a certificate from a file.
         /**
@@ -436,7 +459,7 @@ namespace WS_LITE {
          *
          * @note Calls @c SSL_CTX_use_certificate and SSL_CTX_add_extra_chain_cert.
          */
-        void use_certificate_chain(const std::vector<unsigned char> &chain);
+        void use_certificate_chain(const unsigned char *buffer, size_t buffer_size);
 
         /// Use a certificate chain from a memory buffer.
         /**
@@ -450,7 +473,7 @@ namespace WS_LITE {
          *
          * @note Calls @c SSL_CTX_use_certificate and SSL_CTX_add_extra_chain_cert.
          */
-        std::error_code use_certificate_chain(const std::vector<unsigned char> &chain, std::error_code &ec);
+        std::error_code use_certificate_chain(const unsigned char *buffer, size_t buffer_size, std::error_code &ec);
 
         /// Use a certificate chain from a file.
         /**
@@ -492,7 +515,7 @@ namespace WS_LITE {
          *
          * @note Calls @c SSL_CTX_use_PrivateKey or SSL_CTX_use_PrivateKey_ASN1.
          */
-        void use_private_key(const std::vector<unsigned char> &private_key, file_format format);
+        void use_private_key(const unsigned char *buffer, size_t buffer_size, file_format format);
 
         /// Use a private key from a memory buffer.
         /**
@@ -506,7 +529,7 @@ namespace WS_LITE {
          *
          * @note Calls @c SSL_CTX_use_PrivateKey or SSL_CTX_use_PrivateKey_ASN1.
          */
-        std::error_code use_private_key(const std::vector<unsigned char> &private_key, file_format format, std::error_code &ec);
+        std::error_code use_private_key(const unsigned char *buffer, size_t buffer_size, file_format format, std::error_code &ec);
 
         /// Use a private key from a file.
         /**
@@ -549,7 +572,7 @@ namespace WS_LITE {
          *
          * @note Calls @c SSL_CTX_use_RSAPrivateKey or SSL_CTX_use_RSAPrivateKey_ASN1.
          */
-        void use_rsa_private_key(const std::vector<unsigned char> &private_key, file_format format);
+        void use_rsa_private_key(const unsigned char *buffer, size_t buffer_size, file_format format);
 
         /// Use an RSA private key from a memory buffer.
         /**
@@ -564,7 +587,7 @@ namespace WS_LITE {
          *
          * @note Calls @c SSL_CTX_use_RSAPrivateKey or SSL_CTX_use_RSAPrivateKey_ASN1.
          */
-        std::error_code use_rsa_private_key(const std::vector<unsigned char> &private_key, file_format format, std::error_code &ec);
+        std::error_code use_rsa_private_key(const unsigned char *buffer, size_t buffer_size, file_format format, std::error_code &ec);
 
         /// Use an RSA private key from a file.
         /**
@@ -609,7 +632,7 @@ namespace WS_LITE {
          *
          * @note Calls @c SSL_CTX_set_tmp_dh.
          */
-        void use_tmp_dh(const std::vector<unsigned char> &dh);
+        void use_tmp_dh(const unsigned char *buffer, size_t buffer_size);
 
         /// Use the specified memory buffer to obtain the temporary Diffie-Hellman
         /// parameters.
@@ -624,7 +647,7 @@ namespace WS_LITE {
          *
          * @note Calls @c SSL_CTX_set_tmp_dh.
          */
-        std::error_code use_tmp_dh(const std::vector<unsigned char> &dh, std::error_code &ec);
+        std::error_code use_tmp_dh(const unsigned char *buffer, size_t buffer_size, std::error_code &ec);
 
         /// Use the specified file to obtain the temporary Diffie-Hellman parameters.
         /**

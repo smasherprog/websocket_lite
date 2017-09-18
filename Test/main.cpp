@@ -1,15 +1,22 @@
 #include "Logging.h"
 #include "WS_Lite.h"
 
+#include <assert.h>
 #include <atomic>
 #include <chrono>
 #include <cstring>
+#include <fstream>
 #include <iostream>
 #include <string>
 #include <thread>
 #include <vector>
 
 using namespace std::chrono_literals;
+inline std::ifstream::pos_type filesize(const std::string &filename)
+{
+    std::ifstream in(filename, std::ifstream::ate | std::ifstream::binary);
+    return in.tellg();
+}
 
 void wssautobahntest()
 {
@@ -18,6 +25,7 @@ void wssautobahntest()
 
     auto listener =
         SL::WS_LITE::CreateContext(SL::WS_LITE::ThreadCount(1))
+            ->NoTLS()
             ->CreateListener(SL::WS_LITE::PortNumber(3000))
             ->onConnection([&](const std::shared_ptr<SL::WS_LITE::IWSocket> &socket, const std::unordered_map<std::string, std::string> &header) {
                 lastheard = std::chrono::high_resolution_clock::now();
@@ -40,8 +48,41 @@ void wssautobahntest()
 
     auto tlslistener =
         SL::WS_LITE::CreateContext(SL::WS_LITE::ThreadCount(1))
-            ->CreateTLSListener(SL::WS_LITE::PortNumber(3001), TEST_CERTIFICATE_PRIVATE_PASSWORD, TEST_CERTIFICATE_PRIVATE_PATH,
-                                TEST_CERTIFICATE_PUBLIC_PATH, TEST_DH_PATH)
+            ->UseTLS(
+                [](SL::WS_LITE::TLSContext &context) {
+                    context.set_options(SL::WS_LITE::options::default_workarounds | SL::WS_LITE::options::no_sslv2 | SL::WS_LITE::options::no_sslv3 |
+                                        SL::WS_LITE::options::single_dh_use);
+                    std::error_code ec;
+
+                    context.set_password_callback(
+                        [](std::size_t s, SL::WS_LITE::password_purpose p) { return std::string(TEST_CERTIFICATE_PRIVATE_PASSWORD); }, ec);
+                    if (ec) {
+                        std::cout << "set_password_callback failed: " << ec.message();
+                        ec.clear();
+                    }
+                    context.use_tmp_dh_file(std::string(TEST_DH_PATH), ec);
+                    if (ec) {
+                        std::cout << "use_tmp_dh_file failed: " << ec.message();
+                        ec.clear();
+                    }
+                    context.use_certificate_chain_file(std::string(TEST_CERTIFICATE_PUBLIC_PATH), ec);
+                    if (ec) {
+                        std::cout << "use_certificate_chain_file failed: " << ec.message();
+                        ec.clear();
+                    }
+                    context.set_default_verify_paths(ec);
+                    if (ec) {
+                        std::cout << "set_default_verify_paths failed: " << ec.message();
+                        ec.clear();
+                    }
+                    context.use_private_key_file(std::string(TEST_CERTIFICATE_PRIVATE_PATH), SL::WS_LITE::file_format::pem, ec);
+                    if (ec) {
+                        std::cout << "use_private_key_file failed: " << ec.message();
+                        ec.clear();
+                    }
+                },
+                SL::WS_LITE::method::tlsv11)
+            ->CreateListener(SL::WS_LITE::PortNumber(3001))
             ->onConnection([&](const std::shared_ptr<SL::WS_LITE::IWSocket> &socket, const std::unordered_map<std::string, std::string> &header) {
                 lastheard = std::chrono::high_resolution_clock::now();
                 SL_WS_LITE_LOG(SL::WS_LITE::Logging_Levels::INFO_log_level, "tlslistener::onConnection");
@@ -77,6 +118,7 @@ void generaltest()
     SL::WS_LITE::PortNumber port(3002);
     auto listenerct =
         SL::WS_LITE::CreateContext(SL::WS_LITE::ThreadCount(1))
+            ->NoTLS()
             ->CreateListener(port)
             ->onConnection([&](const std::shared_ptr<SL::WS_LITE::IWSocket> &socket, const std::unordered_map<std::string, std::string> &header) {
                 lastheard = std::chrono::high_resolution_clock::now();
@@ -101,6 +143,7 @@ void generaltest()
 
     auto clientctx =
         SL::WS_LITE::CreateContext(SL::WS_LITE::ThreadCount(1))
+            ->NoTLS()
             ->CreateClient()
             ->onConnection([&](const std::shared_ptr<SL::WS_LITE::IWSocket> &socket, const std::unordered_map<std::string, std::string> &header) {
                 lastheard = std::chrono::high_resolution_clock::now();
@@ -123,7 +166,41 @@ void generalTLStest()
     SL::WS_LITE::PortNumber port(3005);
     auto listenerctx =
         SL::WS_LITE::CreateContext(SL::WS_LITE::ThreadCount(1))
-            ->CreateTLSListener(port, TEST_CERTIFICATE_PRIVATE_PASSWORD, TEST_CERTIFICATE_PRIVATE_PATH, TEST_CERTIFICATE_PUBLIC_PATH, TEST_DH_PATH)
+            ->UseTLS(
+                [](SL::WS_LITE::TLSContext &context) {
+                    context.set_options(SL::WS_LITE::options::default_workarounds | SL::WS_LITE::options::no_sslv2 | SL::WS_LITE::options::no_sslv3 |
+                                        SL::WS_LITE::options::single_dh_use);
+                    std::error_code ec;
+
+                    context.set_password_callback(
+                        [](std::size_t s, SL::WS_LITE::password_purpose p) { return std::string(TEST_CERTIFICATE_PRIVATE_PASSWORD); }, ec);
+                    if (ec) {
+                        std::cout << "set_password_callback failed: " << ec.message();
+                        ec.clear();
+                    }
+                    context.use_tmp_dh_file(std::string(TEST_DH_PATH), ec);
+                    if (ec) {
+                        std::cout << "use_tmp_dh_file failed: " << ec.message();
+                        ec.clear();
+                    }
+                    context.use_certificate_chain_file(std::string(TEST_CERTIFICATE_PUBLIC_PATH), ec);
+                    if (ec) {
+                        std::cout << "use_certificate_chain_file failed: " << ec.message();
+                        ec.clear();
+                    }
+                    context.set_default_verify_paths(ec);
+                    if (ec) {
+                        std::cout << "set_default_verify_paths failed: " << ec.message();
+                        ec.clear();
+                    }
+                    context.use_private_key_file(std::string(TEST_CERTIFICATE_PRIVATE_PATH), SL::WS_LITE::file_format::pem, ec);
+                    if (ec) {
+                        std::cout << "use_private_key_file failed: " << ec.message();
+                        ec.clear();
+                    }
+                },
+                SL::WS_LITE::method::tlsv11)
+            ->CreateListener(port)
             ->onConnection([&](const std::shared_ptr<SL::WS_LITE::IWSocket> &socket, const std::unordered_map<std::string, std::string> &header) {
                 lastheard = std::chrono::high_resolution_clock::now();
                 SL_WS_LITE_LOG(SL::WS_LITE::Logging_Levels::INFO_log_level, "listener::onConnection");
@@ -147,10 +224,30 @@ void generalTLStest()
 
     auto clientctx =
         SL::WS_LITE::CreateContext(SL::WS_LITE::ThreadCount(1))
-            ->CreateTLSClient(TEST_CERTIFICATE_PUBLIC_PATH)
-            ->onVerifyPeer([&](bool b, X509_STORE_CTX *cert) {
-                return b; // trust all certs, not good but for now yeah
-            })
+            ->UseTLS(
+                [](SL::WS_LITE::TLSContext &context) {
+                    std::ifstream file(TEST_CERTIFICATE_PUBLIC_PATH, std::ios::binary);
+                    assert(file);
+                    std::vector<char> buf;
+                    buf.resize(static_cast<size_t>(filesize(TEST_CERTIFICATE_PUBLIC_PATH)));
+                    file.read(buf.data(), buf.size());
+                    std::error_code ec;
+                    context.add_certificate_authority(reinterpret_cast<unsigned char *>(buf.data()), buf.size(), ec);
+                    if (ec) {
+                        std::cout << "add_certificate_authority failed: " << ec.message();
+                        ec.clear();
+                    }
+                    context.set_default_verify_paths(ec);
+                    if (ec) {
+                        std::cout << "set_default_verify_paths failed: " << ec.message();
+                        ec.clear();
+                    }
+                },
+                SL::WS_LITE::method::tlsv11)
+            ->CreateClient()
+            //->onVerifyPeer([&](bool b, X509_STORE_CTX *cert) {
+            //    return b; // trust all certs, not good but for now yeah
+            //})
             ->onConnection([&](const std::shared_ptr<SL::WS_LITE::IWSocket> &socket, const std::unordered_map<std::string, std::string> &header) {
                 lastheard = std::chrono::high_resolution_clock::now();
                 SL_WS_LITE_LOG(SL::WS_LITE::Logging_Levels::INFO_log_level, "Client::onConnection");
@@ -174,6 +271,7 @@ void multithreadtest()
     SL::WS_LITE::PortNumber port(3003);
     auto listenerctx =
         SL::WS_LITE::CreateContext(SL::WS_LITE::ThreadCount(2))
+            ->NoTLS()
             ->CreateListener(port)
             ->onConnection([&](const std::shared_ptr<SL::WS_LITE::IWSocket> &socket, const std::unordered_map<std::string, std::string> &header) {
                 lastheard = std::chrono::high_resolution_clock::now();
@@ -193,11 +291,12 @@ void multithreadtest()
             })
             ->listen();
 
-    std::vector<std::shared_ptr<SL::WS_LITE::IWSClient>> clients;
+    std::vector<std::shared_ptr<SL::WS_LITE::IWSHub>> clients;
     auto clientctx(SL::WS_LITE::CreateContext(SL::WS_LITE::ThreadCount(2)));
     clients.reserve(50);
     for (auto i = 0; i < 50; i++) {
-        auto c = clientctx->CreateClient()
+        auto c = clientctx->NoTLS()
+                     ->CreateClient()
                      ->onConnection([&lastheard, i](const std::shared_ptr<SL::WS_LITE::IWSocket> &socket,
                                                     const std::unordered_map<std::string, std::string> &header) {
                          lastheard = std::chrono::high_resolution_clock::now();
@@ -228,7 +327,7 @@ void multithreadtest()
 void multithreadthroughputtest()
 {
     std::cout << "Starting Multi threaded throughput test" << std::endl;
-    std::vector<std::shared_ptr<SL::WS_LITE::IWSClient>> clients;
+    std::vector<std::shared_ptr<SL::WS_LITE::IWSHub>> clients;
     clients.reserve(50); // this should use about 1 GB of memory between sending and receiving
     auto recvtimer = std::chrono::high_resolution_clock::now();
     auto lastheard = std::chrono::high_resolution_clock::now();
@@ -239,6 +338,7 @@ void multithreadthroughputtest()
     SL::WS_LITE::PortNumber port(3004);
     auto listenerctx =
         SL::WS_LITE::CreateContext(SL::WS_LITE::ThreadCount(2))
+            ->NoTLS()
             ->CreateListener(port)
             ->onConnection([&](const std::shared_ptr<SL::WS_LITE::IWSocket> &socket, const std::unordered_map<std::string, std::string> &header) {
                 lastheard = std::chrono::high_resolution_clock::now();
@@ -264,7 +364,8 @@ void multithreadthroughputtest()
     auto sendtimer = std::chrono::high_resolution_clock::now();
     for (size_t i = 0; i < clients.capacity(); i++) {
         auto c =
-            clientctx->CreateClient()
+            clientctx->NoTLS()
+                ->CreateClient()
                 ->onConnection([&clients, &lastheard, i, &mbssent, &sendtimer, bufferesize](
                                    const std::shared_ptr<SL::WS_LITE::IWSocket> &socket, const std::unordered_map<std::string, std::string> &header) {
                     lastheard = std::chrono::high_resolution_clock::now();

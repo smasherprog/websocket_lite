@@ -5,7 +5,7 @@
 namespace SL {
 namespace WS_LITE {
 
-    template <class SOCKETTYPE> void read_handshake(std::shared_ptr<WSListenerImpl> listener, const SOCKETTYPE &socket)
+    template <class SOCKETTYPE> void read_handshake(const std::shared_ptr<WSContextImpl> listener, const SOCKETTYPE &socket)
     {
         auto handshakecontainer(std::make_shared<HandshakeContainer>());
         asio::async_read_until(
@@ -59,12 +59,12 @@ namespace WS_LITE {
                 }
             });
     }
-    void async_handshake(std::shared_ptr<WSListenerImpl> listener, std::shared_ptr<WSocket<asio::ip::tcp::socket, WSListenerImpl>> socket)
+    void async_handshake(const std::shared_ptr<WSContextImpl> listener, std::shared_ptr<WSocket<asio::ip::tcp::socket, true>> socket)
     {
         read_handshake(listener, socket);
     }
-    void async_handshake(std::shared_ptr<WSListenerImpl> listener,
-                         std::shared_ptr<WSocket<asio::ssl::stream<asio::ip::tcp::socket>, WSListenerImpl>> socket)
+    void async_handshake(const std::shared_ptr<WSContextImpl> listener,
+                         std::shared_ptr<WSocket<asio::ssl::stream<asio::ip::tcp::socket>, true>> socket)
     {
         socket->Socket.async_handshake(asio::ssl::stream_base::server, [listener, socket](const std::error_code &ec) {
             if (!ec) {
@@ -77,8 +77,8 @@ namespace WS_LITE {
         });
     }
 
-    template <class PARENTTYPE, typename SOCKETCREATOR>
-    void Listen(PARENTTYPE &listener, SOCKETCREATOR &&socketcreator, bool no_delay, bool reuse_address)
+    template <typename SOCKETCREATOR>
+    void Listen(const std::shared_ptr<WSContextImpl> &listener, SOCKETCREATOR &&socketcreator, bool no_delay, bool reuse_address)
     {
 
         auto socket = socketcreator(listener);
@@ -148,16 +148,14 @@ namespace WS_LITE {
         Impl_->onPong = handle;
         return std::make_shared<WSListener_Configuration>(Impl_);
     }
-    std::shared_ptr<IWSListener> WSListener_Configuration::listen(bool no_delay, bool reuse_address)
+    std::shared_ptr<IWSHub> WSListener_Configuration::listen(bool no_delay, bool reuse_address)
     {
         if (Impl_->TLSEnabled) {
-            auto createsocket = [](auto c) {
-                return std::make_shared<WSocket<asio::ssl::stream<asio::ip::tcp::socket>, WSListenerImpl>>(c, c->sslcontext);
-            };
+            auto createsocket = [](auto c) { return std::make_shared<WSocket<asio::ssl::stream<asio::ip::tcp::socket>, true>>(c, c->sslcontext); };
             Listen(Impl_, createsocket, no_delay, reuse_address);
         }
         else {
-            auto createsocket = [](auto c) { return std::make_shared<WSocket<asio::ip::tcp::socket, WSListenerImpl>>(c); };
+            auto createsocket = [](auto c) { return std::make_shared<WSocket<asio::ip::tcp::socket, true>>(c); };
             Listen(Impl_, createsocket, no_delay, reuse_address);
         }
         return std::make_shared<WSListener>(Impl_);

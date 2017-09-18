@@ -1,5 +1,5 @@
 #pragma once
-#include "TLS.h"
+#include "TLSContext.h"
 #include <chrono>
 #include <functional>
 #include <memory>
@@ -81,10 +81,9 @@ namespace WS_LITE {
         // send a close message and close the socket
         virtual void close(unsigned short code = 1000, const std::string &msg = "") = 0;
     };
-
-    class WS_LITE_EXTERN IWSListener {
+    class WS_LITE_EXTERN IWSHub {
       public:
-        virtual ~IWSListener() {}
+        virtual ~IWSHub() {}
         // the maximum payload size
         virtual void set_MaxPayload(size_t bytes) = 0;
         // the maximum payload size
@@ -95,11 +94,9 @@ namespace WS_LITE {
         virtual std::chrono::seconds get_ReadTimeout() = 0;
         // maximum time in seconds before a client is considered disconnected -- for writes
         virtual void set_WriteTimeout(std::chrono::seconds seconds) = 0;
-        virtual // get the current write timeout in seconds
-            std::chrono::seconds
-            get_WriteTimeout() = 0;
+        // get the current write timeout in seconds
+        virtual std::chrono::seconds get_WriteTimeout() = 0;
     };
-
     class WS_LITE_EXTERN IWSListener_Configuration {
       public:
         virtual ~IWSListener_Configuration() {}
@@ -120,23 +117,7 @@ namespace WS_LITE {
         virtual std::shared_ptr<IWSListener_Configuration>
         onPong(const std::function<void(const std::shared_ptr<IWSocket> &, const unsigned char *, size_t)> &handle) = 0;
         // start the process to listen for clients. This is non-blocking and will return immediatly
-        virtual std::shared_ptr<IWSListener> listen(bool no_delay = true, bool reuse_address = true) = 0;
-    };
-    class WS_LITE_EXTERN IWSClient {
-      public:
-        virtual ~IWSClient() {}
-        // the maximum payload size
-        virtual void set_MaxPayload(size_t bytes) = 0;
-        // the maximum payload size
-        virtual size_t get_MaxPayload() = 0;
-        // maximum time in seconds before a client is considered disconnected -- for reads
-        virtual void set_ReadTimeout(std::chrono::seconds seconds) = 0;
-        // get the current read timeout in seconds
-        virtual std::chrono::seconds get_ReadTimeout() = 0;
-        // maximum time in seconds before a client is considered disconnected -- for writes
-        virtual void set_WriteTimeout(std::chrono::seconds seconds) = 0;
-        // get the current write timeout in seconds
-        virtual std::chrono::seconds get_WriteTimeout() = 0;
+        virtual std::shared_ptr<IWSHub> listen(bool no_delay = true, bool reuse_address = true) = 0;
     };
 
     class WS_LITE_EXTERN IWSClient_Configuration {
@@ -159,28 +140,25 @@ namespace WS_LITE {
         onPong(const std::function<void(const std::shared_ptr<IWSocket> &, const unsigned char *, size_t)> &handle) = 0;
         // connect to an endpoint. This is non-blocking and will return immediatly. If the library is unable to establish a connection,
         // ondisconnection will be called.
-        virtual std::shared_ptr<IWSClient> connect(const std::string &host, PortNumber port, bool no_delay = true, const std::string &endpoint = "/",
-                                                   const std::unordered_map<std::string, std::string> &extraheaders = {}) = 0;
+        virtual std::shared_ptr<IWSHub> connect(const std::string &host, PortNumber port, bool no_delay = true, const std::string &endpoint = "/",
+                                                const std::unordered_map<std::string, std::string> &extraheaders = {}) = 0;
     };
-    class WS_LITE_EXTERN IWSSClient_Configuration {
+
+    class WS_LITE_EXTERN IWSContext_Configuration {
       public:
-        virtual ~IWSSClient_Configuration() {}
-        // set this if you want to verify the server's cert
-        virtual std::shared_ptr<IWSClient_Configuration> onVerifyPeer(const std::function<bool(bool, X509_STORE_CTX *)> &handle) = 0;
-    };
-    class WS_LITE_EXTERN IWSContext {
-      public:
-        virtual ~IWSContext() {}
+        virtual ~IWSContext_Configuration() {}
+
         virtual std::shared_ptr<IWSListener_Configuration> CreateListener(PortNumber port,
                                                                           ExtensionOptions options = ExtensionOptions::NO_OPTIONS) = 0;
-        virtual std::shared_ptr<IWSListener_Configuration> CreateTLSListener(PortNumber port, std::string Password, std::string Privatekey_File,
-                                                                             std::string Publiccertificate_File, std::string dh_File,
-                                                                             ExtensionOptions options = ExtensionOptions::NO_OPTIONS) = 0;
         virtual std::shared_ptr<IWSClient_Configuration> CreateClient(ExtensionOptions options = ExtensionOptions::NO_OPTIONS) = 0;
-        virtual std::shared_ptr<IWSSClient_Configuration> CreateTLSClient(ExtensionOptions options = ExtensionOptions::NO_OPTIONS) = 0;
-        virtual std::shared_ptr<IWSSClient_Configuration> CreateTLSClient(std::string Publiccertificate_File,
-                                                                          ExtensionOptions options = ExtensionOptions::NO_OPTIONS) = 0;
     };
-    std::shared_ptr<IWSContext> WS_LITE_EXTERN CreateContext(ThreadCount threadcount);
+    class WS_LITE_EXTERN ITLS_Configuration {
+      public:
+        virtual ~ITLS_Configuration() {}
+        virtual std::shared_ptr<IWSContext_Configuration> UseTLS(const std::function<void(TLSContext &context)> &callback, method m) = 0;
+        virtual std::shared_ptr<IWSContext_Configuration> NoTLS() = 0;
+    };
+
+    std::shared_ptr<ITLS_Configuration> WS_LITE_EXTERN CreateContext(ThreadCount threadcount);
 } // namespace WS_LITE
 } // namespace SL

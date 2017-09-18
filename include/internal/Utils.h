@@ -201,12 +201,6 @@ namespace WS_LITE {
         return ascii;
     }
 
-    inline std::ifstream::pos_type filesize(const std::string &filename)
-    {
-        std::ifstream in(filename, std::ifstream::ate | std::ifstream::binary);
-        return in.tellg();
-    }
-
     template <typename T> T ntoh(T u)
     {
         static_assert(CHAR_BIT == 8, "CHAR_BIT != 8");
@@ -245,8 +239,6 @@ namespace WS_LITE {
     bool isValidUtf8(unsigned char *s, size_t length);
     char *ZlibInflate(char *data, size_t &length, size_t maxPayload, std::string &dynamicInflationBuffer, z_stream &inflationStream,
                       char *inflationBuffer);
-
-    void add_other_root_certs(asio::ssl::context &ctx);
 
 } // namespace WS_LITE
 } // namespace SL
