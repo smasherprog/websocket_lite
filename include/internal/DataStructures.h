@@ -3,10 +3,6 @@
 #include "Utils.h"
 #include "WS_Lite.h"
 
-#if WIN32
-#include <SDKDDKVer.h>
-#endif
-
 #include <deque>
 #include <memory>
 #include <string>

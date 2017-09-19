@@ -1,7 +1,12 @@
 #include "TLSContext.h"
-#include "internal/DataStructures.h"
 
 #include "asio/ssl.hpp"
+#if WIN32
+#include <Windows.h>
+#include <wincrypt.h>
+#endif
+
+#include "internal/DataStructures.h"
 
 namespace SL {
 namespace WS_LITE {

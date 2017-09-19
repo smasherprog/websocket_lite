@@ -1,16 +1,9 @@
 #include "Logging.h"
+#include "WS_Lite.h"
 #include "internal/Utils.h"
 
 #include <fstream>
 #include <random>
-
-#if WIN32
-#include <SDKDDKVer.h>
-#define WIN32_LEAN_AND_MEAN
-#include "asio/ssl.hpp"
-#include <Windows.h>
-#include <wincrypt.h>
-#endif
 
 namespace SL {
 namespace WS_LITE {

@@ -51,8 +51,8 @@ namespace WS_LITE {
     inline void setpayloadLength2(unsigned char *frame, unsigned short val) { *reinterpret_cast<unsigned short *>(frame + 2) = val; }
     inline void setpayloadLength8(unsigned char *frame, unsigned long long int val) { *reinterpret_cast<unsigned long long int *>(frame + 2) = val; }
 
-    inline OpCode getOpCode(unsigned char *frame) { return static_cast<OpCode>(*frame & 15); }
-    inline void setOpCode(unsigned char *frame, OpCode val) { frame[0] = (val & 15) | (~15 & frame[0]); }
+    inline unsigned char getOpCode(unsigned char *frame) { return *frame & 15; }
+    inline void setOpCode(unsigned char *frame, unsigned char val) { frame[0] = (val & 15) | (~15 & frame[0]); }
 
     inline bool getrsv3(unsigned char *frame) { return *frame & 16; }
     inline bool getrsv2(unsigned char *frame) { return *frame & 32; }
