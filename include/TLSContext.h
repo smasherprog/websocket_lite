@@ -1,14 +1,9 @@
 #pragma once
 
-#include "openssl/ssl.h"
 #include <functional>
 #include <memory>
 #include <string>
-#if WIN32
-#define WIN32_LEAN_AND_MEAN
-#include <Windows.h>
-#include <wincrypt.h>
-#endif
+typedef struct x509_store_ctx_st X509_STORE_CTX;
 
 namespace SL {
 namespace WS_LITE {
@@ -18,26 +13,15 @@ namespace WS_LITE {
     */
 
     enum options : unsigned long {
-        default_workarounds = SSL_OP_ALL,
-        single_dh_use = SSL_OP_SINGLE_DH_USE,
-        no_sslv2 = SSL_OP_NO_SSLv2,
-        no_sslv3 = SSL_OP_NO_SSLv3,
-        no_tlsv1 = SSL_OP_NO_TLSv1,
-#if defined(SSL_OP_NO_TLSv1_1)
-        no_tlsv1_1 = SSL_OP_NO_TLSv1_1,
-#else  // defined(SSL_OP_NO_TLSv1_1)
+        default_workarounds = 0x80000BFFL,
+        single_dh_use = 0x00100000L,
+        no_sslv2 = 0x01000000L,
+        no_sslv3 = 0x02000000L,
+        no_tlsv1 = 0x04000000L,
         no_tlsv1_1 = 0x10000000L,
-#endif // defined(SSL_OP_NO_TLSv1_1)
-#if defined(SSL_OP_NO_TLSv1_2)
-        no_tlsv1_2 = SSL_OP_NO_TLSv1_2,
-#else  // defined(SSL_OP_NO_TLSv1_2)
         no_tlsv1_2 = 0x08000000L,
-#endif // defined(SSL_OP_NO_TLSv1_2)
-#if defined(SSL_OP_NO_COMPRESSION)
-        no_compression = SSL_OP_NO_COMPRESSION
-#else  // defined(SSL_OP_NO_COMPRESSION)
-        no_compression = 0x20000L
-#endif // defined(SSL_OP_NO_COMPRESSION)
+        no_compression = 0x00020000L
+
     };
     enum password_purpose {
         /// The password is needed for reading/decryption.
@@ -117,13 +101,8 @@ namespace WS_LITE {
         /// TLS server.
         tls_server
     };
-    enum verify_mode : int {
-        verify_none = SSL_VERIFY_NONE,
-        verify_peer = SSL_VERIFY_PEER,
-        verify_fail_if_no_peer_cert = SSL_VERIFY_FAIL_IF_NO_PEER_CERT,
-        verify_client_once = SSL_VERIFY_CLIENT_ONCE
-    };
-    struct WSContextImpl;
+    enum verify_mode : int { verify_none = 0x00, verify_peer = 0x01, verify_fail_if_no_peer_cert = 0x02, verify_client_once = 0x04 };
+    class WSContextImpl;
     class TLSContext {
       public:
         std::shared_ptr<WSContextImpl> impl;
@@ -170,7 +149,7 @@ namespace WS_LITE {
          *
          * @note Calls @c SSL_CTX_set_options.
          */
-        void set_options(options o);
+        void set_options(unsigned long o);
 
         /// Set options on the context.
         /**
@@ -260,7 +239,7 @@ namespace WS_LITE {
          *
          * @note Calls @c SSL_CTX_set_verify.
          */
-        void set_verify_callback(const std::function<bool(bool preverified, X509_STORE_CTX *)> &callback);
+        void set_verify_callback(const std::function<bool(bool, X509_STORE_CTX *)> &callback);
 
         /// Set the callback used to verify peer certificates.
         /**
@@ -280,7 +259,7 @@ namespace WS_LITE {
          *
          * @note Calls @c SSL_CTX_set_verify.
          */
-        std::error_code set_verify_callback(const std::function<bool(bool preverified, X509_STORE_CTX *)> &callback, std::error_code &ec);
+        std::error_code set_verify_callback(const std::function<bool(bool, X509_STORE_CTX *)> &callback, std::error_code &ec);
 
         /// Load a certification authority file for performing verification.
         /**

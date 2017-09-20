@@ -5,7 +5,7 @@
 namespace SL {
 namespace WS_LITE {
 
-    template <bool isServer, class SOCKETTYPE> void read_handshake(const std::shared_ptr<WSContextImpl> listener, const SOCKETTYPE &socket)
+    template <class SOCKETTYPE> void read_handshake(const std::shared_ptr<WSContextImpl> listener, const SOCKETTYPE &socket)
     {
         auto handshakecontainer(std::make_shared<HandshakeContainer>());
         asio::async_read_until(
@@ -36,11 +36,12 @@ namespace WS_LITE {
                                                   SL_WS_LITE_LOG(Logging_Levels::INFO_log_level,
                                                                  "Connected: Sent Handshake bytes " << bytes_transferred);
                                                   socket->SocketStatus_ = SocketStatus::CONNECTED;
-                                                  start_ping(listener, socket, std::chrono::seconds(5));
+                                                  start_ping<true>(listener, socket, std::chrono::seconds(5));
                                                   if (listener->onConnection) {
                                                       listener->onConnection(socket, handshakecontainer->Header);
                                                   }
-                                                  ReadHeaderStart<isServer>(listener, socket);
+                                                  auto bufptr = std::make_shared<asio::streambuf>();
+                                                  ReadHeaderStart<true>(listener, socket, bufptr);
                                               }
                                               else {
                                                   socket->SocketStatus_ = SocketStatus::CLOSED;
@@ -59,17 +60,17 @@ namespace WS_LITE {
                 }
             });
     }
-    template <bool isServer>
-    void async_handshake(const std::shared_ptr<WSContextImpl> listener, std::shared_ptr<WSocket<asio::ip::tcp::socket>> socket)
+
+    void async_handshake(const std::shared_ptr<WSContextImpl> listener, std::shared_ptr<WSocket<true, asio::ip::tcp::socket>> socket)
     {
         read_handshake(listener, socket);
     }
-    template <bool isServer>
-    void async_handshake(const std::shared_ptr<WSContextImpl> listener, std::shared_ptr<WSocket<asio::ssl::stream<asio::ip::tcp::socket>>> socket)
+    void async_handshake(const std::shared_ptr<WSContextImpl> listener,
+                         std::shared_ptr<WSocket<true, asio::ssl::stream<asio::ip::tcp::socket>>> socket)
     {
         socket->Socket.async_handshake(asio::ssl::stream_base::server, [listener, socket](const std::error_code &ec) {
             if (!ec) {
-                read_handshake<isServer>(listener, socket);
+                read_handshake(listener, socket);
             }
             else {
                 socket->SocketStatus_ = SocketStatus::CLOSED;
@@ -84,27 +85,27 @@ namespace WS_LITE {
 
         auto socket = socketcreator(listener);
         socket->SocketStatus_ = SocketStatus::CONNECTING;
-        listener->acceptor.async_accept(socket->Socket.lowest_layer(),
-                                        [listener, socket, socketcreator, no_delay, reuse_address](const std::error_code &ec) {
-                                            std::error_code e;
-                                            socket->Socket.lowest_layer().set_option(asio::socket_base::reuse_address(reuse_address), e);
-                                            if (e) {
-                                                SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "set_option reuse_address error " << e.message());
-                                                e.clear();
-                                            }
-                                            socket->Socket.lowest_layer().set_option(asio::ip::tcp::no_delay(no_delay), e);
-                                            if (e) {
-                                                SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "set_option no_delay error " << e.message());
-                                                e.clear();
-                                            }
-                                            if (!ec) {
-                                                async_handshake<true>(listener, socket);
-                                            }
-                                            else {
-                                                socket->SocketStatus_ = SocketStatus::CLOSED;
-                                            }
-                                            Listen(listener, socketcreator, no_delay, reuse_address);
-                                        });
+        listener->acceptor->async_accept(socket->Socket.lowest_layer(),
+                                         [listener, socket, socketcreator, no_delay, reuse_address](const std::error_code &ec) {
+                                             std::error_code e;
+                                             socket->Socket.lowest_layer().set_option(asio::socket_base::reuse_address(reuse_address), e);
+                                             if (e) {
+                                                 SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "set_option reuse_address error " << e.message());
+                                                 e.clear();
+                                             }
+                                             socket->Socket.lowest_layer().set_option(asio::ip::tcp::no_delay(no_delay), e);
+                                             if (e) {
+                                                 SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "set_option no_delay error " << e.message());
+                                                 e.clear();
+                                             }
+                                             if (!ec) {
+                                                 async_handshake(listener, socket);
+                                             }
+                                             else {
+                                                 socket->SocketStatus_ = SocketStatus::CLOSED;
+                                             }
+                                             Listen(listener, socketcreator, no_delay, reuse_address);
+                                         });
     }
 
     void WSListener::set_ReadTimeout(std::chrono::seconds seconds) { Impl_->ReadTimeout = seconds; }
@@ -152,11 +153,11 @@ namespace WS_LITE {
     std::shared_ptr<IWSHub> WSListener_Configuration::listen(bool no_delay, bool reuse_address)
     {
         if (Impl_->TLSEnabled) {
-            auto createsocket = [](auto c) { return std::make_shared<WSocket<asio::ssl::stream<asio::ip::tcp::socket>>>(c, c->sslcontext); };
+            auto createsocket = [](auto c) { return std::make_shared<WSocket<true, asio::ssl::stream<asio::ip::tcp::socket>>>(c, c->sslcontext); };
             Listen(Impl_, createsocket, no_delay, reuse_address);
         }
         else {
-            auto createsocket = [](auto c) { return std::make_shared<WSocket<asio::ip::tcp::socket>>(c); };
+            auto createsocket = [](auto c) { return std::make_shared<WSocket<true, asio::ip::tcp::socket>>(c); };
             Listen(Impl_, createsocket, no_delay, reuse_address);
         }
         return std::make_shared<WSListener>(Impl_);

@@ -16,11 +16,11 @@ namespace WS_LITE {
         {
             WSContextImpl_->acceptor =
                 std::make_unique<asio::ip::tcp::acceptor>(WSContextImpl_->io_service, asio::ip::tcp::endpoint(asio::ip::tcp::v4(), port.value));
-            return std::make_shared<WSListener_Configuration>(std::make_shared<WSListenerImpl>(WSContextImpl_, port));
+            return std::make_shared<WSListener_Configuration>(WSContextImpl_);
         }
         virtual std::shared_ptr<IWSClient_Configuration> CreateClient(ExtensionOptions options) override
         {
-            return std::make_shared<WSClient_Configuration>(std::make_shared<WSClientImpl>(WSContextImpl_));
+            return std::make_shared<WSClient_Configuration>(WSContextImpl_);
         }
     };
     class TLS_Configuration : public ITLS_Configuration {
@@ -52,5 +52,6 @@ namespace WS_LITE {
         ret->threadcount = threadcount;
         return std::make_shared<TLS_Configuration>(ret);
     }
+
 } // namespace WS_LITE
 } // namespace SL

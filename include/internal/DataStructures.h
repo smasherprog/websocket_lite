@@ -8,7 +8,9 @@
 #include <string>
 #include <thread>
 #include <unordered_map>
-
+#if WIN32
+#include <SDKDDKVer.h>
+#endif
 #include "asio.hpp"
 #include "asio/deadline_timer.hpp"
 #include "asio/ssl.hpp"
@@ -107,7 +109,7 @@ namespace WS_LITE {
         bool compressmessage;
     };
 
-    template <class SOCKETTYPE, bool isServer> class WSocket : public IWSocket {
+    template <bool isServer, class SOCKETTYPE> class WSocket : public IWSocket {
 
       public:
         WSocket(const std::shared_ptr<WSContextImpl> &s, asio::ssl::context &sslcontext)
@@ -137,20 +139,20 @@ namespace WS_LITE {
         virtual void send(const WSMessage &msg, bool compressmessage)
         {
             if (SocketStatus_ == SocketStatus::CONNECTED) { // only send a close to an open socket
-                auto self(std::static_pointer_cast<WSocket<SOCKETTYPE, PARENTTYPE>>(shared_from_this()));
+                auto self(std::static_pointer_cast<WSocket<isServer, SOCKETTYPE>>(shared_from_this()));
                 auto p(Parent);
                 if (p)
-                    sendImpl(p, self, msg, compressmessage);
+                    sendImpl<isServer>(p, self, msg, compressmessage);
             }
         }
         // send a close message and close the socket
         virtual void close(unsigned short code, const std::string &msg)
         {
             if (SocketStatus_ == SocketStatus::CONNECTED) { // only send a close to an open socket
-                auto self(std::static_pointer_cast<WSocket<SOCKETTYPE, PARENTTYPE>>(shared_from_this()));
+                auto self(std::static_pointer_cast<WSocket<isServer, SOCKETTYPE>>(shared_from_this()));
                 auto p(Parent);
                 if (p)
-                    sendclosemessage(p, self, code, msg);
+                    sendclosemessage<isServer>(p, self, code, msg);
             }
         }
 

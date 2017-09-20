@@ -38,6 +38,10 @@ add_library(${PROJECT_NAME}
 	src/WSContext.cpp
 )
 
+if(WIN32) 
+	add_definitions(-DNOMINMAX -DWIN32_LEAN_AND_MEAN)
+endif() 
+
 if(${BUILD_SHARED_LIBS})
 	set_target_properties(${PROJECT_NAME} PROPERTIES DEFINE_SYMBOL WS_LITE_DLL)
 	if(WIN32) 
