@@ -19,6 +19,12 @@
 
 namespace SL {
 namespace WS_LITE {
+    class WSContextImpl;
+    template <bool isServer, class SOCKETTYPE, class SENDBUFFERTYPE>
+    void sendImpl(const std::shared_ptr<WSContextImpl> parent, const SOCKETTYPE &socket, const SENDBUFFERTYPE &msg, bool compressmessage);
+    template <bool isServer, class SOCKETTYPE>
+    void sendclosemessage(const std::shared_ptr<WSContextImpl> parent, const SOCKETTYPE &socket, unsigned short code, const std::string &msg);
+    
     struct HandshakeContainer {
         asio::streambuf Read;
         asio::streambuf Write;

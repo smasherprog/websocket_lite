@@ -219,5 +219,5 @@ namespace WS_LITE {
         }
         return std::make_shared<WSClient>(Impl_);
     }
-}; // namespace WS_LITE
+} // namespace WS_LITE
 } // namespace SL

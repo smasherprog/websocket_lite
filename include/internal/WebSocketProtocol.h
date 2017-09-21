@@ -10,7 +10,15 @@
 
 namespace SL {
 namespace WS_LITE {
-
+template <bool isServer, class SOCKETTYPE>
+    void ReadHeaderNext(const std::shared_ptr<WSContextImpl> parent, const SOCKETTYPE &socket,
+                               const std::shared_ptr<asio::streambuf> &extradata);
+    template <bool isServer, class SOCKETTYPE>
+    void ReadHeaderStart(const std::shared_ptr<WSContextImpl> parent, const SOCKETTYPE &socket,
+                                const std::shared_ptr<asio::streambuf> &extradata);
+    template <bool isServer, class SOCKETTYPE, class SENDBUFFERTYPE>
+    void write_end(const std::shared_ptr<WSContextImpl> parent, const SOCKETTYPE &socket, const SENDBUFFERTYPE &msg);
+      
     template <bool isServer, class SOCKETTYPE>
     void readexpire_from_now(const std::shared_ptr<WSContextImpl> parent, const SOCKETTYPE &socket, std::chrono::seconds secs)
     {
@@ -49,7 +57,7 @@ namespace WS_LITE {
                     msg.len = sizeof(p);
                     msg.code = OpCode::PING;
                     msg.data = msg.Buffer.get();
-                    sendImpl<isServer>(parent, socket, msg, false);
+                    SL::WS_LITE::sendImpl<isServer>(parent, socket, msg, false);
                     start_ping<isServer>(parent, socket, secs);
                 }
             });
@@ -72,6 +80,83 @@ namespace WS_LITE {
                     return sendclosemessage<isServer>(parent, socket, 1001, "write timer expired on the socket ");
                 }
             });
+        }
+    }
+    
+    template <bool isServer, class SOCKETTYPE, class SENDBUFFERTYPE>
+    void writeend(const std::shared_ptr<WSContextImpl> parent, const SOCKETTYPE &socket, const SENDBUFFERTYPE &msg, bool iserver)
+    {
+        if (!iserver) {
+            std::uniform_int_distribution<unsigned int> dist(0, 255);
+            std::random_device rd;
+
+            unsigned char mask[4];
+            for (auto c = 0; c < 4; c++) {
+                mask[c] = static_cast<unsigned char>(dist(rd));
+            }
+            auto p = reinterpret_cast<unsigned char *>(msg.data);
+            for (decltype(msg.len) i = 0; i < msg.len; i++) {
+                *p++ ^= mask[i % 4];
+            }
+            std::error_code ec;
+            auto bytes_transferred = asio::write(socket->Socket, asio::buffer(mask, 4), ec);
+            if (ec) {
+                if (msg.code == OpCode::CLOSE) {
+                    return handleclose(parent, socket, msg.code, "");
+                }
+                else {
+                    return handleclose(parent, socket, 1002, "write mask failed " + ec.message());
+                }
+            }
+            else {
+                UNUSED(bytes_transferred);
+                assert(bytes_transferred == 4);
+                write_end<isServer>(parent, socket, msg);
+            }
+        }
+        else {
+            write_end<isServer>(parent, socket, msg);
+        }
+    }
+    template <bool isServer, class SOCKETTYPE, class SENDBUFFERTYPE>
+    inline void write(const std::shared_ptr<WSContextImpl> parent, const SOCKETTYPE &socket, const SENDBUFFERTYPE &msg)
+    {
+        size_t sendsize = 0;
+        unsigned char header[10] = {};
+
+        setFin(header, 0xFF);
+        set_MaskBitForSending(header, isServer);
+        setOpCode(header, msg.code);
+        setrsv1(header, 0x00);
+        setrsv2(header, 0x00);
+        setrsv3(header, 0x00);
+
+        if (msg.len <= 125) {
+            setpayloadLength1(header, hton(static_cast<unsigned char>(msg.len)));
+            sendsize = 2;
+        }
+        else if (msg.len > USHRT_MAX) {
+            setpayloadLength8(header, hton(static_cast<unsigned long long int>(msg.len)));
+            setpayloadLength1(header, 127);
+            sendsize = 10;
+        }
+        else {
+            setpayloadLength2(header, hton(static_cast<unsigned short>(msg.len)));
+            setpayloadLength1(header, 126);
+            sendsize = 4;
+        }
+
+        assert(msg.len < UINT32_MAX);
+        writeexpire_from_now<isServer>(parent, socket, parent->WriteTimeout);
+        std::error_code ec;
+        auto bytes_transferred = asio::write(socket->Socket, asio::buffer(header, sendsize), ec);
+        UNUSED(bytes_transferred);
+        if (!ec) {
+            assert(sendsize == bytes_transferred);
+            writeend<isServer>(parent, socket, msg, isServer);
+        }
+        else {
+            handleclose(parent, socket, 1002, "write header failed " + ec.message());
         }
     }
     template <bool isServer, class SOCKETTYPE> inline void startwrite(const std::shared_ptr<WSContextImpl> parent, const SOCKETTYPE &socket)
@@ -140,7 +225,7 @@ namespace WS_LITE {
     }
 
     template <bool isServer, class SOCKETTYPE, class SENDBUFFERTYPE>
-    inline void write_end(const std::shared_ptr<WSContextImpl> parent, const SOCKETTYPE &socket, const SENDBUFFERTYPE &msg)
+    void write_end(const std::shared_ptr<WSContextImpl> parent, const SOCKETTYPE &socket, const SENDBUFFERTYPE &msg)
     {
 
         asio::async_write(socket->Socket, asio::buffer(msg.data, msg.len),
@@ -160,84 +245,8 @@ namespace WS_LITE {
                           }));
     }
 
-    template <bool isServer, class SOCKETTYPE, class SENDBUFFERTYPE>
-    constexpr void writeend(const std::shared_ptr<WSContextImpl> parent, const SOCKETTYPE &socket, const SENDBUFFERTYPE &msg, bool iserver)
-    {
-        if (!iserver) {
-            std::uniform_int_distribution<unsigned int> dist(0, 255);
-            std::random_device rd;
 
-            unsigned char mask[4];
-            for (auto c = 0; c < 4; c++) {
-                mask[c] = static_cast<unsigned char>(dist(rd));
-            }
-            auto p = reinterpret_cast<unsigned char *>(msg.data);
-            for (decltype(msg.len) i = 0; i < msg.len; i++) {
-                *p++ ^= mask[i % 4];
-            }
-            std::error_code ec;
-            auto bytes_transferred = asio::write(socket->Socket, asio::buffer(mask, 4), ec);
-            if (ec) {
-                if (msg.code == OpCode::CLOSE) {
-                    return handleclose(parent, socket, msg.code, "");
-                }
-                else {
-                    return handleclose(parent, socket, 1002, "write mask failed " + ec.message());
-                }
-            }
-            else {
-                UNUSED(bytes_transferred);
-                assert(bytes_transferred == 4);
-                write_end<isServer>(parent, socket, msg);
-            }
-        }
-        else {
-            write_end<isServer>(parent, socket, msg);
-        }
-    }
-
-    template <bool isServer, class SOCKETTYPE, class SENDBUFFERTYPE>
-    inline void write(const std::shared_ptr<WSContextImpl> parent, const SOCKETTYPE &socket, const SENDBUFFERTYPE &msg)
-    {
-        size_t sendsize = 0;
-        unsigned char header[10] = {};
-
-        setFin(header, 0xFF);
-        set_MaskBitForSending(header, isServer);
-        setOpCode(header, msg.code);
-        setrsv1(header, 0x00);
-        setrsv2(header, 0x00);
-        setrsv3(header, 0x00);
-
-        if (msg.len <= 125) {
-            setpayloadLength1(header, hton(static_cast<unsigned char>(msg.len)));
-            sendsize = 2;
-        }
-        else if (msg.len > USHRT_MAX) {
-            setpayloadLength8(header, hton(static_cast<unsigned long long int>(msg.len)));
-            setpayloadLength1(header, 127);
-            sendsize = 10;
-        }
-        else {
-            setpayloadLength2(header, hton(static_cast<unsigned short>(msg.len)));
-            setpayloadLength1(header, 126);
-            sendsize = 4;
-        }
-
-        assert(msg.len < UINT32_MAX);
-        writeexpire_from_now<isServer>(parent, socket, parent->WriteTimeout);
-        std::error_code ec;
-        auto bytes_transferred = asio::write(socket->Socket, asio::buffer(header, sendsize), ec);
-        UNUSED(bytes_transferred);
-        if (!ec) {
-            assert(sendsize == bytes_transferred);
-            writeend<isServer>(parent, socket, msg, isServer);
-        }
-        else {
-            handleclose(parent, socket, 1002, "write header failed " + ec.message());
-        }
-    }
-    constexpr void UnMaskMessage(size_t readsize, unsigned char *buffer, bool isserver)
+    inline void UnMaskMessage(size_t readsize, unsigned char *buffer, bool isserver)
     {
         if (isserver) {
             auto startp = buffer;
@@ -474,19 +483,9 @@ namespace WS_LITE {
             return sendclosemessage<isServer>(parent, socket, 1002, "Closing connection. nonvalid op code");
         }
     }
+ 
     template <bool isServer, class SOCKETTYPE>
-    inline void ReadHeaderStart(const std::shared_ptr<WSContextImpl> parent, const SOCKETTYPE &socket,
-                                const std::shared_ptr<asio::streambuf> &extradata)
-    {
-        free(socket->ReceiveBuffer);
-        socket->ReceiveBuffer = nullptr;
-        socket->ReceiveBufferSize = 0;
-        socket->LastOpCode = OpCode::INVALID;
-        ReadHeaderNext<isServer>(parent, socket, extradata);
-    }
-
-    template <bool isServer, class SOCKETTYPE>
-    inline void ReadHeaderNext(const std::shared_ptr<WSContextImpl> parent, const SOCKETTYPE &socket,
+    void ReadHeaderNext(const std::shared_ptr<WSContextImpl> parent, const SOCKETTYPE &socket,
                                const std::shared_ptr<asio::streambuf> &extradata)
     {
         readexpire_from_now<isServer>(parent, socket, parent->ReadTimeout);
@@ -557,6 +556,17 @@ namespace WS_LITE {
                              }
                          });
     }
+    template <bool isServer, class SOCKETTYPE>
+    void ReadHeaderStart(const std::shared_ptr<WSContextImpl> parent, const SOCKETTYPE &socket,
+                                const std::shared_ptr<asio::streambuf> &extradata)
+    {
+        free(socket->ReceiveBuffer);
+        socket->ReceiveBuffer = nullptr;
+        socket->ReceiveBufferSize = 0;
+        socket->LastOpCode = OpCode::INVALID;
+        ReadHeaderNext<isServer>(parent, socket, extradata);
+    }
+
 
     class WSClient : public IWSHub {
         std::shared_ptr<WSContextImpl> Impl_;

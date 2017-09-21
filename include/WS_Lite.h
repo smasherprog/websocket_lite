@@ -4,6 +4,7 @@
 #include <memory>
 #include <string>
 #include <unordered_map>
+#include <system_error>
 typedef struct x509_store_ctx_st X509_STORE_CTX;
 
 #if defined(WINDOWS) || defined(WIN32)
