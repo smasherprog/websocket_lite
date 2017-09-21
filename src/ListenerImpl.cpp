@@ -61,12 +61,12 @@ namespace WS_LITE {
             });
     }
 
-    void async_handshake(const std::shared_ptr<WSContextImpl> listener, std::shared_ptr<WSocket<true, asio::ip::tcp::socket>> socket)
+    void async_handshake(const std::shared_ptr<WSContextImpl> listener, const std::shared_ptr<WSocket<true, asio::ip::tcp::socket>> socket)
     {
         read_handshake(listener, socket);
     }
     void async_handshake(const std::shared_ptr<WSContextImpl> listener,
-                         std::shared_ptr<WSocket<true, asio::ssl::stream<asio::ip::tcp::socket>>> socket)
+                         const std::shared_ptr<WSocket<true, asio::ssl::stream<asio::ip::tcp::socket>>> socket)
     {
         socket->Socket.async_handshake(asio::ssl::stream_base::server, [listener, socket](const std::error_code &ec) {
             if (!ec) {

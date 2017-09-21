@@ -66,11 +66,11 @@ namespace WS_LITE {
                                         socket->CompressionEnabled = true;
                                     }
                                     socket->SocketStatus_ = SocketStatus::CONNECTED;
-                                    start_ping(self, socket, std::chrono::seconds(5));
+                                    start_ping<false>(self, socket, std::chrono::seconds(5));
                                     if (self->onConnection) {
                                         self->onConnection(socket, header);
                                     }
-                                    ReadHeaderStart(self, socket, read_buffer);
+                                    ReadHeaderStart<false>(self, socket, read_buffer);
                                 }
                                 else {
                                     socket->SocketStatus_ = SocketStatus::CLOSED;
@@ -98,12 +98,12 @@ namespace WS_LITE {
                 }
             });
     }
-    void async_handshake(const std::shared_ptr<WSContextImpl> self, std::shared_ptr<WSocket<asio::ip::tcp::socket>> socket, const std::string &host,
-                         const std::string &endpoint, const std::unordered_map<std::string, std::string> &extraheaders)
+    void async_handshake(const std::shared_ptr<WSContextImpl> self, std::shared_ptr<WSocket<false, asio::ip::tcp::socket>> socket,
+                         const std::string &host, const std::string &endpoint, const std::unordered_map<std::string, std::string> &extraheaders)
     {
         ConnectHandshake(self, socket, host, endpoint, extraheaders);
     }
-    void async_handshake(const std::shared_ptr<WSContextImpl> self, std::shared_ptr<WSocket<asio::ssl::stream<asio::ip::tcp::socket>>> socket,
+    void async_handshake(const std::shared_ptr<WSContextImpl> self, std::shared_ptr<WSocket<false, asio::ssl::stream<asio::ip::tcp::socket>>> socket,
                          const std::string &host, const std::string &endpoint, const std::unordered_map<std::string, std::string> &extraheaders)
     {
         socket->Socket.async_handshake(asio::ssl::stream_base::client, [socket, self, host, endpoint, extraheaders](const std::error_code &ec) {
@@ -127,7 +127,7 @@ namespace WS_LITE {
         auto socket = socketcreator(self);
         socket->SocketStatus_ = SocketStatus::CONNECTING;
         std::error_code ec;
-        asio::ip::tcp::resolver resolver(self->WSContextImpl_->io_service);
+        asio::ip::tcp::resolver resolver(self->io_service);
         auto portstr = std::to_string(port.value);
         asio::ip::tcp::resolver::query query(host, portstr.c_str());
 
@@ -210,11 +210,11 @@ namespace WS_LITE {
                                                             const std::unordered_map<std::string, std::string> &extraheaders)
     {
         if (Impl_->TLSEnabled) {
-            auto createsocket = [](auto c) { return std::make_shared<WSocket<asio::ssl::stream<asio::ip::tcp::socket>>>(c, c->sslcontext); };
+            auto createsocket = [](auto c) { return std::make_shared<WSocket<false, asio::ssl::stream<asio::ip::tcp::socket>>>(c, c->sslcontext); };
             Connect(Impl_, host, port, no_delay, createsocket, endpoint, extraheaders);
         }
         else {
-            auto createsocket = [](auto c) { return std::make_shared<WSocket<asio::ip::tcp::socket>>(c); };
+            auto createsocket = [](auto c) { return std::make_shared<WSocket<false, asio::ip::tcp::socket>>(c); };
             Connect(Impl_, host, port, no_delay, createsocket, endpoint, extraheaders);
         }
         return std::make_shared<WSClient>(Impl_);

@@ -10,6 +10,8 @@
 #include <unordered_map>
 #if WIN32
 #include <SDKDDKVer.h>
+#include <Windows.h>
+#include <wincrypt.h>
 #endif
 #include "asio.hpp"
 #include "asio/deadline_timer.hpp"
@@ -66,6 +68,10 @@ namespace WS_LITE {
         }
         ~WSContextImpl()
         {
+            if (acceptor) {
+                std::error_code ec;
+                acceptor->close(ec);
+            }
             work.reset();
             io_service.stop();
             while (!io_service.stopped()) {

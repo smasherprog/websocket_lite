@@ -60,33 +60,33 @@ void wssautobahntest()
     auto tlslistener =
         SL::WS_LITE::CreateContext(SL::WS_LITE::ThreadCount(1))
             ->UseTLS(
-                [](SL::WS_LITE::TLSContext &context) {
-                    context.set_options(SL::WS_LITE::options::default_workarounds | SL::WS_LITE::options::no_sslv2 | SL::WS_LITE::options::no_sslv3 |
-                                        SL::WS_LITE::options::single_dh_use);
+                [](SL::WS_LITE::ITLSContext *context) {
+                    context->set_options(SL::WS_LITE::options::default_workarounds | SL::WS_LITE::options::no_sslv2 | SL::WS_LITE::options::no_sslv3 |
+                                         SL::WS_LITE::options::single_dh_use);
                     std::error_code ec;
 
-                    context.set_password_callback(
+                    context->set_password_callback(
                         [](std::size_t s, SL::WS_LITE::password_purpose p) { return std::string(TEST_CERTIFICATE_PRIVATE_PASSWORD); }, ec);
                     if (ec) {
                         std::cout << "set_password_callback failed: " << ec.message();
                         ec.clear();
                     }
-                    context.use_tmp_dh_file(std::string(TEST_DH_PATH), ec);
+                    context->use_tmp_dh_file(std::string(TEST_DH_PATH), ec);
                     if (ec) {
                         std::cout << "use_tmp_dh_file failed: " << ec.message();
                         ec.clear();
                     }
-                    context.use_certificate_chain_file(std::string(TEST_CERTIFICATE_PUBLIC_PATH), ec);
+                    context->use_certificate_chain_file(std::string(TEST_CERTIFICATE_PUBLIC_PATH), ec);
                     if (ec) {
                         std::cout << "use_certificate_chain_file failed: " << ec.message();
                         ec.clear();
                     }
-                    context.set_default_verify_paths(ec);
+                    context->set_default_verify_paths(ec);
                     if (ec) {
                         std::cout << "set_default_verify_paths failed: " << ec.message();
                         ec.clear();
                     }
-                    context.use_private_key_file(std::string(TEST_CERTIFICATE_PRIVATE_PATH), SL::WS_LITE::file_format::pem, ec);
+                    context->use_private_key_file(std::string(TEST_CERTIFICATE_PRIVATE_PATH), SL::WS_LITE::file_format::pem, ec);
                     if (ec) {
                         std::cout << "use_private_key_file failed: " << ec.message();
                         ec.clear();
@@ -178,33 +178,33 @@ void generalTLStest()
     auto listenerctx =
         SL::WS_LITE::CreateContext(SL::WS_LITE::ThreadCount(1))
             ->UseTLS(
-                [](SL::WS_LITE::TLSContext &context) {
-                    context.set_options(SL::WS_LITE::options::default_workarounds | SL::WS_LITE::options::no_sslv2 | SL::WS_LITE::options::no_sslv3 |
-                                        SL::WS_LITE::options::single_dh_use);
+                [](SL::WS_LITE::ITLSContext *context) {
+                    context->set_options(SL::WS_LITE::options::default_workarounds | SL::WS_LITE::options::no_sslv2 | SL::WS_LITE::options::no_sslv3 |
+                                         SL::WS_LITE::options::single_dh_use);
                     std::error_code ec;
 
-                    context.set_password_callback(
+                    context->set_password_callback(
                         [](std::size_t s, SL::WS_LITE::password_purpose p) { return std::string(TEST_CERTIFICATE_PRIVATE_PASSWORD); }, ec);
                     if (ec) {
                         std::cout << "set_password_callback failed: " << ec.message();
                         ec.clear();
                     }
-                    context.use_tmp_dh_file(std::string(TEST_DH_PATH), ec);
+                    context->use_tmp_dh_file(std::string(TEST_DH_PATH), ec);
                     if (ec) {
                         std::cout << "use_tmp_dh_file failed: " << ec.message();
                         ec.clear();
                     }
-                    context.use_certificate_chain_file(std::string(TEST_CERTIFICATE_PUBLIC_PATH), ec);
+                    context->use_certificate_chain_file(std::string(TEST_CERTIFICATE_PUBLIC_PATH), ec);
                     if (ec) {
                         std::cout << "use_certificate_chain_file failed: " << ec.message();
                         ec.clear();
                     }
-                    context.set_default_verify_paths(ec);
+                    context->set_default_verify_paths(ec);
                     if (ec) {
                         std::cout << "set_default_verify_paths failed: " << ec.message();
                         ec.clear();
                     }
-                    context.use_private_key_file(std::string(TEST_CERTIFICATE_PRIVATE_PATH), SL::WS_LITE::file_format::pem, ec);
+                    context->use_private_key_file(std::string(TEST_CERTIFICATE_PRIVATE_PATH), SL::WS_LITE::file_format::pem, ec);
                     if (ec) {
                         std::cout << "use_private_key_file failed: " << ec.message();
                         ec.clear();
@@ -236,19 +236,20 @@ void generalTLStest()
     auto clientctx =
         SL::WS_LITE::CreateContext(SL::WS_LITE::ThreadCount(1))
             ->UseTLS(
-                [](SL::WS_LITE::TLSContext &context) {
+                [](SL::WS_LITE::ITLSContext *context) {
+
                     std::ifstream file(TEST_CERTIFICATE_PUBLIC_PATH, std::ios::binary);
                     assert(file);
                     std::vector<char> buf;
                     buf.resize(static_cast<size_t>(filesize(TEST_CERTIFICATE_PUBLIC_PATH)));
                     file.read(buf.data(), buf.size());
                     std::error_code ec;
-                    context.add_certificate_authority(reinterpret_cast<unsigned char *>(buf.data()), buf.size(), ec);
+                    context->add_certificate_authority(reinterpret_cast<unsigned char *>(buf.data()), buf.size(), ec);
                     if (ec) {
                         std::cout << "add_certificate_authority failed: " << ec.message();
                         ec.clear();
                     }
-                    context.set_default_verify_paths(ec);
+                    context->set_default_verify_paths(ec);
                     if (ec) {
                         std::cout << "set_default_verify_paths failed: " << ec.message();
                         ec.clear();
