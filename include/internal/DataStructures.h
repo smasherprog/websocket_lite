@@ -41,7 +41,9 @@ namespace WS_LITE {
     enum method;
     class WSContextImpl {
       public:
-        WSContextImpl(ThreadCount threadcount, method m) : sslcontext(static_cast<asio::ssl::context_base::method>(m)), TLSEnabled(true)
+        WSContextImpl(ThreadCount threadcount, method m)
+            : work(std::make_unique<asio::io_service::work>(io_service)), sslcontext(static_cast<asio::ssl::context_base::method>(m)),
+              TLSEnabled(true)
         {
             Threads.resize(threadcount.value);
             for (auto &ctx : Threads) {
@@ -101,7 +103,6 @@ namespace WS_LITE {
         std::chrono::seconds WriteTimeout = std::chrono::seconds(30);
         size_t MaxPayload = 1024 * 1024 * 20; // 20 MB
         bool TLSEnabled = false;
-        bool isClient = false;
 
         std::function<void(const std::shared_ptr<IWSocket> &, const std::unordered_map<std::string, std::string> &)> onConnection;
         std::function<void(const std::shared_ptr<IWSocket> &, const WSMessage &)> onMessage;
