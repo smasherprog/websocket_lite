@@ -5,7 +5,7 @@
 <p>Windows <img src="https://ci.appveyor.com/api/projects/status/kqa94n7p8se05vi9/branch/master?svg=true"/><p>
 <p>Websocket <a href="https://tools.ietf.org/html/rfc6455">rfc6455</a> Compliant. Working on rfc 7692 -- which supports compression<p>
 <p>This library is intended to be a fully compliant websocket implementation <a href="http://htmlpreview.github.io/?https://github.com/smasherprog/websocket_lite/blob/master/Test/autobahn/index.html">Autobahn complete </a> (minus rfc 7692--in progress), but with a few design goals:
-<h3>IMPORTANT SETUP GUIDE <a href="https://github.com/smasherprog/Projects_Setup">HERE</a></h3>
+
 <ul>
 <li>
 Cross-platform: Asio https://github.com/chriskohlhoff/asio/
@@ -23,6 +23,20 @@ Latest standards: c++ 17
 All functions are thread-safe and can be called from any thread at any time
 </li>
 </ul>
+
+<h3>Dependencies: Cmake, openssl, zlib</h3>
+<ul>
+<li>
+Ubuntu: sudo apt-get install libssl-dev zlib1g-dev -y
+</li>
+<li>
+Mac: brew install openssl zlib
+</li>
+<li>
+WIndows: vcpkg install openssl zlib
+</li>
+</ul>
+
 <h2>USAGE</h2>
 <p>To get started check out the example here<p>
 https://github.com/smasherprog/websocket_lite/blob/master/Test/main.cpp
