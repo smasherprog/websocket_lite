@@ -14,7 +14,7 @@ add_definitions(
 	-DTEST_FUZZING_PATH="${CMAKE_CURRENT_SOURCE_DIR}/../Test/fuzzingclient.json"
 )
 include_directories(${CMAKE_SOURCE_DIR}/include ${COMMON_INCLUDE_DIRS})
-add_executable(${PROJECT_NAME} main.cpp)
+
 if(WIN32) 
 	target_link_libraries(${PROJECT_NAME} websocket_lite ${COMMON_LIBRARIES} Crypt32)
 elseif(APPLE) 
@@ -44,5 +44,5 @@ if(${BUILD_SHARED_LIBS})
 
 	endif()
 endif()
-
+add_executable(${PROJECT_NAME} main.cpp)
 add_test (NAME ${PROJECT_NAME} COMMAND ${PROJECT_NAME})
