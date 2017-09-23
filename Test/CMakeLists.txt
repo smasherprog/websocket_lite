@@ -24,6 +24,9 @@ else()
 	find_package(Threads REQUIRED)
 	target_link_libraries(${PROJECT_NAME} websocket_lite ${COMMON_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} dl)
 endif()
+find_package(ZLIB REQUIRED) 
+find_package(OpenSSL REQUIRED)
+
 if(${BUILD_SHARED_LIBS})
 	set_target_properties(${PROJECT_NAME} PROPERTIES DEFINE_SYMBOL WS_LITE_DLL)
 	add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD 

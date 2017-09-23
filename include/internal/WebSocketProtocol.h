@@ -493,7 +493,7 @@ namespace WS_LITE {
         bytestoread -= dataconsumed;
 
         asio::async_read(socket->Socket, asio::buffer(socket->ReceiveHeader + dataconsumed, bytestoread),
-                         [parent, socket, extradata](const std::error_code &ec, size_t readdata) {
+                         [parent, socket, extradata](const std::error_code &ec, size_t) {
                              if (!ec) {
                                  size_t bytestoread = getpayloadLength1(socket->ReceiveHeader);
                                  switch (bytestoread) {
@@ -511,7 +511,7 @@ namespace WS_LITE {
                                      bytestoread -= dataconsumed;
 
                                      asio::async_read(socket->Socket, asio::buffer(socket->ReceiveHeader + 2 + dataconsumed, bytestoread),
-                                                      [parent, socket, extradata](const std::error_code &ec, size_t readdata) {
+                                                      [parent, socket, extradata](const std::error_code &ec, size_t) {
                                                           if (!ec) {
                                                               ReadBody<isServer>(parent, socket, extradata);
                                                           }
