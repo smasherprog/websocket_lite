@@ -17,6 +17,22 @@ namespace WS_LITE {
     template <bool isServer, class SOCKETTYPE, class SENDBUFFERTYPE>
     void write_end(const std::shared_ptr<WSContextImpl> parent, const SOCKETTYPE &socket, const SENDBUFFERTYPE &msg);
 
+    inline size_t ReadFromExtraData(unsigned char *dst, size_t desired_bytes_to_read, const std::shared_ptr<asio::streambuf> &extradata)
+    {
+        size_t dataconsumed = 0;
+        if (extradata->size() >= desired_bytes_to_read) {
+            dataconsumed = desired_bytes_to_read;
+        }
+        else {
+            dataconsumed = extradata->size();
+        }
+        if (dataconsumed > 0) {
+            desired_bytes_to_read -= dataconsumed;
+            memcpy(dst, asio::buffer_cast<const void *>(extradata->data()), dataconsumed);
+            extradata->consume(dataconsumed);
+        }
+        return dataconsumed;
+    }
     template <bool isServer, class SOCKETTYPE>
     void readexpire_from_now(const std::shared_ptr<WSContextImpl> parent, const SOCKETTYPE &socket, std::chrono::seconds secs)
     {
@@ -396,17 +412,10 @@ namespace WS_LITE {
             }
             else if (size > 0) {
                 auto buffer = std::shared_ptr<unsigned char>(new unsigned char[size], [](auto p) { delete[] p; });
-                size_t dataconsumed = 0;
-                size_t bytestoread = size;
-                if (extradata->size() >= size) {
-                    dataconsumed = size;
-                }
-                else {
-                    dataconsumed = extradata->size();
-                }
+
+                auto bytestoread = size;
+                auto dataconsumed = ReadFromExtraData(buffer.get(), bytestoread, extradata);
                 bytestoread -= dataconsumed;
-                memcpy(buffer.get(), asio::buffer_cast<const void *>(extradata->data()), dataconsumed);
-                extradata->consume(dataconsumed);
 
                 asio::async_read(socket->Socket, asio::buffer(buffer.get() + dataconsumed, bytestoread),
                                  [size, extradata, parent, socket, buffer](const std::error_code &ec, size_t) {
@@ -448,17 +457,11 @@ namespace WS_LITE {
                     SL_WS_LITE_LOG(Logging_Levels::ERROR_log_level, "MEMORY ALLOCATION ERROR!!! Tried to realloc " << socket->ReceiveBufferSize);
                     return sendclosemessage<isServer>(parent, socket, 1009, "Payload exceeded MaxPayload size");
                 }
-                size_t dataconsumed = 0;
-                size_t bytestoread = size;
-                if (extradata->size() >= size) {
-                    dataconsumed = size;
-                }
-                else {
-                    dataconsumed = extradata->size();
-                }
+
+                auto bytestoread = size;
+                auto dataconsumed = ReadFromExtraData(socket->ReceiveBuffer + socket->ReceiveBufferSize - size, bytestoread, extradata);
                 bytestoread -= dataconsumed;
-                memcpy(socket->ReceiveBuffer + socket->ReceiveBufferSize - size, asio::buffer_cast<const void *>(extradata->data()), dataconsumed);
-                extradata->consume(dataconsumed);
+
                 asio::async_read(socket->Socket, asio::buffer(socket->ReceiveBuffer + socket->ReceiveBufferSize - size + dataconsumed, bytestoread),
                                  [size, extradata, parent, socket](const std::error_code &ec, size_t) {
                                      if (!ec) {
@@ -485,19 +488,9 @@ namespace WS_LITE {
     void ReadHeaderNext(const std::shared_ptr<WSContextImpl> parent, const SOCKETTYPE &socket, const std::shared_ptr<asio::streambuf> &extradata)
     {
         readexpire_from_now<isServer>(parent, socket, parent->ReadTimeout);
-        size_t dataconsumed = 0;
         size_t bytestoread = 2;
-
-        if (extradata->size() > 1) {
-            dataconsumed = 2;
-        }
-        else if (extradata->size() == 1) {
-            dataconsumed = 1;
-        }
-        // zero is not possible
+        auto dataconsumed = ReadFromExtraData(socket->ReceiveHeader, bytestoread, extradata);
         bytestoread -= dataconsumed;
-        memcpy(socket->ReceiveHeader, asio::buffer_cast<const void *>(extradata->data()), dataconsumed);
-        extradata->consume(dataconsumed);
 
         asio::async_read(socket->Socket, asio::buffer(socket->ReceiveHeader + dataconsumed, bytestoread),
                          [parent, socket, extradata](const std::error_code &ec, size_t readdata) {
@@ -514,17 +507,8 @@ namespace WS_LITE {
                                      bytestoread = 0;
                                  }
                                  if (bytestoread > 1) {
-                                     size_t dataconsumed = 0;
-                                     if (extradata->size() > 1) {
-                                         dataconsumed = 2;
-                                     }
-                                     else if (extradata->size() == 1) {
-                                         dataconsumed = 1;
-                                     }
+                                     auto dataconsumed = ReadFromExtraData(socket->ReceiveHeader + 2, bytestoread, extradata);
                                      bytestoread -= dataconsumed;
-                                     memcpy(socket->ReceiveHeader + 2, asio::buffer_cast<const void *>(extradata->data()), dataconsumed);
-                                     extradata->consume(dataconsumed);
-                                     memset(socket->ReceiveHeader + 2, 255, 2);
 
                                      asio::async_read(socket->Socket, asio::buffer(socket->ReceiveHeader + 2 + dataconsumed, bytestoread),
                                                       [parent, socket, extradata](const std::error_code &ec, size_t readdata) {

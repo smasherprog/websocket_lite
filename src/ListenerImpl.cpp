@@ -5,6 +5,12 @@
 namespace SL {
 namespace WS_LITE {
 
+    struct HandshakeContainer {
+        asio::streambuf Read;
+        asio::streambuf Write;
+        std::unordered_map<std::string, std::string> Header;
+    };
+
     template <class SOCKETTYPE> void read_handshake(const std::shared_ptr<WSContextImpl> listener, const SOCKETTYPE &socket)
     {
         auto handshakecontainer(std::make_shared<HandshakeContainer>());
