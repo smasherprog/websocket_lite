@@ -26,11 +26,11 @@ else()
 endif()
 if(${BUILD_SHARED_LIBS})
 	set_target_properties(${PROJECT_NAME} PROPERTIES DEFINE_SYMBOL WS_LITE_DLL)
-	if(WIN32) 
-		add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD 
+	add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD 
 					   COMMAND ${CMAKE_COMMAND} -E copy_if_different
 					   $<TARGET_FILE:websocket_lite>              
 					   $<TARGET_FILE_DIR:${PROJECT_NAME}>)
+	if(WIN32) 
 		add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD 
 					   COMMAND ${CMAKE_COMMAND} -E copy_if_different
 					   $<TARGET_FILE:${ZLIB_LIBRARIES}>              
