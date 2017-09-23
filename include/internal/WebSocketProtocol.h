@@ -10,15 +10,13 @@
 
 namespace SL {
 namespace WS_LITE {
-template <bool isServer, class SOCKETTYPE>
-    void ReadHeaderNext(const std::shared_ptr<WSContextImpl> parent, const SOCKETTYPE &socket,
-                               const std::shared_ptr<asio::streambuf> &extradata);
     template <bool isServer, class SOCKETTYPE>
-    void ReadHeaderStart(const std::shared_ptr<WSContextImpl> parent, const SOCKETTYPE &socket,
-                                const std::shared_ptr<asio::streambuf> &extradata);
+    void ReadHeaderNext(const std::shared_ptr<WSContextImpl> parent, const SOCKETTYPE &socket, const std::shared_ptr<asio::streambuf> &extradata);
+    template <bool isServer, class SOCKETTYPE>
+    void ReadHeaderStart(const std::shared_ptr<WSContextImpl> parent, const SOCKETTYPE &socket, const std::shared_ptr<asio::streambuf> &extradata);
     template <bool isServer, class SOCKETTYPE, class SENDBUFFERTYPE>
     void write_end(const std::shared_ptr<WSContextImpl> parent, const SOCKETTYPE &socket, const SENDBUFFERTYPE &msg);
-      
+
     template <bool isServer, class SOCKETTYPE>
     void readexpire_from_now(const std::shared_ptr<WSContextImpl> parent, const SOCKETTYPE &socket, std::chrono::seconds secs)
     {
@@ -82,7 +80,7 @@ template <bool isServer, class SOCKETTYPE>
             });
         }
     }
-    
+
     template <bool isServer, class SOCKETTYPE, class SENDBUFFERTYPE>
     void writeend(const std::shared_ptr<WSContextImpl> parent, const SOCKETTYPE &socket, const SENDBUFFERTYPE &msg, bool iserver)
     {
@@ -244,7 +242,6 @@ template <bool isServer, class SOCKETTYPE>
 
                           }));
     }
-
 
     inline void UnMaskMessage(size_t readsize, unsigned char *buffer, bool isserver)
     {
@@ -483,10 +480,9 @@ template <bool isServer, class SOCKETTYPE>
             return sendclosemessage<isServer>(parent, socket, 1002, "Closing connection. nonvalid op code");
         }
     }
- 
+
     template <bool isServer, class SOCKETTYPE>
-    void ReadHeaderNext(const std::shared_ptr<WSContextImpl> parent, const SOCKETTYPE &socket,
-                               const std::shared_ptr<asio::streambuf> &extradata)
+    void ReadHeaderNext(const std::shared_ptr<WSContextImpl> parent, const SOCKETTYPE &socket, const std::shared_ptr<asio::streambuf> &extradata)
     {
         readexpire_from_now<isServer>(parent, socket, parent->ReadTimeout);
         size_t dataconsumed = 0;
@@ -498,46 +494,40 @@ template <bool isServer, class SOCKETTYPE>
         else if (extradata->size() == 1) {
             dataconsumed = 1;
         }
-        else {
-            dataconsumed = 0;
-        }
         // zero is not possible
         bytestoread -= dataconsumed;
         memcpy(socket->ReceiveHeader, asio::buffer_cast<const void *>(extradata->data()), dataconsumed);
         extradata->consume(dataconsumed);
 
         asio::async_read(socket->Socket, asio::buffer(socket->ReceiveHeader + dataconsumed, bytestoread),
-                         [parent, socket, extradata](const std::error_code &ec, size_t) {
+                         [parent, socket, extradata](const std::error_code &ec, size_t readdata) {
                              if (!ec) {
-                                 size_t readbytes = getpayloadLength1(socket->ReceiveHeader);
-                                 switch (readbytes) {
+                                 size_t bytestoread = getpayloadLength1(socket->ReceiveHeader);
+                                 switch (bytestoread) {
                                  case 126:
-                                     readbytes = 2;
+                                     bytestoread = 2;
                                      break;
                                  case 127:
-                                     readbytes = 8;
+                                     bytestoread = 8;
                                      break;
                                  default:
-                                     readbytes = 0;
+                                     bytestoread = 0;
                                  }
-                                 if (readbytes > 1) {
+                                 if (bytestoread > 1) {
                                      size_t dataconsumed = 0;
-                                     size_t bytestoread = 2;
                                      if (extradata->size() > 1) {
                                          dataconsumed = 2;
                                      }
                                      else if (extradata->size() == 1) {
                                          dataconsumed = 1;
                                      }
-                                     else {
-                                         dataconsumed = 0;
-                                     }
                                      bytestoread -= dataconsumed;
                                      memcpy(socket->ReceiveHeader + 2, asio::buffer_cast<const void *>(extradata->data()), dataconsumed);
                                      extradata->consume(dataconsumed);
+                                     memset(socket->ReceiveHeader + 2, 255, 2);
 
                                      asio::async_read(socket->Socket, asio::buffer(socket->ReceiveHeader + 2 + dataconsumed, bytestoread),
-                                                      [parent, socket, extradata](const std::error_code &ec, size_t) {
+                                                      [parent, socket, extradata](const std::error_code &ec, size_t readdata) {
                                                           if (!ec) {
                                                               ReadBody<isServer>(parent, socket, extradata);
                                                           }
@@ -557,8 +547,7 @@ template <bool isServer, class SOCKETTYPE>
                          });
     }
     template <bool isServer, class SOCKETTYPE>
-    void ReadHeaderStart(const std::shared_ptr<WSContextImpl> parent, const SOCKETTYPE &socket,
-                                const std::shared_ptr<asio::streambuf> &extradata)
+    void ReadHeaderStart(const std::shared_ptr<WSContextImpl> parent, const SOCKETTYPE &socket, const std::shared_ptr<asio::streambuf> &extradata)
     {
         free(socket->ReceiveBuffer);
         socket->ReceiveBuffer = nullptr;
@@ -566,7 +555,6 @@ template <bool isServer, class SOCKETTYPE>
         socket->LastOpCode = OpCode::INVALID;
         ReadHeaderNext<isServer>(parent, socket, extradata);
     }
-
 
     class WSClient : public IWSHub {
         std::shared_ptr<WSContextImpl> Impl_;

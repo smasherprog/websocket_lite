@@ -34,12 +34,7 @@ if(${BUILD_SHARED_LIBS})
 				   
 		add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD 
 					   COMMAND ${CMAKE_COMMAND} -E copy_if_different
-					   $<TARGET_FILE:${OPENSSL_LIBRARIES}>              
-					   $<TARGET_FILE_DIR:${PROJECT_NAME}>)
-				   
-		add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD 
-					   COMMAND ${CMAKE_COMMAND} -E copy_if_different
-					   $<TARGET_FILE:${ZLIB_LIBRARIES}>              
+					   $<TARGET_FILE:${COMMON_LIBRARIES}>              
 					   $<TARGET_FILE_DIR:${PROJECT_NAME}>)
 
 	endif()
