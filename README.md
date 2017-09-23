@@ -42,20 +42,29 @@ WIndows: vcpkg install openssl zlib
 https://github.com/smasherprog/websocket_lite/blob/master/Test/main.cpp
 
 ```c++
-auto listener = SL::WS_LITE::CreateContext(SL::WS_LITE::ThreadCount(1))
-  .CreateListener(SL::WS_LITE::PortNumber(3000))
-  .onConnection([&](const std::shared_ptr<SL::WS_LITE::IWSocket>& socket, const std::unordered_map<std::string, std::string>& header) {
-        
-  }).onMessage([&](const std::shared_ptr<SL::WS_LITE::IWSocket>& socket, const SL::WS_LITE::WSMessage& message) {
 
-  }).listen();
+SL::WS_LITE::PortNumber port(3002);
+auto listener =
+  SL::WS_LITE::CreateContext(SL::WS_LITE::ThreadCount(1))
+    ->NoTLS()
+    ->CreateListener(port)
+    ->onConnection([&](const std::shared_ptr<SL::WS_LITE::IWSocket> &socket, const std::unordered_map<std::string, std::string> &header) {
+ 
+    })
+    ->onMessage([&](const std::shared_ptr<SL::WS_LITE::IWSocket> &socket, const SL::WS_LITE::WSMessage &message) {
+
+    })->listen();
+    listener->set_ReadTimeout(std::chrono::seconds(100));
+    listener->set_WriteTimeout(std::chrono::seconds(100));
     
-auto clientctx = SL::WS_LITE::CreateContext(SL::WS_LITE::ThreadCount(1))
-  .CreateClient()
-  .onConnection([&](const std::shared_ptr<SL::WS_LITE::IWSocket>& socket, const std::unordered_map<std::string, std::string>& header) {
-        
-  }).onDisconnection([&](const std::shared_ptr<SL::WS_LITE::IWSocket>& socket, unsigned short code, const std::string& msg) {
+auto clientctx =
+  SL::WS_LITE::CreateContext(SL::WS_LITE::ThreadCount(1))
+    ->NoTLS()
+    ->CreateClient()
+    ->onConnection([&](const std::shared_ptr<SL::WS_LITE::IWSocket> &socket, const std::unordered_map<std::string, std::string> &header) {
 
-  }).connect("localhost", SL::WS_LITE::PortNumber(3000));
+    })
+    ->onDisconnection([&](const std::shared_ptr<SL::WS_LITE::IWSocket> &socket, unsigned short code, const std::string &msg) {
+    })->connect("localhost", port);
 
 ```
