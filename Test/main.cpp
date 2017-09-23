@@ -18,17 +18,6 @@ inline std::ifstream::pos_type filesize(const std::string &filename)
     return in.tellg();
 }
 
-// bool verify_certificate(bool preverified, asio::ssl::verify_context &ctx)
-//{
-//
-//    char subject_name[256];
-//    X509 *cert = X509_STORE_CTX_get_current_cert(ctx.native_handle());
-//    X509_NAME_oneline(X509_get_subject_name(cert), subject_name, 256);
-//    SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "Verifying " << subject_name);
-//
-//    return preverified;
-//}
-
 void wssautobahntest()
 {
 
@@ -257,9 +246,6 @@ void generalTLStest()
                 },
                 SL::WS_LITE::method::tlsv11)
             ->CreateClient()
-            //->onVerifyPeer([&](bool b, X509_STORE_CTX *cert) {
-            //    return b; // trust all certs, not good but for now yeah
-            //})
             ->onConnection([&](const std::shared_ptr<SL::WS_LITE::IWSocket> &socket, const std::unordered_map<std::string, std::string> &header) {
                 lastheard = std::chrono::high_resolution_clock::now();
                 SL_WS_LITE_LOG(SL::WS_LITE::Logging_Levels::INFO_log_level, "Client::onConnection");
@@ -415,13 +401,13 @@ void multithreadthroughputtest()
 int main(int argc, char *argv[])
 {
     wssautobahntest();
-    /*   std::this_thread::sleep_for(1s);
-       generaltest();
-       std::this_thread::sleep_for(1s);
-       generalTLStest();
-       std::this_thread::sleep_for(1s);
-       multithreadtest();
-       std::this_thread::sleep_for(1s);
-       multithreadthroughputtest();*/
+    std::this_thread::sleep_for(1s);
+    generaltest();
+    std::this_thread::sleep_for(1s);
+    generalTLStest();
+    std::this_thread::sleep_for(1s);
+    multithreadtest();
+    std::this_thread::sleep_for(1s);
+    multithreadthroughputtest();
     return 0;
 }
