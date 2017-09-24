@@ -36,18 +36,6 @@ if(${BUILD_SHARED_LIBS})
 					   COMMAND ${CMAKE_COMMAND} -E copy_if_different
 					   $<TARGET_FILE:websocket_lite>              
 					   $<TARGET_FILE_DIR:${PROJECT_NAME}>)
-	if(WIN32) 
-		find_library(libeay32 libeay32)
-		add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD 
-			COMMAND ${CMAKE_COMMAND} -E copy_if_different
-			${libeay32}         
-			$<TARGET_FILE_DIR:${PROJECT_NAME}>)
-		find_library(ssleay32 libeay32)
-		add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD 
-			COMMAND ${CMAKE_COMMAND} -E copy_if_different
-			${ssleay32}           
-			$<TARGET_FILE_DIR:${PROJECT_NAME}>)
-	endif()
 endif()
 
 add_test (NAME ${PROJECT_NAME} COMMAND ${PROJECT_NAME})
