@@ -44,7 +44,7 @@ if(${BUILD_SHARED_LIBS})
 		target_link_libraries(${PROJECT_NAME} ${ZLIB_LIBRARIES} ${OPENSSL_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} )
 	else()
 		find_package(Threads REQUIRED)
-		target_link_libraries(${PROJECT_NAME} ${ZLIB_LIBRARIES} ${OPENSSL_LIBRARIES}${CMAKE_THREAD_LIBS_INIT} dl)
+		target_link_libraries(${PROJECT_NAME} ${ZLIB_LIBRARIES} ${OPENSSL_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} dl)
 	endif()
 endif()
 
