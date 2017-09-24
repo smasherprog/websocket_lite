@@ -322,6 +322,7 @@ void multithreadtest()
         std::this_thread::sleep_for(200ms);
     }
 }
+const auto bufferesize = 1024 * 1024 * 10;
 void multithreadthroughputtest()
 {
     std::cout << "Starting Multi threaded throughput test" << std::endl;
@@ -331,7 +332,6 @@ void multithreadthroughputtest()
     auto lastheard = std::chrono::high_resolution_clock::now();
     std::atomic<unsigned long long> mbsreceived;
     mbsreceived = 0;
-    const auto bufferesize = 1024 * 1024 * 10;
 
     SL::WS_LITE::PortNumber port(3004);
     auto listenerctx =
@@ -364,8 +364,8 @@ void multithreadthroughputtest()
         auto c =
             clientctx->NoTLS()
                 ->CreateClient()
-                ->onConnection([&clients, &lastheard, i, &mbssent, &sendtimer, bufferesize](
-                                   const std::shared_ptr<SL::WS_LITE::IWSocket> &socket, const std::unordered_map<std::string, std::string> &header) {
+                ->onConnection([&clients, &lastheard, &mbssent, &sendtimer](const std::shared_ptr<SL::WS_LITE::IWSocket> &socket,
+                                                                            const std::unordered_map<std::string, std::string> &header) {
                     lastheard = std::chrono::high_resolution_clock::now();
                     SL::WS_LITE::WSMessage msg;
                     msg.Buffer = std::shared_ptr<unsigned char>(new unsigned char[bufferesize], [&](unsigned char *p) {
