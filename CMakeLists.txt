@@ -4,7 +4,7 @@ project(websocket_lite)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
-option(BUILD_SHARED_LIBS "Build the shared library" ON)
+option(BUILD_SHARED_LIBS "Build shared library" OFF) 
 
 if(MSVC)
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W4")
@@ -15,11 +15,6 @@ add_definitions(-DBOOST_REGEX_NO_LIB -DBOOST_DATE_TIME_NO_LIB -DASIO_STANDALONE 
 find_package(ZLIB REQUIRED) 
 find_package(OpenSSL REQUIRED) 
 	
-set(COMMON_LIBRARIES  
-	${ZLIB_LIBRARIES} 
-	${OPENSSL_LIBRARIES}
-)	
-
 include_directories(
 	include
 	${OPENSSL_INCLUDE_DIR}
@@ -43,15 +38,14 @@ endif()
 if(${BUILD_SHARED_LIBS})
 	set_target_properties(${PROJECT_NAME} PROPERTIES DEFINE_SYMBOL WS_LITE_DLL)
 	if(WIN32) 
-		target_link_libraries(${PROJECT_NAME} ${COMMON_LIBRARIES} Crypt32)
+		target_link_libraries(${PROJECT_NAME} ${ZLIB_LIBRARIES} ${OPENSSL_LIBRARIES} Crypt32)
 	elseif(APPLE) 
 		find_package(Threads REQUIRED)
-		target_link_libraries(${PROJECT_NAME} ${COMMON_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} )
+		target_link_libraries(${PROJECT_NAME} ${ZLIB_LIBRARIES} ${OPENSSL_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} )
 	else()
 		find_package(Threads REQUIRED)
-		target_link_libraries(${PROJECT_NAME} ${COMMON_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} dl)
+		target_link_libraries(${PROJECT_NAME} ${ZLIB_LIBRARIES} ${OPENSSL_LIBRARIES}${CMAKE_THREAD_LIBS_INIT} dl)
 	endif()
-
 endif()
 
 install (TARGETS ${PROJECT_NAME}  
