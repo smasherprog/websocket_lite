@@ -42,12 +42,12 @@ namespace WS_LITE {
                                                   SL_WS_LITE_LOG(Logging_Levels::INFO_log_level,
                                                                  "Connected: Sent Handshake bytes " << bytes_transferred);
 
+                                                  socket->SocketStatus_ = SocketStatus::CONNECTED;
                                                   if (listener->onConnection) {
                                                       listener->onConnection(socket, handshakecontainer->Header);
                                                   }
                                                   auto bufptr = std::make_shared<asio::streambuf>();
                                                   ReadHeaderStart<true>(listener, socket, bufptr);
-                                                  socket->SocketStatus_ = SocketStatus::CONNECTED;
                                                   start_ping<true>(listener, socket, std::chrono::seconds(5));
                                               }
                                               else {

@@ -39,7 +39,7 @@ namespace WS_LITE {
         std::thread Thread;
     };
     const auto CONTROLBUFFERMAXSIZE = 125;
-    enum method;
+
     class WSContextImpl {
       public:
         WSContextImpl(ThreadCount threadcount, method m)
