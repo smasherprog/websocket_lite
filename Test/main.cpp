@@ -116,7 +116,7 @@ void generaltest()
     auto lastheard = std::chrono::high_resolution_clock::now();
 
     SL::WS_LITE::PortNumber port(3002);
-    auto listenerct =
+    auto listenerctx =
         SL::WS_LITE::CreateContext(SL::WS_LITE::ThreadCount(1))
             ->NoTLS()
             ->CreateListener(port)
@@ -158,6 +158,10 @@ void generaltest()
     while (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - lastheard).count() < 2000) {
         std::this_thread::sleep_for(200ms);
     }
+
+    std::this_thread::sleep_for(200ms);
+    assert(clientctx->get_DataPending() == 0);
+    assert(listenerctx->get_DataPending() == 0);
 }
 void generalTLStest()
 {
@@ -259,6 +263,9 @@ void generalTLStest()
     while (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - lastheard).count() < 2000) {
         std::this_thread::sleep_for(200ms);
     }
+    std::this_thread::sleep_for(200ms);
+    assert(clientctx->get_DataPending() == 0);
+    assert(listenerctx->get_DataPending() == 0);
 }
 
 void multithreadtest()
@@ -321,6 +328,11 @@ void multithreadtest()
     while (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - lastheard).count() < 2000) {
         std::this_thread::sleep_for(200ms);
     }
+    std::this_thread::sleep_for(200ms);
+    for (auto &c : clients) {
+        assert(c->get_DataPending() == 0);
+    }
+    assert(listenerctx->get_DataPending() == 0);
 }
 const auto bufferesize = 1024 * 1024 * 10;
 void multithreadthroughputtest()
@@ -392,10 +404,14 @@ void multithreadthroughputtest()
                 ->connect("localhost", port);
         clients.push_back(c);
     }
-
     while (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - lastheard).count() < 5000) {
         std::this_thread::sleep_for(200ms);
     }
+    std::this_thread::sleep_for(200ms);
+    for (auto &c : clients) {
+        assert(c->get_DataPending() == 0);
+    }
+    assert(listenerctx->get_DataPending() == 0);
     std::cout << "Received " << mbsreceived << "  bytes" << std::endl;
 }
 int main(int argc, char *argv[])
