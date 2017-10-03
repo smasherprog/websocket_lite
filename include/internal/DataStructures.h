@@ -104,7 +104,6 @@ namespace WS_LITE {
         std::chrono::seconds WriteTimeout = std::chrono::seconds(30);
         size_t MaxPayload = 1024 * 1024 * 20; // 20 MB
         bool TLSEnabled = false;
-        size_t DataPending = 0;
 
         std::function<void(const std::shared_ptr<IWSocket> &, const std::unordered_map<std::string, std::string> &)> onConnection;
         std::function<void(const std::shared_ptr<IWSocket> &, const WSMessage &)> onMessage;
@@ -164,7 +163,6 @@ namespace WS_LITE {
                     sendclosemessage<isServer>(p, self, code, msg);
             }
         }
-        virtual size_t get_DataPending() const override { return DataPending; }
         void canceltimers()
         {
             std::error_code ec;
@@ -189,7 +187,6 @@ namespace WS_LITE {
         asio::basic_waitable_timer<std::chrono::steady_clock> write_deadline;
         asio::strand strand;
         std::deque<SendQueueItem> SendMessageQueue;
-        size_t DataPending = 0;
     };
 
 } // namespace WS_LITE

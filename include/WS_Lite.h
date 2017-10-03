@@ -167,8 +167,6 @@ namespace WS_LITE {
         virtual bool is_v4() const = 0;
         virtual bool is_v6() const = 0;
         virtual bool is_loopback() const = 0;
-        // this will return the amount of data queued up but has not yet been submitted to the OS to be sent
-        virtual size_t get_DataPending() const = 0;
         virtual void send(const WSMessage &msg, bool compressmessage) = 0;
         // send a close message and close the socket
         virtual void close(unsigned short code = 1000, const std::string &msg = "") = 0;
@@ -188,8 +186,6 @@ namespace WS_LITE {
         virtual void set_WriteTimeout(std::chrono::seconds seconds) = 0;
         // get the current write timeout in seconds
         virtual std::chrono::seconds get_WriteTimeout() = 0;
-        // this will return the amount of data queued up but has not yet been submitted to the OS to be sent
-        virtual size_t get_DataPending() const = 0;
     };
     class WS_LITE_EXTERN IWSListener_Configuration {
       public:

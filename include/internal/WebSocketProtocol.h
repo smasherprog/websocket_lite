@@ -202,8 +202,6 @@ namespace WS_LITE {
                 if (msg.code == OpCode::CLOSE) {
                     socket->SocketStatus_ = SocketStatus::CLOSING;
                 }
-                socket->DataPending += msg.len;
-                socket->Parent->DataPending += msg.len;
                 socket->SendMessageQueue.emplace_back(SendQueueItem{msg, compressmessage});
                 SL::WS_LITE::startwrite<isServer>(parent, socket);
             }
@@ -257,10 +255,7 @@ namespace WS_LITE {
                                   return handleclose(parent, socket, 1002, "write header failed " + ec.message());
                               }
                               assert(msg.len == bytes_transferred);
-                              socket->DataPending -= msg.len;
-                              socket->Parent->DataPending -= msg.len;
                               startwrite<isServer>(parent, socket);
-
                           }));
     }
 
@@ -557,7 +552,6 @@ namespace WS_LITE {
         virtual std::chrono::seconds get_ReadTimeout() override;
         virtual void set_WriteTimeout(std::chrono::seconds seconds) override;
         virtual std::chrono::seconds get_WriteTimeout() override;
-        virtual size_t get_DataPending() const override { return Impl_->DataPending; }
     };
     class WSListener : public IWSHub {
         std::shared_ptr<WSContextImpl> Impl_;
@@ -571,7 +565,6 @@ namespace WS_LITE {
         virtual std::chrono::seconds get_ReadTimeout() override;
         virtual void set_WriteTimeout(std::chrono::seconds seconds) override;
         virtual std::chrono::seconds get_WriteTimeout() override;
-        virtual size_t get_DataPending() const override { return Impl_->DataPending; }
     };
 
     class WSListener_Configuration : public IWSListener_Configuration {
