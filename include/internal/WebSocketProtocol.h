@@ -387,7 +387,7 @@ namespace WS_LITE {
         if (!DidPassMaskRequirement(socket->ReceiveHeader, isServer)) { // Close connection if it did not meet the mask requirement.
             return sendclosemessage<isServer>(parent, socket, 1002, "Closing connection because mask requirement not met");
         }
-        if (getrsv2(socket->ReceiveHeader) || getrsv3(socket->ReceiveHeader) || (getrsv1(socket->ReceiveHeader) && !socket->CompressionEnabled)) {
+        if (getrsv2(socket->ReceiveHeader) || getrsv3(socket->ReceiveHeader) || getrsv1(socket->ReceiveHeader)) {
             return sendclosemessage<isServer>(parent, socket, 1002, "Closing connection. rsv bit set");
         }
         auto opcode = static_cast<OpCode>(getOpCode(socket->ReceiveHeader));
