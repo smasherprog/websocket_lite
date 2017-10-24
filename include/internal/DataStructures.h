@@ -21,7 +21,8 @@ namespace SL {
 namespace WS_LITE {
     class WSContextImpl;
     template <bool isServer, class SOCKETTYPE, class SENDBUFFERTYPE>
-    void sendImpl(const std::shared_ptr<WSContextImpl> parent, const SOCKETTYPE &socket, const SENDBUFFERTYPE &msg, bool compressmessage);
+    void sendImpl(const std::shared_ptr<WSContextImpl> parent, const SOCKETTYPE &socket, const SENDBUFFERTYPE &msg,
+                  CompressionOptions compressmessage);
     template <bool isServer, class SOCKETTYPE>
     void sendclosemessage(const std::shared_ptr<WSContextImpl> parent, const SOCKETTYPE &socket, unsigned short code, const std::string &msg);
 
@@ -114,7 +115,7 @@ namespace WS_LITE {
 
     struct SendQueueItem {
         WSMessage msg;
-        bool compressmessage;
+        CompressionOptions compressmessage;
     };
 
     template <bool isServer, class SOCKETTYPE> class WSocket : public IWSocket {
@@ -144,13 +145,14 @@ namespace WS_LITE {
         virtual bool is_v4() const { return SL::WS_LITE::is_v4(Socket); }
         virtual bool is_v6() const { return SL::WS_LITE::is_v6(Socket); }
         virtual bool is_loopback() const { return SL::WS_LITE::is_loopback(Socket); }
-        virtual void send(const WSMessage &msg, bool compressmessage)
+        virtual void send(const WSMessage &msg, CompressionOptions compressmessage)
         {
-            if (SocketStatus_ == SocketStatus::CONNECTED) { // only send a close to an open socket
+            if (SocketStatus_ == SocketStatus::CONNECTED) { // only send to a conected socket
                 auto self(std::static_pointer_cast<WSocket<isServer, SOCKETTYPE>>(shared_from_this()));
                 auto p(Parent);
-                if (p)
+                if (p) {
                     sendImpl<isServer>(p, self, msg, compressmessage);
+                }
             }
         }
         // send a close message and close the socket
@@ -159,8 +161,9 @@ namespace WS_LITE {
             if (SocketStatus_ == SocketStatus::CONNECTED) { // only send a close to an open socket
                 auto self(std::static_pointer_cast<WSocket<isServer, SOCKETTYPE>>(shared_from_this()));
                 auto p(Parent);
-                if (p)
+                if (p) {
                     sendclosemessage<isServer>(p, self, code, msg);
+                }
             }
         }
         void canceltimers()

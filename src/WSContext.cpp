@@ -220,11 +220,19 @@ namespace WS_LITE {
         WSContext_Configuration(const std::shared_ptr<WSContextImpl> &c) : WSContextImpl_(c) {}
         virtual ~WSContext_Configuration() {}
 
-        virtual std::shared_ptr<IWSListener_Configuration> CreateListener(PortNumber port, ExtensionOptions options) override
+        virtual std::shared_ptr<IWSListener_Configuration> CreateListener(PortNumber port, NetworkProtocol protocol,
+                                                                          ExtensionOptions options) override
         {
             UNUSED(options);
-            WSContextImpl_->acceptor =
-                std::make_unique<asio::ip::tcp::acceptor>(WSContextImpl_->io_service, asio::ip::tcp::endpoint(asio::ip::tcp::v4(), port.value));
+            if (protocol == NetworkProtocol::IPV4) {
+                WSContextImpl_->acceptor =
+                    std::make_unique<asio::ip::tcp::acceptor>(WSContextImpl_->io_service, asio::ip::tcp::endpoint(asio::ip::tcp::v4(), port.value));
+            }
+            else {
+                WSContextImpl_->acceptor =
+                    std::make_unique<asio::ip::tcp::acceptor>(WSContextImpl_->io_service, asio::ip::tcp::endpoint(asio::ip::tcp::v6(), port.value));
+            }
+
             return std::make_shared<WSListener_Configuration>(WSContextImpl_);
         }
         virtual std::shared_ptr<IWSClient_Configuration> CreateClient(ExtensionOptions options) override

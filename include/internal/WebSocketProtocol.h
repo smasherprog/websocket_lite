@@ -71,7 +71,7 @@ namespace WS_LITE {
                     msg.len = sizeof(p);
                     msg.code = OpCode::PING;
                     msg.data = msg.Buffer.get();
-                    SL::WS_LITE::sendImpl<isServer>(parent, socket, msg, false);
+                    SL::WS_LITE::sendImpl<isServer>(parent, socket, msg, CompressionOptions::NO_COMPRESSION);
                     start_ping<isServer>(parent, socket, secs);
                 }
             });
@@ -188,9 +188,10 @@ namespace WS_LITE {
         }
     }
     template <bool isServer, class SOCKETTYPE, class SENDBUFFERTYPE>
-    void sendImpl(const std::shared_ptr<WSContextImpl> parent, const SOCKETTYPE &socket, const SENDBUFFERTYPE &msg, bool compressmessage)
+    void sendImpl(const std::shared_ptr<WSContextImpl> parent, const SOCKETTYPE &socket, const SENDBUFFERTYPE &msg,
+                  CompressionOptions compressmessage)
     {
-        if (compressmessage) {
+        if (compressmessage == CompressionOptions::COMPRESS) {
             assert(msg.code == OpCode::BINARY || msg.code == OpCode::TEXT);
         }
 
@@ -218,7 +219,7 @@ namespace WS_LITE {
         *reinterpret_cast<unsigned short *>(ws.Buffer.get()) = ntoh(code);
         memcpy(ws.Buffer.get() + sizeof(code), msg.c_str(), msg.size());
         ws.data = ws.Buffer.get();
-        sendImpl<isServer>(parent, socket, ws, false);
+        sendImpl<isServer>(parent, socket, ws, CompressionOptions::NO_COMPRESSION);
     }
 
     template <class SOCKETTYPE>
@@ -321,7 +322,7 @@ namespace WS_LITE {
         msg.code = OpCode::PONG;
         msg.data = msg.Buffer.get();
 
-        sendImpl<isServer>(parent, socket, msg, false);
+        sendImpl<isServer>(parent, socket, msg, CompressionOptions::NO_COMPRESSION);
     }
     template <bool isServer, class SOCKETTYPE>
     inline void ProcessClose(const std::shared_ptr<WSContextImpl> parent, const SOCKETTYPE &socket, const std::shared_ptr<unsigned char> &buffer,

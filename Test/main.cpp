@@ -39,7 +39,7 @@ void wssautobahntest()
                 msg.code = message.code;
                 msg.data = msg.Buffer.get();
                 memcpy(msg.data, message.data, message.len);
-                socket->send(msg, false);
+                socket->send(msg, SL::WS_LITE::CompressionOptions::NO_COMPRESSION);
             })
             ->listen();
 
@@ -95,7 +95,7 @@ void wssautobahntest()
                 msg.code = message.code;
                 msg.data = msg.Buffer.get();
                 memcpy(msg.data, message.data, message.len);
-                socket->send(msg, false);
+                socket->send(msg, SL::WS_LITE::CompressionOptions::NO_COMPRESSION);
             })
             ->listen();
 
@@ -133,7 +133,7 @@ void generaltest()
                 msg.code = message.code;
                 msg.data = msg.Buffer.get();
                 memcpy(msg.data, message.data, message.len);
-                socket->send(msg, false);
+                socket->send(msg, SL::WS_LITE::CompressionOptions::NO_COMPRESSION);
             })
             ->onDisconnection([&](const std::shared_ptr<SL::WS_LITE::IWSocket> &socket, unsigned short code, const std::string &msg) {
                 lastheard = std::chrono::high_resolution_clock::now();
@@ -214,7 +214,7 @@ void generalTLStest()
                 msg.code = message.code;
                 msg.data = msg.Buffer.get();
                 memcpy(msg.data, message.data, message.len);
-                socket->send(msg, false);
+                socket->send(msg, SL::WS_LITE::CompressionOptions::NO_COMPRESSION);
             })
             ->onDisconnection([&](const std::shared_ptr<SL::WS_LITE::IWSocket> &socket, unsigned short code, const std::string &msg) {
                 lastheard = std::chrono::high_resolution_clock::now();
@@ -286,7 +286,7 @@ void multithreadtest()
                 msg.code = message.code;
                 msg.data = msg.Buffer.get();
                 memcpy(msg.data, message.data, message.len);
-                socket->send(msg, false);
+                socket->send(msg, SL::WS_LITE::CompressionOptions::NO_COMPRESSION);
             })
             ->listen();
 
@@ -307,7 +307,7 @@ void multithreadtest()
                          msg.code = SL::WS_LITE::OpCode::TEXT;
                          msg.data = msg.Buffer.get();
                          memcpy(msg.data, txtmsg.data(), txtmsg.size());
-                         socket->send(msg, false);
+                         socket->send(msg, SL::WS_LITE::CompressionOptions::NO_COMPRESSION);
                      })
                      ->onDisconnection([&](const std::shared_ptr<SL::WS_LITE::IWSocket> &socket, unsigned short code, const std::string &msg) {
                          lastheard = std::chrono::high_resolution_clock::now();
@@ -382,7 +382,7 @@ void multithreadthroughputtest()
                     msg.len = bufferesize; // 10MB
                     msg.code = SL::WS_LITE::OpCode::BINARY;
                     msg.data = msg.Buffer.get();
-                    socket->send(msg, false);
+                    socket->send(msg, SL::WS_LITE::CompressionOptions::NO_COMPRESSION);
                 })
                 ->onDisconnection([&](const std::shared_ptr<SL::WS_LITE::IWSocket> &socket, unsigned short code, const std::string &msg) {
                     lastheard = std::chrono::high_resolution_clock::now();

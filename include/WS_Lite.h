@@ -148,6 +148,9 @@ namespace WS_LITE {
     enum OpCode : unsigned char { CONTINUATION = 0, TEXT = 1, BINARY = 2, CLOSE = 8, PING = 9, PONG = 10, INVALID = 255 };
     enum SocketStatus : int { CONNECTING, CONNECTED, CLOSING, CLOSED };
     enum ExtensionOptions : unsigned char { NO_OPTIONS = 0, DEFLATE = 1, NO_CONTEXT_TAKEOVER = 2 };
+    enum class CompressionOptions { COMPRESS, NO_COMPRESSION };
+    enum class NetworkProtocol { IPV4, IPV6 };
+
     struct WSMessage {
         unsigned char *data;
         size_t len;
@@ -167,7 +170,7 @@ namespace WS_LITE {
         virtual bool is_v4() const = 0;
         virtual bool is_v6() const = 0;
         virtual bool is_loopback() const = 0;
-        virtual void send(const WSMessage &msg, bool compressmessage) = 0;
+        virtual void send(const WSMessage &msg, CompressionOptions compressmessage) = 0;
         // send a close message and close the socket
         virtual void close(unsigned short code = 1000, const std::string &msg = "") = 0;
     };
@@ -238,7 +241,7 @@ namespace WS_LITE {
       public:
         virtual ~IWSContext_Configuration() {}
 
-        virtual std::shared_ptr<IWSListener_Configuration> CreateListener(PortNumber port,
+        virtual std::shared_ptr<IWSListener_Configuration> CreateListener(PortNumber port, NetworkProtocol protocol = NetworkProtocol::IPV4,
                                                                           ExtensionOptions options = ExtensionOptions::NO_OPTIONS) = 0;
         virtual std::shared_ptr<IWSClient_Configuration> CreateClient(ExtensionOptions options = ExtensionOptions::NO_OPTIONS) = 0;
     };
