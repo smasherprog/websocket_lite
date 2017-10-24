@@ -120,12 +120,12 @@ namespace WS_LITE {
         handshake << "Upgrade: websocket" << HTTP_ENDLINE;
         handshake << "Connection: Upgrade" << HTTP_ENDLINE;
         header_it = header.find(HTTP_SECWEBSOCKETEXTENSIONS);
-        if (header_it != header.end() && header_it->second.find(PERMESSAGEDEFLATE) != std::string::npos) {
-            handshake << HTTP_SECWEBSOCKETEXTENSIONS << HTTP_KEYVALUEDELIM << PERMESSAGEDEFLATE << HTTP_ENDLINE;
-        }
-        else {
-            handshake << HTTP_SECWEBSOCKETEXTENSIONS << HTTP_KEYVALUEDELIM << HTTP_ENDLINE;
-        }
+        /*       if (header_it != header.end() && header_it->second.find(PERMESSAGEDEFLATE) != std::string::npos) {
+                   handshake << HTTP_SECWEBSOCKETEXTENSIONS << HTTP_KEYVALUEDELIM << PERMESSAGEDEFLATE << HTTP_ENDLINE;
+               }
+               else {*/
+        handshake << HTTP_SECWEBSOCKETEXTENSIONS << HTTP_KEYVALUEDELIM << HTTP_ENDLINE;
+        // }
         handshake << HTTP_SECWEBSOCKETACCEPT << HTTP_KEYVALUEDELIM << Base64encode(sha1) << HTTP_ENDLINE << HTTP_ENDLINE;
 
         return true;
