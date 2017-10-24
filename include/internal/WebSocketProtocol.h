@@ -203,6 +203,7 @@ namespace WS_LITE {
                 if (msg.code == OpCode::CLOSE) {
                     socket->SocketStatus_ = SocketStatus::CLOSING;
                 }
+                socket->Bytes_PendingFlush += msg.len;
                 socket->SendMessageQueue.emplace_back(SendQueueItem{msg, compressmessage});
                 SL::WS_LITE::startwrite<isServer>(parent, socket);
             }
@@ -248,6 +249,10 @@ namespace WS_LITE {
                           socket->strand.wrap([parent, socket, msg](const std::error_code &ec, size_t bytes_transferred) {
                               socket->Writing = false;
                               UNUSED(bytes_transferred);
+
+                              socket->Bytes_PendingFlush -= msg.len;
+
+                              SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "socket->Bytes_PendingFlush: " << socket->Bytes_PendingFlush);
                               if (msg.code == OpCode::CLOSE) {
                                   // final close.. get out and dont come back mm kay?
                                   return handleclose(parent, socket, 1000, "");

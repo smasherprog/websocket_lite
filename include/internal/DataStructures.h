@@ -139,13 +139,14 @@ namespace WS_LITE {
                 free(ReceiveBuffer);
             }
         }
-        virtual SocketStatus is_open() const { return SocketStatus_; }
-        virtual std::string get_address() const { return SL::WS_LITE::get_address(Socket); }
-        virtual unsigned short get_port() const { return SL::WS_LITE::get_port(Socket); }
-        virtual bool is_v4() const { return SL::WS_LITE::is_v4(Socket); }
-        virtual bool is_v6() const { return SL::WS_LITE::is_v6(Socket); }
-        virtual bool is_loopback() const { return SL::WS_LITE::is_loopback(Socket); }
-        virtual void send(const WSMessage &msg, CompressionOptions compressmessage)
+        virtual SocketStatus is_open() const override { return SocketStatus_; }
+        virtual std::string get_address() const override { return SL::WS_LITE::get_address(Socket); }
+        virtual unsigned short get_port() const override { return SL::WS_LITE::get_port(Socket); }
+        virtual bool is_v4() const override { return SL::WS_LITE::is_v4(Socket); }
+        virtual bool is_v6() const override { return SL::WS_LITE::is_v6(Socket); }
+        virtual size_t BufferedBytes() const override { return Bytes_PendingFlush; }
+        virtual bool is_loopback() const override { return SL::WS_LITE::is_loopback(Socket); }
+        virtual void send(const WSMessage &msg, CompressionOptions compressmessage) override
         {
             if (SocketStatus_ == SocketStatus::CONNECTED) { // only send to a conected socket
                 auto self(std::static_pointer_cast<WSocket<isServer, SOCKETTYPE>>(shared_from_this()));
@@ -156,7 +157,7 @@ namespace WS_LITE {
             }
         }
         // send a close message and close the socket
-        virtual void close(unsigned short code, const std::string &msg)
+        virtual void close(unsigned short code, const std::string &msg) override
         {
             if (SocketStatus_ == SocketStatus::CONNECTED) { // only send a close to an open socket
                 auto self(std::static_pointer_cast<WSocket<isServer, SOCKETTYPE>>(shared_from_this()));
@@ -184,6 +185,7 @@ namespace WS_LITE {
         OpCode LastOpCode = OpCode::INVALID;
         std::shared_ptr<WSContextImpl> Parent;
         SOCKETTYPE Socket;
+        size_t Bytes_PendingFlush = 0;
 
         asio::basic_waitable_timer<std::chrono::steady_clock> ping_deadline;
         asio::basic_waitable_timer<std::chrono::steady_clock> read_deadline;
