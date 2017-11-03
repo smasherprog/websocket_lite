@@ -35,39 +35,35 @@ namespace WS_LITE {
     };
 
     struct ThreadContext {
+        ThreadContext(asio::ssl::context_base::method m) : work(io_service), context(m), inflationBuffer(std::make_unique<char[]>(LARGE_BUFFER_SIZE))
+        {
+            inflateInit2(&inflationStream, -MAX_WBITS);
+            thread = std::thread([&] {
+                std::error_code ec;
+                io_service.run(ec);
+            });
+        }
         std::unique_ptr<char[]> inflationBuffer;
         z_stream inflationStream = {};
-        std::thread Thread;
+        std::thread thread;
+        asio::io_service io_service;
+        asio::io_service::work work;
+        asio::ssl::context context;
     };
+
     const auto CONTROLBUFFERMAXSIZE = 125;
 
     class WSContextImpl {
       public:
-        WSContextImpl(ThreadCount threadcount, method m)
-            : work(std::make_unique<asio::io_service::work>(io_service)), sslcontext(static_cast<asio::ssl::context_base::method>(m)),
-              TLSEnabled(true)
+        WSContextImpl(ThreadCount threadcount, method *m = nullptr)
         {
-            Threads.resize(threadcount.value);
-            for (auto &ctx : Threads) {
-                inflateInit2(&ctx.inflationStream, -MAX_WBITS);
-                ctx.inflationBuffer = std::make_unique<char[]>(LARGE_BUFFER_SIZE);
-                ctx.Thread = std::thread([&]() {
-                    std::error_code ec;
-                    io_service.run(ec);
-                });
+            TLSEnabled = m ? true : false;
+            auto met = asio::ssl::context_base::method::tlsv12;
+            if (m) {
+                met = static_cast<asio::ssl::context_base::method>(*m);
             }
-        }
-        WSContextImpl(ThreadCount threadcount)
-            : work(std::make_unique<asio::io_service::work>(io_service)), sslcontext(asio::ssl::context::tlsv11), TLSEnabled(false)
-        {
-            Threads.resize(threadcount.value);
-            for (auto &ctx : Threads) {
-                inflateInit2(&ctx.inflationStream, -MAX_WBITS);
-                ctx.inflationBuffer = std::make_unique<char[]>(LARGE_BUFFER_SIZE);
-                ctx.Thread = std::thread([&]() {
-                    std::error_code ec;
-                    io_service.run(ec);
-                });
+            for (auto i = 0; i < threadcount.value; i++) {
+                ThreadContexts.push_back(std::make_shared<ThreadContext>(met));
             }
         }
         ~WSContextImpl()
@@ -76,31 +72,25 @@ namespace WS_LITE {
                 std::error_code ec;
                 acceptor->close(ec);
             }
-            work.reset();
-            io_service.stop();
-            while (!io_service.stopped()) {
-                std::this_thread::sleep_for(std::chrono::milliseconds(5));
-            }
-            for (auto &t : Threads) {
-                inflateEnd(&t.inflationStream);
-                if (t.Thread.joinable()) {
-                    if (std::this_thread::get_id() == t.Thread.get_id()) {
-                        t.Thread.detach(); // I am destroying myself.. detach
+            for (auto &t : ThreadContexts) {
+                t->io_service.stop();
+                inflateEnd(&t->inflationStream);
+                if (t->thread.joinable()) {
+                    if (std::this_thread::get_id() == t->thread.get_id()) {
+                        t->thread.detach(); // I am destroying myself.. detach
                     }
                     else {
-                        t.Thread.join();
+                        t->thread.join();
                     }
                 }
             }
-            Threads.clear();
+            ThreadContexts.clear();
         }
-
-        asio::io_service io_service;
-        std::vector<ThreadContext> Threads;
-        std::unique_ptr<asio::io_service::work> work;
+        ThreadContext &get() { return *ThreadContexts[(m_nextService++ % ThreadContexts.size())]; }
+        std::atomic<std::size_t> m_nextService{0};
+        std::vector<std::shared_ptr<ThreadContext>> ThreadContexts;
         std::unique_ptr<asio::ip::tcp::acceptor> acceptor;
 
-        asio::ssl::context sslcontext;
         std::chrono::seconds ReadTimeout = std::chrono::seconds(30);
         std::chrono::seconds WriteTimeout = std::chrono::seconds(30);
         size_t MaxPayload = 1024 * 1024 * 20; // 20 MB
@@ -121,14 +111,12 @@ namespace WS_LITE {
     template <bool isServer, class SOCKETTYPE> class WSocket : public IWSocket {
 
       public:
-        WSocket(const std::shared_ptr<WSContextImpl> &s, asio::ssl::context &sslcontext)
-            : Parent(s), Socket(s->io_service, sslcontext), ping_deadline(s->io_service), read_deadline(s->io_service), write_deadline(s->io_service),
-              strand(s->io_service)
+        WSocket(const std::shared_ptr<WSContextImpl> &s, asio::io_service &ioservice, asio::ssl::context &sslcontext)
+            : Parent(s), Socket(ioservice, sslcontext), ping_deadline(ioservice), read_deadline(ioservice), write_deadline(ioservice)
         {
         }
-        WSocket(const std::shared_ptr<WSContextImpl> &s)
-            : Parent(s), Socket(s->io_service), ping_deadline(s->io_service), read_deadline(s->io_service), write_deadline(s->io_service),
-              strand(s->io_service)
+        WSocket(const std::shared_ptr<WSContextImpl> &s, asio::io_service &ioservice)
+            : Parent(s), Socket(ioservice), ping_deadline(ioservice), read_deadline(ioservice), write_deadline(ioservice)
         {
         }
         virtual ~WSocket()
@@ -190,7 +178,6 @@ namespace WS_LITE {
         asio::basic_waitable_timer<std::chrono::steady_clock> ping_deadline;
         asio::basic_waitable_timer<std::chrono::steady_clock> read_deadline;
         asio::basic_waitable_timer<std::chrono::steady_clock> write_deadline;
-        asio::strand strand;
         std::deque<SendQueueItem> SendMessageQueue;
     };
 

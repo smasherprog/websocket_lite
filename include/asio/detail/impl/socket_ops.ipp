@@ -168,7 +168,7 @@ socket_type sync_accept(socket_type s, state_type state,
       return invalid_socket;
 
     // Wait for socket to become ready.
-    if (socket_ops::poll_read(s, 0, ec) < 0)
+    if (socket_ops::poll_read(s, 0, -1, ec) < 0)
       return invalid_socket;
   }
 }
@@ -241,8 +241,6 @@ bool non_blocking_accept(socket_type s,
     if (ec == asio::error::would_block
         || ec == asio::error::try_again)
     {
-      if (state & user_set_non_blocking)
-        return true;
       // Fall through to retry operation.
     }
     else if (ec == asio::error::connection_aborted)
@@ -505,7 +503,7 @@ void sync_connect(socket_type s, const socket_addr_type* addr,
   }
 
   // Wait for socket to become ready.
-  if (socket_ops::poll_connect(s, ec) < 0)
+  if (socket_ops::poll_connect(s, -1, ec) < 0)
     return;
 
   // Get the error code from the connect operation.
@@ -827,7 +825,7 @@ size_t sync_recv(socket_type s, state_type state, buf* bufs,
       return 0;
 
     // Wait for socket to become ready.
-    if (socket_ops::poll_read(s, 0, ec) < 0)
+    if (socket_ops::poll_read(s, 0, -1, ec) < 0)
       return 0;
   }
 }
@@ -966,7 +964,7 @@ size_t sync_recvfrom(socket_type s, state_type state, buf* bufs,
       return 0;
 
     // Wait for socket to become ready.
-    if (socket_ops::poll_read(s, 0, ec) < 0)
+    if (socket_ops::poll_read(s, 0, -1, ec) < 0)
       return 0;
   }
 }
@@ -1079,7 +1077,7 @@ size_t sync_recvmsg(socket_type s, state_type state,
       return 0;
 
     // Wait for socket to become ready.
-    if (socket_ops::poll_read(s, 0, ec) < 0)
+    if (socket_ops::poll_read(s, 0, -1, ec) < 0)
       return 0;
   }
 }
@@ -1206,7 +1204,7 @@ size_t sync_send(socket_type s, state_type state, const buf* bufs,
       return 0;
 
     // Wait for socket to become ready.
-    if (socket_ops::poll_write(s, 0, ec) < 0)
+    if (socket_ops::poll_write(s, 0, -1, ec) < 0)
       return 0;
   }
 }
@@ -1330,7 +1328,7 @@ size_t sync_sendto(socket_type s, state_type state, const buf* bufs,
       return 0;
 
     // Wait for socket to become ready.
-    if (socket_ops::poll_write(s, 0, ec) < 0)
+    if (socket_ops::poll_write(s, 0, -1, ec) < 0)
       return 0;
   }
 }
@@ -1784,7 +1782,8 @@ int select(int nfds, fd_set* readfds, fd_set* writefds,
 #endif
 }
 
-int poll_read(socket_type s, state_type state, asio::error_code& ec)
+int poll_read(socket_type s, state_type state,
+    int msec, asio::error_code& ec)
 {
   if (s == invalid_socket)
   {
@@ -1798,10 +1797,22 @@ int poll_read(socket_type s, state_type state, asio::error_code& ec)
   fd_set fds;
   FD_ZERO(&fds);
   FD_SET(s, &fds);
-  timeval zero_timeout;
-  zero_timeout.tv_sec = 0;
-  zero_timeout.tv_usec = 0;
-  timeval* timeout = (state & user_set_non_blocking) ? &zero_timeout : 0;
+  timeval timeout_obj;
+  timeval* timeout;
+  if (state & user_set_non_blocking)
+  {
+    timeout_obj.tv_sec = 0;
+    timeout_obj.tv_usec = 0;
+    timeout = &timeout_obj;
+  }
+  else if (msec >= 0)
+  {
+    timeout_obj.tv_sec = msec / 1000;
+    timeout_obj.tv_usec = (msec % 1000) * 1000;
+    timeout = &timeout_obj;
+  }
+  else
+    timeout = 0;
   clear_last_error();
   int result = error_wrapper(::select(s + 1, &fds, 0, 0, timeout), ec);
 #else // defined(ASIO_WINDOWS)
@@ -1811,7 +1822,7 @@ int poll_read(socket_type s, state_type state, asio::error_code& ec)
   fds.fd = s;
   fds.events = POLLIN;
   fds.revents = 0;
-  int timeout = (state & user_set_non_blocking) ? 0 : -1;
+  int timeout = (state & user_set_non_blocking) ? 0 : msec;
   clear_last_error();
   int result = error_wrapper(::poll(&fds, 1, timeout), ec);
 #endif // defined(ASIO_WINDOWS)
@@ -1825,7 +1836,8 @@ int poll_read(socket_type s, state_type state, asio::error_code& ec)
   return result;
 }
 
-int poll_write(socket_type s, state_type state, asio::error_code& ec)
+int poll_write(socket_type s, state_type state,
+    int msec, asio::error_code& ec)
 {
   if (s == invalid_socket)
   {
@@ -1839,10 +1851,22 @@ int poll_write(socket_type s, state_type state, asio::error_code& ec)
   fd_set fds;
   FD_ZERO(&fds);
   FD_SET(s, &fds);
-  timeval zero_timeout;
-  zero_timeout.tv_sec = 0;
-  zero_timeout.tv_usec = 0;
-  timeval* timeout = (state & user_set_non_blocking) ? &zero_timeout : 0;
+  timeval timeout_obj;
+  timeval* timeout;
+  if (state & user_set_non_blocking)
+  {
+    timeout_obj.tv_sec = 0;
+    timeout_obj.tv_usec = 0;
+    timeout = &timeout_obj;
+  }
+  else if (msec >= 0)
+  {
+    timeout_obj.tv_sec = msec / 1000;
+    timeout_obj.tv_usec = (msec % 1000) * 1000;
+    timeout = &timeout_obj;
+  }
+  else
+    timeout = 0;
   clear_last_error();
   int result = error_wrapper(::select(s + 1, 0, &fds, 0, timeout), ec);
 #else // defined(ASIO_WINDOWS)
@@ -1852,7 +1876,7 @@ int poll_write(socket_type s, state_type state, asio::error_code& ec)
   fds.fd = s;
   fds.events = POLLOUT;
   fds.revents = 0;
-  int timeout = (state & user_set_non_blocking) ? 0 : -1;
+  int timeout = (state & user_set_non_blocking) ? 0 : msec;
   clear_last_error();
   int result = error_wrapper(::poll(&fds, 1, timeout), ec);
 #endif // defined(ASIO_WINDOWS)
@@ -1866,7 +1890,61 @@ int poll_write(socket_type s, state_type state, asio::error_code& ec)
   return result;
 }
 
-int poll_connect(socket_type s, asio::error_code& ec)
+int poll_error(socket_type s, state_type state,
+    int msec, asio::error_code& ec)
+{
+  if (s == invalid_socket)
+  {
+    ec = asio::error::bad_descriptor;
+    return socket_error_retval;
+  }
+
+#if defined(ASIO_WINDOWS) \
+  || defined(__CYGWIN__) \
+  || defined(__SYMBIAN32__)
+  fd_set fds;
+  FD_ZERO(&fds);
+  FD_SET(s, &fds);
+  timeval timeout_obj;
+  timeval* timeout;
+  if (state & user_set_non_blocking)
+  {
+    timeout_obj.tv_sec = 0;
+    timeout_obj.tv_usec = 0;
+    timeout = &timeout_obj;
+  }
+  else if (msec >= 0)
+  {
+    timeout_obj.tv_sec = msec / 1000;
+    timeout_obj.tv_usec = (msec % 1000) * 1000;
+    timeout = &timeout_obj;
+  }
+  else
+    timeout = 0;
+  clear_last_error();
+  int result = error_wrapper(::select(s + 1, 0, 0, &fds, timeout), ec);
+#else // defined(ASIO_WINDOWS)
+      // || defined(__CYGWIN__)
+      // || defined(__SYMBIAN32__)
+  pollfd fds;
+  fds.fd = s;
+  fds.events = POLLPRI | POLLERR | POLLHUP;
+  fds.revents = 0;
+  int timeout = (state & user_set_non_blocking) ? 0 : msec;
+  clear_last_error();
+  int result = error_wrapper(::poll(&fds, 1, timeout), ec);
+#endif // defined(ASIO_WINDOWS)
+       // || defined(__CYGWIN__)
+       // || defined(__SYMBIAN32__)
+  if (result == 0)
+    ec = (state & user_set_non_blocking)
+      ? asio::error::would_block : asio::error_code();
+  else if (result > 0)
+    ec = asio::error_code();
+  return result;
+}
+
+int poll_connect(socket_type s, int msec, asio::error_code& ec)
 {
   if (s == invalid_socket)
   {
@@ -1883,9 +1961,19 @@ int poll_connect(socket_type s, asio::error_code& ec)
   fd_set except_fds;
   FD_ZERO(&except_fds);
   FD_SET(s, &except_fds);
+  timeval timeout_obj;
+  timeval* timeout;
+  if (msec >= 0)
+  {
+    timeout_obj.tv_sec = msec / 1000;
+    timeout_obj.tv_usec = (msec % 1000) * 1000;
+    timeout = &timeout_obj;
+  }
+  else
+    timeout = 0;
   clear_last_error();
   int result = error_wrapper(::select(
-        s + 1, 0, &write_fds, &except_fds, 0), ec);
+        s + 1, 0, &write_fds, &except_fds, timeout), ec);
   if (result >= 0)
     ec = asio::error_code();
   return result;
@@ -1897,7 +1985,7 @@ int poll_connect(socket_type s, asio::error_code& ec)
   fds.events = POLLOUT;
   fds.revents = 0;
   clear_last_error();
-  int result = error_wrapper(::poll(&fds, 1, -1), ec);
+  int result = error_wrapper(::poll(&fds, 1, msec), ec);
   if (result >= 0)
     ec = asio::error_code();
   return result;
@@ -3345,7 +3433,6 @@ asio::error_code getnameinfo(const socket_addr_type* addr,
   using namespace std; // For memcpy.
   sockaddr_storage_type tmp_addr;
   memcpy(&tmp_addr, addr, addrlen);
-  tmp_addr.ss_len = addrlen;
   addr = reinterpret_cast<socket_addr_type*>(&tmp_addr);
   clear_last_error();
   return getnameinfo_emulation(addr, addrlen,

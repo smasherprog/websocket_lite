@@ -30,14 +30,15 @@ namespace asio {
 namespace detail {
 
 reactive_serial_port_service::reactive_serial_port_service(
-    asio::io_service& io_service)
-  : descriptor_service_(io_service)
+    asio::io_context& io_context)
+  : service_base<reactive_serial_port_service>(io_context),
+    descriptor_service_(io_context)
 {
 }
 
-void reactive_serial_port_service::shutdown_service()
+void reactive_serial_port_service::shutdown()
 {
-  descriptor_service_.shutdown_service();
+  descriptor_service_.shutdown();
 }
 
 asio::error_code reactive_serial_port_service::open(

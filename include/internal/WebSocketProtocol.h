@@ -195,7 +195,7 @@ namespace WS_LITE {
             assert(msg.code == OpCode::BINARY || msg.code == OpCode::TEXT);
         }
 
-        socket->strand.post([socket, msg, parent, compressmessage]() {
+        socket->Socket.get_io_service().post([socket, msg, parent, compressmessage]() {
 
             if (socket->SocketStatus_ == SocketStatus::CONNECTED) {
                 // update the socket status to reflect it is closing to prevent other messages from being sent.. this is the last valid message
@@ -246,7 +246,7 @@ namespace WS_LITE {
     {
 
         asio::async_write(socket->Socket, asio::buffer(msg.data, msg.len),
-                          socket->strand.wrap([parent, socket, msg](const std::error_code &ec, size_t bytes_transferred) {
+                          [parent, socket, msg](const std::error_code &ec, size_t bytes_transferred) {
                               socket->Writing = false;
                               UNUSED(bytes_transferred);
                               socket->Bytes_PendingFlush -= msg.len;
@@ -259,7 +259,7 @@ namespace WS_LITE {
                               }
                               assert(msg.len == bytes_transferred);
                               startwrite<isServer>(parent, socket);
-                          }));
+                          });
     }
 
     inline void UnMaskMessage(size_t readsize, unsigned char *buffer, bool isserver)

@@ -35,7 +35,7 @@
 #include "asio/detail/timer_queue_set.hpp"
 #include "asio/detail/wait_op.hpp"
 #include "asio/error.hpp"
-#include "asio/io_service.hpp"
+#include "asio/execution_context.hpp"
 
 // Older versions of Mac OS X may not define EV_OOBAND.
 #if !defined(EV_OOBAND)
@@ -47,9 +47,15 @@
 namespace asio {
 namespace detail {
 
+class scheduler;
+
 class kqueue_reactor
-  : public asio::detail::service_base<kqueue_reactor>
+  : public execution_context_service_base<kqueue_reactor>
 {
+private:
+  // The mutex type used by this reactor.
+  typedef conditionally_enabled_mutex mutex;
+
 public:
   enum op_types { read_op = 0, write_op = 1,
     connect_op = 1, except_op = 2, max_ops = 3 };
@@ -57,6 +63,8 @@ public:
   // Per-descriptor queues.
   struct descriptor_state
   {
+    descriptor_state(bool locking) : mutex_(locking) {}
+
     friend class kqueue_reactor;
     friend class object_pool_access;
 
@@ -74,17 +82,17 @@ public:
   typedef descriptor_state* per_descriptor_data;
 
   // Constructor.
-  ASIO_DECL kqueue_reactor(asio::io_service& io_service);
+  ASIO_DECL kqueue_reactor(asio::execution_context& ctx);
 
   // Destructor.
   ASIO_DECL ~kqueue_reactor();
 
   // Destroy all user-defined handler objects owned by the service.
-  ASIO_DECL void shutdown_service();
+  ASIO_DECL void shutdown();
 
   // Recreate internal descriptors following a fork.
-  ASIO_DECL void fork_service(
-      asio::io_service::fork_event fork_ev);
+  ASIO_DECL void notify_fork(
+      asio::execution_context::fork_event fork_ev);
 
   // Initialise the task.
   ASIO_DECL void init_task();
@@ -108,7 +116,7 @@ public:
   // Post a reactor operation for immediate completion.
   void post_immediate_completion(reactor_op* op, bool is_continuation)
   {
-    io_service_.post_immediate_completion(op, is_continuation);
+    scheduler_.post_immediate_completion(op, is_continuation);
   }
 
   // Start a new operation. The reactor operation will be performed when the
@@ -162,8 +170,14 @@ public:
       typename timer_queue<Time_Traits>::per_timer_data& timer,
       std::size_t max_cancelled = (std::numeric_limits<std::size_t>::max)());
 
+  // Move the timer operations associated with the given timer.
+  template <typename Time_Traits>
+  void move_timer(timer_queue<Time_Traits>& queue,
+      typename timer_queue<Time_Traits>::per_timer_data& target,
+      typename timer_queue<Time_Traits>::per_timer_data& source);
+
   // Run the kqueue loop.
-  ASIO_DECL void run(bool block, op_queue<operation>& ops);
+  ASIO_DECL void run(long usec, op_queue<operation>& ops);
 
   // Interrupt the kqueue loop.
   ASIO_DECL void interrupt();
@@ -186,10 +200,10 @@ private:
   ASIO_DECL void do_remove_timer_queue(timer_queue_base& queue);
 
   // Get the timeout value for the kevent call.
-  ASIO_DECL timespec* get_timeout(timespec& ts);
+  ASIO_DECL timespec* get_timeout(long usec, timespec& ts);
 
-  // The io_service implementation used to post completions.
-  io_service_impl& io_service_;
+  // The scheduler used to post completions.
+  scheduler& scheduler_;
 
   // Mutex to protect access to internal data.
   mutex mutex_;

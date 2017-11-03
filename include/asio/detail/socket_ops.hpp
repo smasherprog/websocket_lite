@@ -18,9 +18,8 @@
 #include "asio/detail/config.hpp"
 
 #include "asio/error_code.hpp"
-#include "asio/detail/shared_ptr.hpp"
+#include "asio/detail/memory.hpp"
 #include "asio/detail/socket_types.hpp"
-#include "asio/detail/weak_ptr.hpp"
 
 #include "asio/detail/push_options.hpp"
 
@@ -264,12 +263,16 @@ ASIO_DECL int select(int nfds, fd_set* readfds, fd_set* writefds,
     fd_set* exceptfds, timeval* timeout, asio::error_code& ec);
 
 ASIO_DECL int poll_read(socket_type s,
-    state_type state, asio::error_code& ec);
+    state_type state, int msec, asio::error_code& ec);
 
 ASIO_DECL int poll_write(socket_type s,
-    state_type state, asio::error_code& ec);
+    state_type state, int msec, asio::error_code& ec);
 
-ASIO_DECL int poll_connect(socket_type s, asio::error_code& ec);
+ASIO_DECL int poll_error(socket_type s,
+    state_type state, int msec, asio::error_code& ec);
+
+ASIO_DECL int poll_connect(socket_type s,
+    int msec, asio::error_code& ec);
 
 #endif // !defined(ASIO_WINDOWS_RUNTIME)
 

@@ -126,41 +126,40 @@ namespace WS_LITE {
 
         auto socket = socketcreator(self);
         socket->SocketStatus_ = SocketStatus::CONNECTING;
-        std::error_code ec;
-        asio::ip::tcp::resolver resolver(self->io_service);
+
         auto portstr = std::to_string(port.value);
         asio::ip::tcp::resolver::query query(host, portstr.c_str());
 
-        auto resolvedendpoint = resolver.resolve(query, ec);
+        auto resolver = std::make_shared<asio::ip::tcp::resolver>(socket->Socket.get_io_service());
+        auto connected = std::make_shared<bool>(false);
 
-        if (ec) {
-            SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "resolve error " << ec.message());
-            socket->SocketStatus_ = SocketStatus::CLOSED;
-            if (self->onDisconnection) {
-                self->onDisconnection(socket, 1002, "resolve error " + ec.message());
-            }
-        }
-        else {
-            asio::async_connect(socket->Socket.lowest_layer(), resolvedendpoint,
-                                [socket, self, host, no_delay, endpoint, extraheaders](const std::error_code &ec, asio::ip::tcp::resolver::iterator) {
-                                    std::error_code e;
-                                    socket->Socket.lowest_layer().set_option(asio::ip::tcp::no_delay(no_delay), e);
-                                    if (e) {
-                                        SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "set_option error " << e.message());
-                                        e.clear();
-                                    }
-                                    if (!ec) {
-                                        async_handshake(self, socket, host, endpoint, extraheaders);
-                                    }
-                                    else {
-                                        SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "Failed async_connect " << ec.message());
-                                        socket->SocketStatus_ = SocketStatus::CLOSED;
-                                        if (self->onDisconnection) {
-                                            self->onDisconnection(socket, 1002, "Failed async_connect " + ec.message());
-                                        }
-                                    }
-                                });
-        }
+        resolver->async_resolve(query, [socket, self, host, no_delay, endpoint, extraheaders, resolver,
+                                        connected](const std::error_code &ec, asio::ip::tcp::resolver::iterator it) {
+            if (*connected)
+                return; // done
+
+            asio::async_connect(
+                socket->Socket.lowest_layer(), it,
+                [socket, self, host, no_delay, endpoint, extraheaders, connected](const std::error_code &ec, asio::ip::tcp::resolver::iterator) {
+                    *connected = true;
+                    std::error_code e;
+                    socket->Socket.lowest_layer().set_option(asio::ip::tcp::no_delay(no_delay), e);
+                    if (e) {
+                        SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "set_option error " << e.message());
+                        e.clear();
+                    }
+                    if (!ec) {
+                        async_handshake(self, socket, host, endpoint, extraheaders);
+                    }
+                    else {
+                        SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "Failed async_connect " << ec.message());
+                        socket->SocketStatus_ = SocketStatus::CLOSED;
+                        if (self->onDisconnection) {
+                            self->onDisconnection(socket, 1002, "Failed async_connect " + ec.message());
+                        }
+                    }
+                });
+        });
     }
 
     void WSClient::set_ReadTimeout(std::chrono::seconds seconds) { Impl_->ReadTimeout = seconds; }
@@ -210,11 +209,17 @@ namespace WS_LITE {
                                                             const std::unordered_map<std::string, std::string> &extraheaders)
     {
         if (Impl_->TLSEnabled) {
-            auto createsocket = [](auto c) { return std::make_shared<WSocket<false, asio::ssl::stream<asio::ip::tcp::socket>>>(c, c->sslcontext); };
+            auto createsocket = [](auto c) {
+                auto &res = c->get();
+                return std::make_shared<WSocket<false, asio::ssl::stream<asio::ip::tcp::socket>>>(c, res.io_service, res.context);
+            };
             Connect(Impl_, host, port, no_delay, createsocket, endpoint, extraheaders);
         }
         else {
-            auto createsocket = [](auto c) { return std::make_shared<WSocket<false, asio::ip::tcp::socket>>(c); };
+            auto createsocket = [](auto c) {
+                auto &res = c->get();
+                return std::make_shared<WSocket<false, asio::ip::tcp::socket>>(c, res.io_service);
+            };
             Connect(Impl_, host, port, no_delay, createsocket, endpoint, extraheaders);
         }
         return std::make_shared<WSClient>(Impl_);

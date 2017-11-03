@@ -22,6 +22,7 @@
   && !defined(__CYGWIN__)
 
 #include <cstddef>
+#include "asio/error.hpp"
 #include "asio/error_code.hpp"
 #include "asio/detail/socket_types.hpp"
 
@@ -98,6 +99,9 @@ ASIO_DECL int poll_read(int d,
     state_type state, asio::error_code& ec);
 
 ASIO_DECL int poll_write(int d,
+    state_type state, asio::error_code& ec);
+
+ASIO_DECL int poll_error(int d,
     state_type state, asio::error_code& ec);
 
 } // namespace descriptor_ops

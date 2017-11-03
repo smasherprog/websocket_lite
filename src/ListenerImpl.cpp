@@ -160,11 +160,17 @@ namespace WS_LITE {
     std::shared_ptr<IWSHub> WSListener_Configuration::listen(bool no_delay, bool reuse_address)
     {
         if (Impl_->TLSEnabled) {
-            auto createsocket = [](auto c) { return std::make_shared<WSocket<true, asio::ssl::stream<asio::ip::tcp::socket>>>(c, c->sslcontext); };
+            auto createsocket = [](auto c) {
+                auto &res = c->get();
+                return std::make_shared<WSocket<true, asio::ssl::stream<asio::ip::tcp::socket>>>(c, res.io_service, res.context);
+            };
             Listen(Impl_, createsocket, no_delay, reuse_address);
         }
         else {
-            auto createsocket = [](auto c) { return std::make_shared<WSocket<true, asio::ip::tcp::socket>>(c); };
+            auto createsocket = [](auto c) {
+                auto &res = c->get();
+                return std::make_shared<WSocket<true, asio::ip::tcp::socket>>(c, res.io_service);
+            };
             Listen(Impl_, createsocket, no_delay, reuse_address);
         }
         return std::make_shared<WSListener>(Impl_);
