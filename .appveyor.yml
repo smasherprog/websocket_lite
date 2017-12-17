@@ -38,7 +38,6 @@ install:
   - git clone https://github.com/Microsoft/vcpkg
   - cd vcpkg
   - powershell -exec bypass scripts\bootstrap.ps1
-  - echo %cd%\vcpkg\scripts\buildsystems\vcpkg.cmake
   - .\vcpkg integrate install
   - .\vcpkg install zlib:%PLATFORM%-windows%POSTVCPKGNAME% openssl:%PLATFORM%-windows%POSTVCPKGNAME%
   - cd ..
@@ -47,7 +46,8 @@ build_script:
   - if %platform%==x86 set generator=Visual Studio 15 2017
   - if %platform%==x64 set generator=Visual Studio 15 2017 Win64
   - cmd: echo %generator% %SHARED% %configuration%
-  - cmd: cmake .. -G"%generator%" -DBUILD_SHARED_LIBS=%SHARED% -DCMAKE_INSTALL_PREFIX=./output -DCMAKE_TOOLCHAIN_FILE="%CD%\vcpkg\scripts\buildsystems\vcpkg.cmake"
+  - cmd: echo %cd%\vcpkg\scripts\buildsystems\vcpkg.cmake
+  - cmd: cmake .. -G"%generator%" -DBUILD_SHARED_LIBS=%SHARED% -DCMAKE_INSTALL_PREFIX=./output "-DCMAKE_TOOLCHAIN_FILE=%CD%\vcpkg\scripts\buildsystems\vcpkg.cmake"
   - cmd: cmake --build . --target INSTALL --config %configuration%
   - 7z a vc140_%configuration%_%PLATFORM%_%POSTFIXNAME%.zip  -i!%APPVEYOR_BUILD_FOLDER%\build\output\*
   - appveyor PushArtifact vc140_%configuration%_%PLATFORM%_%POSTFIXNAME%.zip
