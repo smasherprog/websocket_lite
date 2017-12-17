@@ -42,10 +42,10 @@ install:
   - .\vcpkg integrate install
   - .\vcpkg install zlib:%PLATFORM%-windows%POSTVCPKGNAME% openssl:%PLATFORM%-windows%POSTVCPKGNAME%
   - ps: if($env:POSTFIXNAME -eq 'MD') {
-          .\vcpkg.exe export zlib:$($env:PLATFORM)-windows$($env:POSTVCPKGNAME) openssl:$($env:PLATFORM)-windows$($env:POSTVCPKGNAME) --raw;
+          Invoke-Expression &".\vcpkg.exe export zlib:$($env:PLATFORM)-windows$($env:POSTVCPKGNAME) openssl:$($env:PLATFORM)-windows$($env:POSTVCPKGNAME) --raw";
           move vcpkg-export-* vcpkg-export;
-          7z a vc140_$($env:configuration)_$($env:PLATFORM)_$($env:POSTFIXNAME)_libs.zip -i!vcpkg-export\installed\$($env:PLATFORM)-windows$($env:POSTVCPKGNAME)\*;
-          Push-AppveyorArtifact vc140_$($env:configuration)_$($env:PLATFORM)_$($env:POSTFIXNAME)_libs.zip;
+          Invoke-Expression &"7z a vc140_$($env:configuration)_$($env:PLATFORM)_$($env:POSTFIXNAME)_libs.zip -i!vcpkg-export\installed\$($env:PLATFORM)-windows$($env:POSTVCPKGNAME)\*";
+          Push-AppveyorArtifact "vc140_$($env:configuration)_$($env:PLATFORM)_$($env:POSTFIXNAME)_libs.zip";
         }
   - cd ..
   
