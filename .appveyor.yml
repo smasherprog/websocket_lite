@@ -1,27 +1,36 @@
 image: Visual Studio 2017
 
-configuration:
-  - Release
-  
-clone_folder: c:\projects\proj
-
 platform:
 - x86
+- x64
+
+configuration:
+  - Debug
+  - Release
+  
+environment:
+  matrix:
+  - SHARED: OFF
+    POSTFIXNAME: MT
+  - SHARED: ON
+    POSTFIXNAME: MD
+    
+matrix:
+  fast_finish: true
 
 install:  
   - ps: wget https://download.microsoft.com/download/7/9/6/796EF2E4-801B-4FC4-AB28-B59FBF6D907B/VCForPython27.msi -outfile "VCForPython27.msi"
-  - start /wait msiexec /i c:\projects\proj\VCForPython27.msi /quiet /qn /norestart
+  - start /wait msiexec /i VCForPython27.msi /quiet /qn /norestart
   - pip install autobahntestsuite
-  - ps: If ($env:Platform -Match "x86"){ $env:CMAKE_ARCH="" } Else { $env:CMAKE_ARCH=" Win64"}
-  - mkdir C:\projects\deps
-  - cd C:\projects\deps
+  - mkdir deps
+  - cd deps
   - set CMAKE_URL="https://cmake.org/files/v3.9/cmake-3.9.4-win64-x64.zip"
   - appveyor DownloadFile %CMAKE_URL% -FileName cmake.zip
-  - 7z x cmake.zip -oC:\projects\deps > nul
-  - move C:\projects\deps\cmake-* C:\projects\deps\cmake # Move to a version-agnostic directory
-  - set PATH=C:\projects\deps\cmake\bin;%PATH%
+  - 7z x cmake.zip
+  - move cmake-* cmake # Move to a version-agnostic directory
+  - set PATH=%cd%\cmake\bin;%PATH%
   - cmake --version
-  - cd c:\projects
+  - cd ..
   - mkdir build
   - cd build
   - git clone https://github.com/Microsoft/vcpkg
@@ -29,15 +38,22 @@ install:
   - powershell -exec bypass scripts\bootstrap.ps1
   - .\vcpkg integrate install
   - .\vcpkg install zlib:x86-windows-static openssl:x86-windows-static zlib openssl
+  - cd ..
   
 build_script:
-  - cd c:\projects\proj
-  - mkdir build
-  - cd build
-  - cmake -DBUILD_SHARED_LIBS=OFF -DVCPKG_TARGET_TRIPLET=x86-windows-static "-DCMAKE_TOOLCHAIN_FILE=c:\projects\build\vcpkg\scripts\buildsystems\vcpkg.cmake" .. 
-  - cmake --build .
-  - ctest -V -C Release
-  - cmake -DBUILD_SHARED_LIBS=ON "-DCMAKE_TOOLCHAIN_FILE=c:\projects\build\vcpkg\scripts\buildsystems\vcpkg.cmake" .. 
-  - cmake --build .
-  - cmake --build .
-  - ctest -V -C Release
+  - if %platform%==x86 set generator=Visual Studio 15 2017
+  - if %platform%==x64 set generator=Visual Studio 15 2017 Win64
+  - cmd: echo %generator% %SHARED% %configuration%
+  - cmd: cmake .. -G"%generator%" -DBUILD_SHARED_LIBS=%SHARED% -DCMAKE_INSTALL_PREFIX=./output
+  - cmd: cmake --build . --target INSTALL --config %configuration%
+  - 7z a vc140_%configuration%_%PLATFORM%_%POSTFIXNAME%.zip  -i!%APPVEYOR_BUILD_FOLDER%\build\output\*
+  - appveyor PushArtifact vc140_%configuration%_%PLATFORM%_%POSTFIXNAME%.zip
+  
+deploy:
+  provider: GitHub
+  auth_token:
+    secure: WCGi6SXwa6VaPyLH6fZCrmTix+e2FA3zwzhNg8dSf3EdrcecGIR3Z0qG/vssOdfA 
+  draft: false
+  prerelease: false
+  on:
+    appveyor_repo_tag: true 
