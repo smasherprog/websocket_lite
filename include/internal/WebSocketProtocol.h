@@ -414,7 +414,7 @@ namespace WS_LITE {
                                                   "Payload exceeded for control frames. Size requested " + std::to_string(size));
             }
             else if (size > 0) {
-                auto buffer = std::shared_ptr<unsigned char>(new unsigned char[size], [](auto p) { delete[] p; });
+                auto buffer = std::shared_ptr<unsigned char>(new unsigned char[size], [](unsigned char *p) { delete[] p; });
 
                 auto bytestoread = size;
                 auto dataconsumed = ReadFromExtraData(buffer.get(), bytestoread, extradata);
