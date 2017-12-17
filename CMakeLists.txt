@@ -58,6 +58,4 @@ install (FILES
 	include/WS_Lite.h
 	include/Logging.h
 	DESTINATION include)
-	 
-enable_testing() 
-add_subdirectory(Test)
+
