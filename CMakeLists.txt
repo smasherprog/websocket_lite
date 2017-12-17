@@ -48,11 +48,13 @@ if(${BUILD_SHARED_LIBS})
 	endif()
 endif()
 
-install (TARGETS ${PROJECT_NAME}  
+install (TARGETS ${PROJECT_NAME} 
 	RUNTIME DESTINATION bin
 	ARCHIVE DESTINATION lib
 	LIBRARY DESTINATION lib)
-
+	
+install (FILES $<TARGET_PDB_FILE:${PROJECT_NAME}> DESTINATION bin OPTIONAL)
+		
 		
 install (FILES 
 	include/WS_Lite.h

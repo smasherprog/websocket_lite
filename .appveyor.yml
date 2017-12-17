@@ -41,6 +41,8 @@ install:
   - powershell -exec bypass scripts\bootstrap.ps1
   - .\vcpkg integrate install
   - .\vcpkg install zlib:%PLATFORM%-windows%POSTVCPKGNAME% openssl:%PLATFORM%-windows%POSTVCPKGNAME%
+  - if %POSTFIXNAME%==MD set VCPKGLIBS=vcpkg export zlib:%PLATFORM%-windows%POSTVCPKGNAME% openssl:%PLATFORM%-windows%POSTVCPKGNAME% --raw && move vcpkg-export-* vcpkg-export && 7z a vc140_%configuration%_%PLATFORM%_%POSTFIXNAME%_libs.zip -i!vcpkg-export\installed\%PLATFORM%-windows%POSTVCPKGNAME%\* && appveyor PushArtifact vc140_%configuration%_%PLATFORM%_%POSTFIXNAME%_libs.zip
+  - cmd: %VCPKGLIBS%
   - cd ..
   
 build_script:
