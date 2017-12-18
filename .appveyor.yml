@@ -59,7 +59,7 @@ install:
         }
   
 build_script:
-  - set-location C:\projects\websocket-lite\build\
+  - cd C:\projects\websocket-lite\build\
   - if %platform%==x86 set generator=Visual Studio 15 2017
   - if %platform%==x64 set generator=Visual Studio 15 2017 Win64
   - if %POSTFIXNAME%==MT set VCPKGFLAGS=-DVCPKG_TARGET_TRIPLET=%platform%-windows-static
