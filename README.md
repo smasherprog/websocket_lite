@@ -1,6 +1,5 @@
 # websocket_lite
 
-<h3>Websocket_Lite</h3>
 <p>Linux/Mac <img src="https://travis-ci.org/smasherprog/websocket_lite.svg?branch=master"/><p>
 <p>Windows <img src="https://ci.appveyor.com/api/projects/status/kqa94n7p8se05vi9/branch/master?svg=true"/><p>
 <p>Websocket <a href="https://tools.ietf.org/html/rfc6455">rfc6455</a> Compliant. Working on rfc 7692 -- which supports compression<p>
