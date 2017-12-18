@@ -48,26 +48,25 @@ install:
           set-location "vcpkg-export\installed\$($env:PLATFORM)-windows$($env:POSTVCPKGNAME)\";
           if($env:configuration -eq 'Debug') {
             set-location debug;
-            Invoke-Expression "&7z a vc140_$($env:configuration)_$($env:PLATFORM)_$($env:POSTFIXNAME)_libs.zip -i!bin\* -i!lib\*";
+            Invoke-Expression "&7z a vc140_$($env:configuration)_$($env:PLATFORM)_$($env:POSTFIXNAME).zip -i!bin\* -i!lib\*";
             cd ..;
-            Invoke-Expression "&7z a -tzip debug\vc140_$($env:configuration)_$($env:PLATFORM)_$($env:POSTFIXNAME)_libs.zip -i!include\*";
-            Push-AppveyorArtifact "debug\vc140_$($env:configuration)_$($env:PLATFORM)_$($env:POSTFIXNAME)_libs.zip";
+            Invoke-Expression "&7z a -tzip debug\vc140_$($env:configuration)_$($env:PLATFORM)_$($env:POSTFIXNAME).zip -i!include\*";
           } else {
-            Invoke-Expression "&7z a vc140_$($env:configuration)_$($env:PLATFORM)_$($env:POSTFIXNAME)_libs.zip -i!bin\* -i!lib\*";
-            Invoke-Expression "&7z a -tzip vc140_$($env:configuration)_$($env:PLATFORM)_$($env:POSTFIXNAME)_libs.zip -i!include\*";
-            Push-AppveyorArtifact "vc140_$($env:configuration)_$($env:PLATFORM)_$($env:POSTFIXNAME)_libs.zip";
+            Invoke-Expression "&7z a vc140_$($env:configuration)_$($env:PLATFORM)_$($env:POSTFIXNAME).zip -i!bin\* -i!lib\*";
+            Invoke-Expression "&7z a -tzip vc140_$($env:configuration)_$($env:PLATFORM)_$($env:POSTFIXNAME).zip -i!include\*";
           }  
+          Copy-Item *.zip C:\projects\websocket-lite\build\
         }
   
 build_script:
-  - cmd: cd C:\projects\websocket-lite\build\
+  - set-location C:\projects\websocket-lite\build\
   - if %platform%==x86 set generator=Visual Studio 15 2017
   - if %platform%==x64 set generator=Visual Studio 15 2017 Win64
   - if %POSTFIXNAME%==MT set VCPKGFLAGS=-DVCPKG_TARGET_TRIPLET=%platform%-windows-static
   - cmd: echo %generator% %SHARED% %configuration% 
   - cmd: cmake "-DCMAKE_TOOLCHAIN_FILE=%cd%\vcpkg\scripts\buildsystems\vcpkg.cmake" -G"%generator%" %VCPKGFLAGS% -DBUILD_SHARED_LIBS=%SHARED% -DCMAKE_INSTALL_PREFIX=./output .. 
   - cmd: cmake --build . --target INSTALL --config %configuration%
-  - 7z a vc140_%configuration%_%PLATFORM%_%POSTFIXNAME%.zip  -i!%APPVEYOR_BUILD_FOLDER%\build\output\*
+  - 7z a -tzip vc140_%configuration%_%PLATFORM%_%POSTFIXNAME%.zip  -i!%APPVEYOR_BUILD_FOLDER%\build\output\*
   - appveyor PushArtifact vc140_%configuration%_%PLATFORM%_%POSTFIXNAME%.zip
   
 deploy:
