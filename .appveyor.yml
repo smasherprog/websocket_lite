@@ -45,7 +45,7 @@ install:
   - ps: if($env:POSTFIXNAME -eq 'MD') {
           Invoke-Expression "&.\vcpkg.exe export zlib:$($env:PLATFORM)-windows$($env:POSTVCPKGNAME) openssl:$($env:PLATFORM)-windows$($env:POSTVCPKGNAME) --raw";
           move vcpkg-export-* vcpkg-export;
-          Invoke-Expression "&7z a vc140_$($env:configuration)_$($env:PLATFORM)_$($env:POSTFIXNAME)_libs.zip -i!vcpkg-export\installed\$($env:PLATFORM)-windows$($env:POSTVCPKGNAME)\*";
+          Invoke-Expression "&7z a vc140_$($env:configuration)_$($env:PLATFORM)_$($env:POSTFIXNAME)_libs.zip vcpkg-export\installed\$($env:PLATFORM)-windows$($env:POSTVCPKGNAME)\";
           Push-AppveyorArtifact "vc140_$($env:configuration)_$($env:PLATFORM)_$($env:POSTFIXNAME)_libs.zip";
         }
   - cd ..
