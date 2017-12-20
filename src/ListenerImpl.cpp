@@ -161,14 +161,14 @@ namespace WS_LITE {
     {
         if (Impl_->TLSEnabled) {
             auto createsocket = [](auto c) {
-                auto &res = c->get();
+                auto &res = c->getnextContext();
                 return std::make_shared<WSocket<true, asio::ssl::stream<asio::ip::tcp::socket>>>(c, res.io_service, res.context);
             };
             Listen(Impl_, createsocket, no_delay, reuse_address);
         }
         else {
             auto createsocket = [](auto c) {
-                auto &res = c->get();
+                auto &res = c->getnextContext();
                 return std::make_shared<WSocket<true, asio::ip::tcp::socket>>(c, res.io_service);
             };
             Listen(Impl_, createsocket, no_delay, reuse_address);

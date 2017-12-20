@@ -8,6 +8,9 @@ option(BUILD_SHARED_LIBS "Build shared library" OFF)
 
 if(MSVC)
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W4")
+	add_definitions(-D_SILENCE_CXX17_ALLOCATOR_VOID_DEPRECATION_WARNING)
+	add_definitions(-D_SILENCE_CXX17_RESULT_OF_DEPRECATION_WARNING)
+	
 else()
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -pedantic")
 endif()

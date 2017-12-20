@@ -35,7 +35,8 @@ namespace WS_LITE {
     };
 
     struct ThreadContext {
-        ThreadContext(asio::ssl::context_base::method m) : work(io_service), context(m), inflationBuffer(std::make_unique<char[]>(LARGE_BUFFER_SIZE))
+        ThreadContext(asio::ssl::context_base::method m = asio::ssl::context_base::method::tlsv12)
+            : work(io_service), context(m), inflationBuffer(std::make_unique<char[]>(LARGE_BUFFER_SIZE))
         {
             inflateInit2(&inflationStream, -MAX_WBITS);
             thread = std::thread([&] {
@@ -55,15 +56,18 @@ namespace WS_LITE {
 
     class WSContextImpl {
       public:
-        WSContextImpl(ThreadCount threadcount, method *m = nullptr)
+        WSContextImpl(ThreadCount threadcount, asio::ssl::context_base::method m)
         {
-            TLSEnabled = m ? true : false;
-            auto met = asio::ssl::context_base::method::tlsv12;
-            if (m) {
-                met = static_cast<asio::ssl::context_base::method>(*m);
-            }
+            TLSEnabled = true;
             for (auto i = 0; i < threadcount.value; i++) {
-                ThreadContexts.push_back(std::make_shared<ThreadContext>(met));
+                ThreadContexts.push_back(std::make_shared<ThreadContext>(m));
+            }
+        }
+        WSContextImpl(ThreadCount threadcount)
+        {
+            TLSEnabled = false;
+            for (auto i = 0; i < threadcount.value; i++) {
+                ThreadContexts.push_back(std::make_shared<ThreadContext>());
             }
         }
         ~WSContextImpl()
@@ -86,7 +90,7 @@ namespace WS_LITE {
             }
             ThreadContexts.clear();
         }
-        ThreadContext &get() { return *ThreadContexts[(m_nextService++ % ThreadContexts.size())]; }
+        ThreadContext &getnextContext() { return *ThreadContexts[(m_nextService++ % ThreadContexts.size())]; }
         std::atomic<std::size_t> m_nextService{0};
         std::vector<std::shared_ptr<ThreadContext>> ThreadContexts;
         std::unique_ptr<asio::ip::tcp::acceptor> acceptor;
@@ -108,7 +112,7 @@ namespace WS_LITE {
         CompressionOptions compressmessage;
     };
 
-    template <bool isServer, class SOCKETTYPE> class WSocket : public IWSocket {
+    template <bool isServer, class SOCKETTYPE> class WSocket final : public IWSocket {
 
       public:
         WSocket(const std::shared_ptr<WSContextImpl> &s, asio::io_service &ioservice, asio::ssl::context &sslcontext)

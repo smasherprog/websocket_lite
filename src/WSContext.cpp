@@ -4,6 +4,9 @@
 
 namespace SL {
 namespace WS_LITE {
+    struct DelayedInfo {
+        ThreadCount threadcount;
+    };
     class TLSContext : public ITLSContext {
         std::shared_ptr<WSContextImpl> WSContextImpl_;
 
@@ -367,11 +370,11 @@ namespace WS_LITE {
         {
             UNUSED(options);
             if (protocol == NetworkProtocol::IPV4) {
-                WSContextImpl_->acceptor = std::make_unique<asio::ip::tcp::acceptor>(WSContextImpl_->get().io_service,
+                WSContextImpl_->acceptor = std::make_unique<asio::ip::tcp::acceptor>(WSContextImpl_->getnextContext().io_service,
                                                                                      asio::ip::tcp::endpoint(asio::ip::tcp::v4(), port.value));
             }
             else {
-                WSContextImpl_->acceptor = std::make_unique<asio::ip::tcp::acceptor>(WSContextImpl_->get().io_service,
+                WSContextImpl_->acceptor = std::make_unique<asio::ip::tcp::acceptor>(WSContextImpl_->getnextContext().io_service,
                                                                                      asio::ip::tcp::endpoint(asio::ip::tcp::v6(), port.value));
             }
             return std::make_shared<WSListener_Configuration>(WSContextImpl_);
@@ -391,7 +394,7 @@ namespace WS_LITE {
 
         virtual std::shared_ptr<IWSContext_Configuration> UseTLS(const std::function<void(ITLSContext *context)> &callback, method m) override
         {
-            auto ret = std::make_shared<WSContextImpl>(WSContextImpl_->threadcount, &m);
+            auto ret = std::make_shared<WSContextImpl>(WSContextImpl_->threadcount, static_cast<asio::ssl::context_base::method>(m));
             ret->TLSEnabled = true;
             TLSContext tlscontext(ret);
             callback(&tlscontext);
@@ -399,7 +402,7 @@ namespace WS_LITE {
         }
         virtual std::shared_ptr<IWSContext_Configuration> NoTLS() override
         {
-            auto ret = std::make_shared<WSContextImpl>(WSContextImpl_->threadcount, nullptr);
+            auto ret = std::make_shared<WSContextImpl>(WSContextImpl_->threadcount);
             ret->TLSEnabled = false;
             return std::make_shared<WSContext_Configuration>(ret);
         }

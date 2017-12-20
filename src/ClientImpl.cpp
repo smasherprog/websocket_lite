@@ -49,8 +49,7 @@ namespace WS_LITE {
                     SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "Sent Handshake bytes " << bytes_transferred);
                     auto read_buffer(std::make_shared<asio::streambuf>());
                     asio::async_read_until(
-                        socket->Socket, *read_buffer, "\r\n\r\n",
-                        [read_buffer, accept_sha1, socket, self](const std::error_code &ec, size_t bytes_transferred) {
+                        socket->Socket, *read_buffer, "\r\n\r\n", [read_buffer, accept_sha1, socket, self](const std::error_code &ec, size_t) {
                             if (!ec) {
                                 SL_WS_LITE_LOG(Logging_Levels::INFO_log_level,
                                                "Read Handshake bytes " << bytes_transferred << "  sizeof read_buffer " << read_buffer->size());
@@ -135,6 +134,7 @@ namespace WS_LITE {
 
         resolver->async_resolve(query, [socket, self, host, no_delay, endpoint, extraheaders, resolver,
                                         connected](const std::error_code &ec, asio::ip::tcp::resolver::iterator it) {
+            UNUSED(ec);
             if (*connected)
                 return; // done
 
@@ -210,14 +210,14 @@ namespace WS_LITE {
     {
         if (Impl_->TLSEnabled) {
             auto createsocket = [](auto c) {
-                auto &res = c->get();
+                auto &res = c->getnextContext();
                 return std::make_shared<WSocket<false, asio::ssl::stream<asio::ip::tcp::socket>>>(c, res.io_service, res.context);
             };
             Connect(Impl_, host, port, no_delay, createsocket, endpoint, extraheaders);
         }
         else {
             auto createsocket = [](auto c) {
-                auto &res = c->get();
+                auto &res = c->getnextContext();
                 return std::make_shared<WSocket<false, asio::ip::tcp::socket>>(c, res.io_service);
             };
             Connect(Impl_, host, port, no_delay, createsocket, endpoint, extraheaders);

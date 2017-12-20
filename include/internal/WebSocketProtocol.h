@@ -543,7 +543,7 @@ namespace WS_LITE {
         ReadHeaderNext<isServer>(parent, socket, extradata);
     }
 
-    class WSClient : public IWSHub {
+    class WSClient final : public IWSHub {
         std::shared_ptr<WSContextImpl> Impl_;
 
       public:
@@ -556,7 +556,7 @@ namespace WS_LITE {
         virtual void set_WriteTimeout(std::chrono::seconds seconds) override;
         virtual std::chrono::seconds get_WriteTimeout() override;
     };
-    class WSListener : public IWSHub {
+    class WSListener final : public IWSHub {
         std::shared_ptr<WSContextImpl> Impl_;
 
       public:
@@ -570,7 +570,7 @@ namespace WS_LITE {
         virtual std::chrono::seconds get_WriteTimeout() override;
     };
 
-    class WSListener_Configuration : public IWSListener_Configuration {
+    class WSListener_Configuration final : public IWSListener_Configuration {
         std::shared_ptr<WSContextImpl> Impl_;
 
       public:
@@ -589,7 +589,7 @@ namespace WS_LITE {
         virtual std::shared_ptr<IWSHub> listen(bool no_delay, bool reuse_address) override;
     };
 
-    class WSClient_Configuration : public IWSClient_Configuration {
+    class WSClient_Configuration final : public IWSClient_Configuration {
         std::shared_ptr<WSContextImpl> Impl_;
 
       public:
@@ -609,8 +609,6 @@ namespace WS_LITE {
         virtual std::shared_ptr<IWSHub> connect(const std::string &host, PortNumber port, bool no_delay, const std::string &endpoint,
                                                 const std::unordered_map<std::string, std::string> &extraheaders) override;
     };
-    struct DelayedInfo {
-        ThreadCount threadcount;
-    };
+    struct DelayedInfo;
 } // namespace WS_LITE
 } // namespace SL
