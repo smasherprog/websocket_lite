@@ -62,7 +62,7 @@ namespace WS_LITE {
     inline void setrsv2(unsigned char *frame, unsigned char val) { frame[0] = (val & 32) | (~32 & frame[0]); }
     inline void setrsv1(unsigned char *frame, unsigned char val) { frame[0] = (val & 64) | (~64 & frame[0]); }
 
-    inline bool DidPassMaskRequirement(unsigned char *h, bool isServer)
+    constexpr bool DidPassMaskRequirement(unsigned char *h, bool isServer)
     {
         if (isServer) {
             return getMask(h);
@@ -72,7 +72,7 @@ namespace WS_LITE {
         }
     }
 
-    inline size_t AdditionalBodyBytesToRead(bool isServer)
+    constexpr size_t AdditionalBodyBytesToRead(bool isServer)
     {
         if (isServer) {
             return 4;
@@ -81,7 +81,7 @@ namespace WS_LITE {
             return 0;
         }
     }
-    inline void set_MaskBitForSending(unsigned char *frame, bool isServer)
+    constexpr void set_MaskBitForSending(unsigned char *frame, bool isServer)
     {
         if (isServer) {
             setMask(frame, 0x00);

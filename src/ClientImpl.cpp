@@ -49,7 +49,8 @@ namespace WS_LITE {
                     SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "Sent Handshake bytes " << bytes_transferred);
                     auto read_buffer(std::make_shared<asio::streambuf>());
                     asio::async_read_until(
-                        socket->Socket, *read_buffer, "\r\n\r\n", [read_buffer, accept_sha1, socket, self](const std::error_code &ec, size_t) {
+                        socket->Socket, *read_buffer, "\r\n\r\n",
+                        [read_buffer, accept_sha1, socket, self](const std::error_code &ec, size_t bytes_transferred) {
                             if (!ec) {
                                 SL_WS_LITE_LOG(Logging_Levels::INFO_log_level,
                                                "Read Handshake bytes " << bytes_transferred << "  sizeof read_buffer " << read_buffer->size());
