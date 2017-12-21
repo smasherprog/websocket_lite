@@ -62,5 +62,5 @@ install (FILES
 	include/Logging.h
 	DESTINATION include)
 
-	enable_testing() 
+enable_testing() 
 add_subdirectory(Test)
