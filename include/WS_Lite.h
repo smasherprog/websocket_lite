@@ -10,14 +10,11 @@ typedef struct x509_store_ctx_st X509_STORE_CTX;
 #if defined(WINDOWS) || defined(WIN32)
 #if defined(WS_LITE_DLL)
 #define WS_LITE_EXTERN __declspec(dllexport)
-#define WS_EXPIMP_TEMPLATE
 #else
 #define WS_LITE_EXTERN
-#define WS_EXPIMP_TEMPLATE extern
 #endif
 #else
 #define WS_LITE_EXTERN
-#define WS_EXPIMP_TEMPLATE
 #endif
 
 namespace SL {
@@ -34,6 +31,22 @@ namespace WS_LITE {
         struct ThreadCountTag {
         };
     } // namespace INTERNAL
+
+    enum class HttpVerbs { UNDEFINED, POST, GET, PUT, PATCH, DELETE };
+    enum class HttpVersions { UNDEFINED, HTTP1_0, HTTP1_1, HTTP2_0 };
+
+    struct HeaderKeyValue {
+        std::string_view Key;
+        std::string_view Value;
+    };
+
+    struct HttpHeader {
+        HttpVerbs Verb = HttpVerbs::UNDEFINED;
+        HttpVersions HttpVersion = HttpVersions::UNDEFINED;
+        int Code = 0;
+        std::string_view UrlPart;
+        std::vector<HeaderKeyValue> Values;
+    };
 
     typedef Explicit<unsigned short, INTERNAL::PorNumbertTag> PortNumber;
     typedef Explicit<unsigned short, INTERNAL::ThreadCountTag> ThreadCount;

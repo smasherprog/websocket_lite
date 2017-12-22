@@ -19,7 +19,6 @@ find_package(ZLIB REQUIRED)
 find_package(OpenSSL REQUIRED)
 
 
-	
 	if(WIN32) 
 		target_link_libraries(${PROJECT_NAME} websocket_lite ${ZLIB_LIBRARIES} ${OPENSSL_LIBRARIES} Crypt32)
 	elseif(APPLE) 

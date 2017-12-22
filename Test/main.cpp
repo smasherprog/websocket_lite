@@ -1,5 +1,7 @@
 #include "Logging.h"
 #include "WS_Lite.h"
+#include "internal\HeaderParser.h"
+#include "internal\Utils.h"
 
 #include <assert.h>
 #include <atomic>
@@ -399,16 +401,136 @@ void multithreadthroughputtest()
     std::this_thread::sleep_for(200ms);
     std::cout << "Received " << mbsreceived << "  bytes" << std::endl;
 }
+#include <sstream>
+void checkexpected(std::unordered_map<std::string, std::string> &header, std::string key, std::string expectedvalue)
+{
+    auto t = header.find(key);
+    if (t != header.end()) {
+        assert(t->second == expectedvalue);
+    }
+}
+void testfirstlineprasing()
+{
+    {
+        SL::WS_LITE::HttpHeader header;
+        SL::WS_LITE::ParseFirstLine("GET /chat HTTP/1.1", header);
+        assert(header.Verb == SL::WS_LITE::HttpVerbs::GET);
+        assert(header.UrlPart == "/chat");
+        assert(header.HttpVersion == SL::WS_LITE::HttpVersions::HTTP1_1);
+    }
+
+    {
+        SL::WS_LITE::HttpHeader header1;
+        SL::WS_LITE::ParseFirstLine("/ HTTP/1.5", header1);
+        assert(header1.Verb == SL::WS_LITE::HttpVerbs::UNDEFINED);
+        assert(header1.UrlPart == "/");
+        assert(header1.HttpVersion == SL::WS_LITE::HttpVersions::UNDEFINED);
+    }
+
+    {
+        SL::WS_LITE::HttpHeader header2;
+        SL::WS_LITE::ParseFirstLine("", header2);
+        assert(header2.Verb == SL::WS_LITE::HttpVerbs::UNDEFINED);
+        assert(header2.UrlPart.empty());
+        assert(header2.HttpVersion == SL::WS_LITE::HttpVersions::UNDEFINED);
+    }
+
+    {
+        SL::WS_LITE::HttpHeader header3;
+        SL::WS_LITE::ParseFirstLine("  GET   /chat   HTTP/1.1  ", header3);
+        assert(header3.Verb == SL::WS_LITE::HttpVerbs::GET);
+        assert(header3.UrlPart == "/chat");
+        assert(header3.HttpVersion == SL::WS_LITE::HttpVersions::HTTP1_1);
+    }
+
+    {
+        SL::WS_LITE::HttpHeader header4;
+        SL::WS_LITE::ParseFirstLine(" jibbger jaber  ", header4);
+        assert(header4.Verb == SL::WS_LITE::HttpVerbs::UNDEFINED);
+        assert(header4.UrlPart.empty());
+        assert(header4.HttpVersion == SL::WS_LITE::HttpVersions::UNDEFINED);
+    }
+
+    {
+        SL::WS_LITE::HttpHeader header5;
+        SL::WS_LITE::ParseFirstLine(" HTTP/2.0 200 OK", header5);
+        assert(header5.Verb == SL::WS_LITE::HttpVerbs::UNDEFINED);
+        assert(header5.UrlPart.empty());
+        assert(header5.Code == 200);
+        assert(header5.HttpVersion == SL::WS_LITE::HttpVersions::HTTP2_0);
+    }
+}
+void testkeyvalueparsing()
+{
+    {
+        auto keyvalue = SL::WS_LITE::ParseKeyValue("Cache-Control:no-cache");
+        assert(keyvalue.Key == "Cache-Control");
+        assert(keyvalue.Value == "no-cache");
+    }
+    {
+        auto keyvalue = SL::WS_LITE::ParseKeyValue("Accept-Encoding:gzip, deflate");
+        assert(keyvalue.Key == "Accept-Encoding");
+        assert(keyvalue.Value == "gzip, deflate");
+    }
+    {
+        auto keyvalue = SL::WS_LITE::ParseKeyValue("  Accept-Encoding  :  gzip, deflate   ");
+        assert(keyvalue.Key == "Accept-Encoding");
+        assert(keyvalue.Value == "gzip, deflate");
+    }
+}
+void testrequestheaderparsing()
+{
+
+    std::unordered_map<std::string, std::string> header;
+
+    std::string str = "Accept-Encoding:gzip, deflate";
+    str += "Accept-Language:en-US,en;q=0.9";
+    str += "Cache-Control:no-cache";
+    str += "Connection:Upgrade";
+    str += "Host:echo.websocket.org";
+    str += "Origin:http://www.websocket.org";
+    str += "Pragma:no-cache";
+    str += "Sec-WebSocket-Extensions:permessage-deflate; client_max_window_bits";
+    str += "Sec-WebSocket-Key:itOii17PhfRYwRkJJgPMwA==";
+    str += "SSec-WebSocket-Version:13";
+    std::istringstream handshake(str);
+
+    assert(SL::WS_LITE::Parse_ClientHandshake(handshake, header));
+    checkexpected(header, "Accept-Encoding", "gzip, deflate");
+    checkexpected(header, "Accept-Language", "en-US,en;q=0.9");
+    checkexpected(header, "Accept-Language", "en-US,en;q=0.9");
+    checkexpected(header, "Connection", "Upgrade");
+    checkexpected(header, "Pragma", "no-cache");
+}
+void testresponseheaderparsing()
+{
+
+    std::unordered_map<std::string, std::string> header;
+    std::string str = "GET /chat HTTP/1.1";
+    str += "Host: server.example.com";
+    str += "Upgrade: websocket";
+    str += "Connection:Upgrade";
+    str += "Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==";
+    str += "Origin:http://www.websocket.org";
+    str += "Sec-WebSocket-Protocol: chat, superchat";
+    str += "Sec-WebSocket-Version: 13";
+
+    std::istringstream handshake1(str);
+}
+
 int main(int argc, char *argv[])
 {
-    wssautobahntest();
-    std::this_thread::sleep_for(1s);
-    generaltest();
-    std::this_thread::sleep_for(1s);
-    generalTLStest();
-    std::this_thread::sleep_for(1s);
-    multithreadtest();
-    std::this_thread::sleep_for(1s);
-    multithreadthroughputtest();
+    testfirstlineprasing();
+    testkeyvalueparsing();
+    // testheaderparsing();
+    /*   wssautobahntest();
+       std::this_thread::sleep_for(1s);
+       generaltest();
+       std::this_thread::sleep_for(1s);
+       generalTLStest();
+       std::this_thread::sleep_for(1s);
+       multithreadtest();
+       std::this_thread::sleep_for(1s);
+       multithreadthroughputtest();*/
     return 0;
 }

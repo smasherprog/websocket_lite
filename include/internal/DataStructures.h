@@ -19,6 +19,7 @@
 
 namespace SL {
 namespace WS_LITE {
+
     class WSContextImpl;
     template <bool isServer, class SOCKETTYPE, class SENDBUFFERTYPE>
     void sendImpl(const std::shared_ptr<WSContextImpl> parent, const SOCKETTYPE &socket, const SENDBUFFERTYPE &msg,
@@ -99,6 +100,7 @@ namespace WS_LITE {
         std::chrono::seconds WriteTimeout = std::chrono::seconds(30);
         size_t MaxPayload = 1024 * 1024 * 20; // 20 MB
         bool TLSEnabled = false;
+        ExtensionOptions ExtensionOptions_ = ExtensionOptions::NO_OPTIONS;
 
         std::function<void(const std::shared_ptr<IWSocket> &, const std::unordered_map<std::string, std::string> &)> onConnection;
         std::function<void(const std::shared_ptr<IWSocket> &, const WSMessage &)> onMessage;
