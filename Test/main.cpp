@@ -1,7 +1,7 @@
 #include "Logging.h"
 #include "WS_Lite.h"
-#include "internal\HeaderParser.h"
-#include "internal\Utils.h"
+#include "internal/HeaderParser.h"
+#include "internal/Utils.h"
 
 #include <assert.h>
 #include <atomic>
