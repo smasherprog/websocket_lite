@@ -471,41 +471,49 @@ void testkeyvalueparsing()
         assert(keyvalue.Value == "gzip, deflate");
     }
 }
+void testgetline()
+{
+    {
+        auto[foundline, remaining] = SL::WS_LITE::getline("testing test\n", true, "\n");
+        assert(foundline == "testing test");
+    }
+    {
+        auto[foundline, remaining] = SL::WS_LITE::getline("testing test\n\r", true, "\n\r");
+        assert(foundline == "testing test");
+    }
+
+    {
+        auto[foundline, remaining] = SL::WS_LITE::getline("testing test\n\rsomewhere\n\r", true, "\n\r");
+        assert(foundline == "testing test");
+        assert(remaining == "somewhere\n\r");
+    }
+}
 void testheaderparsing()
 {
 
-    std::string str = "Accept-Encoding:gzip, deflate\r\n";
+    std::string str = "GET /chat HTTP/1.1\r\n";
+    str += "Accept-Encoding:gzip, deflate\r\n";
     str += "Accept-Language:en-US,en;q=0.9\r\n";
     str += "Cache-Control:no-cache\r\n";
     str += "Connection:Upgrade\r\n";
     str += "Host:echo.websocket.org\r\n";
     str += "Origin:http://www.websocket.org\r\n";
     str += "Pragma:no-cache\r\n";
-    str += "Sec-WebSocket-Extensions:permessage-deflate; client_max_window_bit\r\ns";
+    str += "Sec-WebSocket-Extensions:permessage-deflate; client_max_window_bit\r\n";
     str += "Sec-WebSocket-Key:itOii17PhfRYwRkJJgPMwA==\r\n";
-    str += "SSec-WebSocket-Version:13\r\n";
+    str += "Sec-WebSocket-Version:13\r\n";
 
     auto header = SL::WS_LITE::ParseHeader(str);
     checkexpected(header, "Accept-Encoding", "gzip, deflate");
     checkexpected(header, "Accept-Language", "en-US,en;q=0.9");
-    checkexpected(header, "Accept-Language", "en-US,en;q=0.9");
+    checkexpected(header, "Cache-Control", "no-cache");
+    checkexpected(header, "Host", "echo.websocket.org");
+    checkexpected(header, "Origin", "http://www.websocket.org");
+    checkexpected(header, "Sec-WebSocket-Extensions", "permessage-deflate; client_max_window_bit");
+    checkexpected(header, "Sec-WebSocket-Key", "itOii17PhfRYwRkJJgPMwA==");
+    checkexpected(header, "Sec-WebSocket-Version", "13");
     checkexpected(header, "Connection", "Upgrade");
     checkexpected(header, "Pragma", "no-cache");
-}
-void testresponseheaderparsing()
-{
-
-    SL::WS_LITE::HttpHeader header;
-    std::string str = "GET /chat HTTP/1.1";
-    str += "Host: server.example.com";
-    str += "Upgrade: websocket";
-    str += "Connection:Upgrade";
-    str += "Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==";
-    str += "Origin:http://www.websocket.org";
-    str += "Sec-WebSocket-Protocol: chat, superchat";
-    str += "Sec-WebSocket-Version: 13";
-
-    std::istringstream handshake1(str);
 }
 
 int main(int argc, char *argv[])
@@ -513,14 +521,15 @@ int main(int argc, char *argv[])
     testfirstlineprasing();
     testkeyvalueparsing();
     testheaderparsing();
-    /*   wssautobahntest();
-       std::this_thread::sleep_for(1s);
-       generaltest();
-       std::this_thread::sleep_for(1s);
-       generalTLStest();
-       std::this_thread::sleep_for(1s);
-       multithreadtest();
-       std::this_thread::sleep_for(1s);
-       multithreadthroughputtest();*/
+    testgetline();
+    wssautobahntest();
+    std::this_thread::sleep_for(1s);
+    generaltest();
+    std::this_thread::sleep_for(1s);
+    generalTLStest();
+    std::this_thread::sleep_for(1s);
+    multithreadtest();
+    std::this_thread::sleep_for(1s);
+    multithreadthroughputtest();
     return 0;
 }

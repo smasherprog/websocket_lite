@@ -56,7 +56,7 @@ namespace WS_LITE {
     constexpr auto ParseKeyValue(std::string_view line)
     {
         HeaderKeyValue kv;
-        auto[key, value] = getline(line, true, ':');
+        auto[key, value] = getline(line, true, ":");
         kv.Key = Trim(key);
         kv.Value = Trim(value);
         return kv;
@@ -65,7 +65,7 @@ namespace WS_LITE {
     {
         line = TrimStart(line);
         do {
-            auto[foundword, remainingtext] = getline(line, true, ' ');
+            auto[foundword, remainingtext] = getline(line, true, " ");
             foundword = Trim(foundword);
             line = remainingtext;
             PlaceValue(foundword, header);
@@ -75,7 +75,7 @@ namespace WS_LITE {
     inline void ParseNextLines(std::string_view headerstring, HttpHeader &header)
     {
         do {
-            auto[line, remainingtext] = getline(headerstring, true, '\n');
+            auto[line, remainingtext] = getline(headerstring, true, "\r\n");
             headerstring = remainingtext;
             header.Values.emplace_back(ParseKeyValue(line));
         } while (!headerstring.empty());
@@ -83,7 +83,7 @@ namespace WS_LITE {
     inline SL::WS_LITE::HttpHeader ParseHeader(std::string_view headerstring)
     {
         HttpHeader header;
-        auto[line, remainingtext] = getline(headerstring, true, '\n');
+        auto[line, remainingtext] = getline(headerstring, true, "\r\n");
         ParseFirstLine(line, header);
         ParseNextLines(remainingtext, header);
         return header;
