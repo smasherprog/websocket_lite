@@ -1,7 +1,7 @@
 #include "Logging.h"
 #include "WS_Lite.h"
+#include "internal/HeaderParser.h"
 #include "internal/WebSocketProtocol.h"
-#include "internal\HeaderParser.h"
 
 namespace SL {
 namespace WS_LITE {
