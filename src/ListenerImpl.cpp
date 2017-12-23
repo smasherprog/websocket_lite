@@ -1,6 +1,7 @@
 #include "Logging.h"
 #include "WS_Lite.h"
 #include "internal/WebSocketProtocol.h"
+#include "internal\HeaderParser.h"
 
 namespace SL {
 namespace WS_LITE {
@@ -8,7 +9,7 @@ namespace WS_LITE {
     struct HandshakeContainer {
         asio::streambuf Read;
         asio::streambuf Write;
-        std::unordered_map<std::string, std::string> Header;
+        HttpHeader Header;
     };
 
     template <class SOCKETTYPE> void read_handshake(const std::shared_ptr<WSContextImpl> listener, const SOCKETTYPE &socket)
@@ -21,19 +22,11 @@ namespace WS_LITE {
                 if (!ec) {
                     SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "Read Handshake bytes " << bytes_transferred);
 
-                    std::istream headerdata(&handshakecontainer->Read);
-
-                    if (!Parse_ClientHandshake(headerdata, handshakecontainer->Header)) {
-                        socket->SocketStatus_ = SocketStatus::CLOSED;
-                        SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "Parse Handshake failed ");
-                        return;
-                    }
+                    handshakecontainer->Header = ParseHeader(asio::buffer_cast<const char *>(handshakecontainer->Read.data()));
 
                     std::ostream handshake(&handshakecontainer->Write);
+
                     if (Generate_Handshake(handshakecontainer->Header, handshake)) {
-                        if (handshakecontainer->Header.find(PERMESSAGEDEFLATE) != handshakecontainer->Header.end()) {
-                            socket->CompressionEnabled = true;
-                        }
 
                         asio::async_write(socket->Socket, handshakecontainer->Write,
                                           [listener, socket, handshakecontainer](const std::error_code &ec, size_t bytes_transferred) {
@@ -122,8 +115,8 @@ namespace WS_LITE {
     void WSListener::set_MaxPayload(size_t bytes) { Impl_->MaxPayload = bytes; }
     size_t WSListener::get_MaxPayload() { return Impl_->MaxPayload; }
 
-    std::shared_ptr<IWSListener_Configuration> WSListener_Configuration::onConnection(
-        const std::function<void(const std::shared_ptr<IWSocket> &, const std::unordered_map<std::string, std::string> &)> &handle)
+    std::shared_ptr<IWSListener_Configuration>
+    WSListener_Configuration::onConnection(const std::function<void(const std::shared_ptr<IWSocket> &, const HttpHeader &)> &handle)
     {
         assert(!Impl_->onConnection);
         Impl_->onConnection = handle;

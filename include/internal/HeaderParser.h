@@ -42,7 +42,7 @@ namespace WS_LITE {
                 }
             }
             else if (str[0] == 'D') {
-                header.Verb = HttpVerbs::DELETE;
+                header.Verb = HttpVerbs::VDELETE;
             }
             else if (str[0] >= '1' && str[0] <= '5' && str.size() == 3) {
                 header.Code = 0;

@@ -32,7 +32,7 @@ namespace WS_LITE {
         };
     } // namespace INTERNAL
 
-    enum class HttpVerbs { UNDEFINED, POST, GET, PUT, PATCH, DELETE };
+    enum class HttpVerbs { UNDEFINED, POST, GET, PUT, PATCH, VDELETE };
     enum class HttpVersions { UNDEFINED, HTTP1_0, HTTP1_1, HTTP2_0 };
 
     struct HeaderKeyValue {
@@ -210,7 +210,7 @@ namespace WS_LITE {
 
         // when a connection is fully established.  If onconnect is called, then a matching onDisconnection is guaranteed
         virtual std::shared_ptr<IWSListener_Configuration>
-        onConnection(const std::function<void(const std::shared_ptr<IWSocket> &, const std::unordered_map<std::string, std::string> &)> &handle) = 0;
+        onConnection(const std::function<void(const std::shared_ptr<IWSocket> &, const HttpHeader &)> &handle) = 0;
         // when a message has been received
         virtual std::shared_ptr<IWSListener_Configuration>
         onMessage(const std::function<void(const std::shared_ptr<IWSocket> &, const WSMessage &)> &handle) = 0;
@@ -232,7 +232,7 @@ namespace WS_LITE {
         virtual ~IWSClient_Configuration() {}
         // when a connection is fully established.  If onconnect is called, then a matching onDisconnection is guaranteed
         virtual std::shared_ptr<IWSClient_Configuration>
-        onConnection(const std::function<void(const std::shared_ptr<IWSocket> &, const std::unordered_map<std::string, std::string> &)> &handle) = 0;
+        onConnection(const std::function<void(const std::shared_ptr<IWSocket> &, const HttpHeader &)> &handle) = 0;
         // when a message has been received
         virtual std::shared_ptr<IWSClient_Configuration>
         onMessage(const std::function<void(const std::shared_ptr<IWSocket> &, const WSMessage &)> &handle) = 0;

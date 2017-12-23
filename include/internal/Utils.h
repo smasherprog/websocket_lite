@@ -10,6 +10,7 @@
 #include <openssl/md5.h>
 #include <openssl/sha.h>
 
+#include <algorithm>
 #include <math.h>
 #include <zlib.h>
 
@@ -192,9 +193,10 @@ namespace WS_LITE {
         BIO_free_all(b64);
         return base64;
     }
-    template <class type> void Base64decode(const type &base64, type &ascii)
+    template <class type> std::string Base64decode(const type &base64)
     {
         // Resize ascii, however, the size is a up to two bytes too large.
+        std::string ascii;
         ascii.resize((6 * base64.size()) / 8);
         BIO *b64, *bio;
 
@@ -207,14 +209,8 @@ namespace WS_LITE {
         ascii.resize(decoded_length);
 
         BIO_free_all(b64);
-    }
-    template <class type> type Base64decode(const type &base64)
-    {
-        type ascii;
-        Base64decode(base64, ascii);
         return ascii;
     }
-
     template <typename T> T ntoh(T u)
     {
         static_assert(CHAR_BIT == 8, "CHAR_BIT != 8");
@@ -276,54 +272,20 @@ namespace WS_LITE {
         return out;
     }
 
-    inline bool Parse_ServerHandshake(std::istream &stream, std::unordered_map<std::string, std::string> &header)
+    inline bool Generate_Handshake(HttpHeader &header, std::ostream &handshake)
     {
-        std::string line;
-        std::getline(stream, line);
-
-        size_t path_end;
-        if ((path_end = line.find(' ')) != std::string::npos) {
-
-            if (path_end == 8)
-                header[HTTP_VERSION] = line.substr(path_end - 3, 3);
-            else {
-                SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "Parse_ServerHandshake failed due to no http version in header");
-                return false;
-            }
-            if (line.size() > path_end + 4) {
-                header[HTTP_METHOD] = line.substr(path_end + 1, line.size() - path_end - 1);
-            }
-
-            getline(stream, line);
-            size_t param_end;
-            while ((param_end = line.find(':')) != std::string::npos) {
-                size_t value_start = param_end + 1;
-                if ((value_start) < line.size()) {
-                    if (line[value_start] == ' ')
-                        value_start++;
-                    if (value_start < line.size())
-                        header.insert(std::make_pair(line.substr(0, param_end), line.substr(value_start, line.size() - value_start - 1)));
-                }
-
-                getline(stream, line);
-            }
-        }
-        return true;
-    }
-
-    inline bool Parse_ClientHandshake(std::istream &stream, std::unordered_map<std::string, std::string> &header) { return true; }
-
-    inline bool Generate_Handshake(std::unordered_map<std::string, std::string> &header, std::ostream &handshake)
-    {
-        auto header_it = header.find(HTTP_SECWEBSOCKETKEY);
-        if (header_it == header.end()) {
+        auto header_it =
+            std::find_if(std::begin(header.Values), std::end(header.Values), [](HeaderKeyValue k) { return k.Key == HTTP_SECWEBSOCKETKEY; });
+        if (header_it == header.Values.end()) {
             return false;
         }
-        auto sha1 = SHA1(header_it->second + ws_magic_string);
+        std::string str(header_it->Value.data(), header_it->Value.size());
+        str += ws_magic_string;
+        auto sha1 = SHA1(str);
         handshake << "HTTP/1.1 101 Web Socket Protocol Handshake" << HTTP_ENDLINE;
         handshake << "Upgrade: websocket" << HTTP_ENDLINE;
         handshake << "Connection: Upgrade" << HTTP_ENDLINE;
-        header_it = header.find(HTTP_SECWEBSOCKETEXTENSIONS);
+        //  header_it = header.find(HTTP_SECWEBSOCKETEXTENSIONS);
         /*      if (header_it != header.end() && header_it->second.find(PERMESSAGEDEFLATE) != std::string::npos) {
         handshake << HTTP_SECWEBSOCKETEXTENSIONS << HTTP_KEYVALUEDELIM << PERMESSAGEDEFLATE << HTTP_ENDLINE;
         }

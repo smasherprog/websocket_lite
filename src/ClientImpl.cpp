@@ -1,7 +1,9 @@
 #include "Logging.h"
 #include "WS_Lite.h"
 #include "internal/WebSocketProtocol.h"
+#include "internal\HeaderParser.h"
 
+#include <algorithm>
 #include <chrono>
 #include <fstream>
 #include <string>
@@ -48,46 +50,47 @@ namespace WS_LITE {
                 if (!ec) {
                     SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "Sent Handshake bytes " << bytes_transferred);
                     auto read_buffer(std::make_shared<asio::streambuf>());
-                    asio::async_read_until(
-                        socket->Socket, *read_buffer, "\r\n\r\n",
-                        [read_buffer, accept_sha1, socket, self](const std::error_code &ec, size_t bytes_transferred) {
-                            if (!ec) {
-                                SL_WS_LITE_LOG(Logging_Levels::INFO_log_level,
-                                               "Read Handshake bytes " << bytes_transferred << "  sizeof read_buffer " << read_buffer->size());
+                    asio::async_read_until(socket->Socket, *read_buffer, "\r\n\r\n",
+                                           [read_buffer, accept_sha1, socket, self](const std::error_code &ec, size_t bytes_transferred) {
+                                               if (!ec) {
+                                                   SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "Read Handshake bytes " << bytes_transferred
+                                                                                                                          << "  sizeof read_buffer "
+                                                                                                                          << read_buffer->size());
 
-                                std::istream stream(read_buffer.get());
+                                                   auto header = ParseHeader(asio::buffer_cast<const char *>(read_buffer->data()));
+                                                   auto sockey = std::find_if(std::begin(header.Values), std::end(header.Values),
+                                                                              [](HeaderKeyValue k) { return k.Key == HTTP_SECWEBSOCKETACCEPT; });
 
-                                std::unordered_map<std::string, std::string> header;
-                                if (Parse_ServerHandshake(stream, header) && Base64decode(header[HTTP_SECWEBSOCKETACCEPT]) == accept_sha1) {
+                                                   if (sockey == std::end(header.Values)) {
+                                                       return;
+                                                   }
+                                                   if (Base64decode(sockey->Value) == accept_sha1) {
 
-                                    SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "Connected ");
+                                                       SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "Connected ");
 
-                                    if (header.find(PERMESSAGEDEFLATE) != header.end()) {
-                                        socket->CompressionEnabled = true;
-                                    }
-                                    socket->SocketStatus_ = SocketStatus::CONNECTED;
-                                    start_ping<false>(self, socket, std::chrono::seconds(5));
-                                    if (self->onConnection) {
-                                        self->onConnection(socket, header);
-                                    }
-                                    ReadHeaderStart<false>(self, socket, read_buffer);
-                                }
-                                else {
-                                    socket->SocketStatus_ = SocketStatus::CLOSED;
-                                    SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "WebSocket handshake failed  ");
-                                    if (self->onDisconnection) {
-                                        self->onDisconnection(socket, 1002, "WebSocket handshake failed  ");
-                                    }
-                                }
-                            }
-                            else {
-                                socket->SocketStatus_ = SocketStatus::CLOSED;
-                                SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "async_read_until failed  " << ec.message());
-                                if (self->onDisconnection) {
-                                    self->onDisconnection(socket, 1002, "async_read_until failed  " + ec.message());
-                                }
-                            }
-                        });
+                                                       socket->SocketStatus_ = SocketStatus::CONNECTED;
+                                                       start_ping<false>(self, socket, std::chrono::seconds(5));
+                                                       if (self->onConnection) {
+                                                           self->onConnection(socket, header);
+                                                       }
+                                                       ReadHeaderStart<false>(self, socket, read_buffer);
+                                                   }
+                                                   else {
+                                                       socket->SocketStatus_ = SocketStatus::CLOSED;
+                                                       SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "WebSocket handshake failed  ");
+                                                       if (self->onDisconnection) {
+                                                           self->onDisconnection(socket, 1002, "WebSocket handshake failed  ");
+                                                       }
+                                                   }
+                                               }
+                                               else {
+                                                   socket->SocketStatus_ = SocketStatus::CLOSED;
+                                                   SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "async_read_until failed  " << ec.message());
+                                                   if (self->onDisconnection) {
+                                                       self->onDisconnection(socket, 1002, "async_read_until failed  " + ec.message());
+                                                   }
+                                               }
+                                           });
                 }
                 else {
                     socket->SocketStatus_ = SocketStatus::CLOSED;
@@ -170,8 +173,8 @@ namespace WS_LITE {
     void WSClient::set_MaxPayload(size_t bytes) { Impl_->MaxPayload = bytes; }
     size_t WSClient::get_MaxPayload() { return Impl_->MaxPayload; }
 
-    std::shared_ptr<IWSClient_Configuration> WSClient_Configuration::onConnection(
-        const std::function<void(const std::shared_ptr<IWSocket> &, const std::unordered_map<std::string, std::string> &)> &handle)
+    std::shared_ptr<IWSClient_Configuration>
+    WSClient_Configuration::onConnection(const std::function<void(const std::shared_ptr<IWSocket> &, const HttpHeader &)> &handle)
     {
         assert(!Impl_->onConnection);
         Impl_->onConnection = handle;

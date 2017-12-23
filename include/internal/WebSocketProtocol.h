@@ -576,8 +576,8 @@ namespace WS_LITE {
       public:
         virtual ~WSListener_Configuration() {}
         WSListener_Configuration(const std::shared_ptr<WSContextImpl> &impl) : Impl_(impl) {}
-        virtual std::shared_ptr<IWSListener_Configuration> onConnection(
-            const std::function<void(const std::shared_ptr<IWSocket> &, const std::unordered_map<std::string, std::string> &)> &handle) override;
+        virtual std::shared_ptr<IWSListener_Configuration>
+        onConnection(const std::function<void(const std::shared_ptr<IWSocket> &, const HttpHeader &)> &handle) override;
         virtual std::shared_ptr<IWSListener_Configuration>
         onMessage(const std::function<void(const std::shared_ptr<IWSocket> &, const WSMessage &)> &handle) override;
         virtual std::shared_ptr<IWSListener_Configuration>
@@ -595,8 +595,8 @@ namespace WS_LITE {
       public:
         WSClient_Configuration(const std::shared_ptr<WSContextImpl> &impl) : Impl_(impl) {}
         virtual ~WSClient_Configuration() {}
-        virtual std::shared_ptr<IWSClient_Configuration> onConnection(
-            const std::function<void(const std::shared_ptr<IWSocket> &, const std::unordered_map<std::string, std::string> &)> &handle) override;
+        virtual std::shared_ptr<IWSClient_Configuration>
+        onConnection(const std::function<void(const std::shared_ptr<IWSocket> &, const HttpHeader &)> &handle) override;
         virtual std::shared_ptr<IWSClient_Configuration>
         onMessage(const std::function<void(const std::shared_ptr<IWSocket> &, const WSMessage &)> &handle) override;
         virtual std::shared_ptr<IWSClient_Configuration>

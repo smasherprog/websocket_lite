@@ -102,7 +102,7 @@ namespace WS_LITE {
         bool TLSEnabled = false;
         ExtensionOptions ExtensionOptions_ = ExtensionOptions::NO_OPTIONS;
 
-        std::function<void(const std::shared_ptr<IWSocket> &, const std::unordered_map<std::string, std::string> &)> onConnection;
+        std::function<void(const std::shared_ptr<IWSocket> &, const HttpHeader &)> onConnection;
         std::function<void(const std::shared_ptr<IWSocket> &, const WSMessage &)> onMessage;
         std::function<void(const std::shared_ptr<IWSocket> &, unsigned short, const std::string &)> onDisconnection;
         std::function<void(const std::shared_ptr<IWSocket> &, const unsigned char *, size_t)> onPing;
