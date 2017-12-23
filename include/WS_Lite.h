@@ -3,6 +3,7 @@
 #include <functional>
 #include <memory>
 #include <string>
+#include <string_view>
 #include <system_error>
 #include <unordered_map>
 typedef struct x509_store_ctx_st X509_STORE_CTX;
