@@ -4,8 +4,9 @@ matrix:
   include:
     - os: osx
       osx_image: xcode9.2
-      compiler: gcc
-    - os: linux  
+      env:
+        - MATRIX_EVAL="brew install gcc && CC=gcc-7 && CXX=g++-7"
+    - os: linux   
       addons:
         apt:
           sources:
@@ -16,6 +17,7 @@ matrix:
         - MATRIX_EVAL="CC=gcc-7 && CXX=g++-7"
       
 before_install:
+  - eval "${MATRIX_EVAL}"
   - |
     if [ "${TRAVIS_OS_NAME}" == "linux" ]; then
       CMAKE_URL="https://cmake.org/files/v3.10/cmake-3.10.1-Linux-x86_64.tar.gz"
