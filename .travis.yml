@@ -30,7 +30,7 @@ before_install:
       pip install autobahntestsuite
     else
       brew update && brew upgrade cmake || brew install cmake;
-      brew install gcc openssl zlib
+      brew install zlib
     fi
     
 script:
