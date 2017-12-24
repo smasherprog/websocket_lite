@@ -7,7 +7,7 @@
 namespace SL {
 namespace WS_LITE {
 
-    constexpr auto TrimStart(std::string_view line)
+    inline auto TrimStart(std::string_view line)
     { // this will trim any white space
         if (line.empty()) {
             return line;
@@ -21,7 +21,7 @@ namespace WS_LITE {
         }
         return std::string_view(line.data() + wordstart, line.size() - wordstart);
     }
-    constexpr auto TrimEnd(std::string_view line)
+    inline auto TrimEnd(std::string_view line)
     { // this will trim any white space
         if (line.empty()) {
             return line;
@@ -35,9 +35,9 @@ namespace WS_LITE {
         }
         return std::string_view(line.data(), wordend);
     }
-    constexpr auto Trim(std::string_view str) { return TrimEnd(TrimStart(str)); }
+    inline auto Trim(std::string_view str) { return TrimEnd(TrimStart(str)); }
 
-    constexpr auto getline(std::string_view line, bool consume_delimiter, std::string_view delimiter)
+    inline auto getline(std::string_view line, bool consume_delimiter, std::string_view delimiter)
     {
         size_t foundindex = line.find(delimiter);
         if (foundindex == std::string_view::npos) {
