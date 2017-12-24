@@ -26,7 +26,7 @@ namespace WS_LITE {
 
                     if (auto[response, parsesuccess] = CreateHandShake(handshakecontainer->Header); parsesuccess) {
                         handshakecontainer->Write = response;
-                        handshakecontainer->Write += CreateExtensionOffer(handshakecontainer->Header);
+                        //    handshakecontainer->Write += CreateExtensionOffer(handshakecontainer->Header);
                         handshakecontainer->Write += "\r\n";
 
                         asio::async_write(socket->Socket, asio::buffer(handshakecontainer->Write.data(), handshakecontainer->Write.size()),
