@@ -272,29 +272,36 @@ namespace WS_LITE {
         return out;
     }
 
-    inline bool Generate_Handshake(HttpHeader &header, std::ostream &handshake)
+    inline auto CreateHandShake(HttpHeader &header)
     {
         auto header_it =
-            std::find_if(std::begin(header.Values), std::end(header.Values), [](HeaderKeyValue k) { return k.Key == HTTP_SECWEBSOCKETKEY; });
+            std::find_if(std::begin(header.Values), std::end(header.Values), [](HeaderKeyValue k) { return k.Key == "Sec-WebSocket-Key"; });
         if (header_it == header.Values.end()) {
-            return false;
+            return std::make_tuple(std::string(), false);
         }
-        std::string str(header_it->Value.data(), header_it->Value.size());
-        str += ws_magic_string;
-        auto sha1 = SHA1(str);
-        handshake << "HTTP/1.1 101 Web Socket Protocol Handshake" << HTTP_ENDLINE;
-        handshake << "Upgrade: websocket" << HTTP_ENDLINE;
-        handshake << "Connection: Upgrade" << HTTP_ENDLINE;
-        //  header_it = header.find(HTTP_SECWEBSOCKETEXTENSIONS);
-        /*      if (header_it != header.end() && header_it->second.find(PERMESSAGEDEFLATE) != std::string::npos) {
-        handshake << HTTP_SECWEBSOCKETEXTENSIONS << HTTP_KEYVALUEDELIM << PERMESSAGEDEFLATE << HTTP_ENDLINE;
-        }
-        else {
-        handshake << HTTP_SECWEBSOCKETEXTENSIONS << HTTP_KEYVALUEDELIM << HTTP_ENDLINE;
-        }*/
-        handshake << HTTP_SECWEBSOCKETACCEPT << HTTP_KEYVALUEDELIM << Base64encode(sha1) << HTTP_ENDLINE << HTTP_ENDLINE;
 
-        return true;
+        std::string shastr(header_it->Value.data(), header_it->Value.size());
+        shastr += ws_magic_string;
+        auto sha1 = SHA1(shastr);
+
+        std::string str = "HTTP/1.1 101 Web Socket Protocol Handshake\r\n";
+        str += "Upgrade:websocket\r\n";
+        str += "Connection:Upgrade\r\n";
+        str += "Sec-WebSocket-Accept:" + Base64encode(sha1) + "\r\n";
+
+        return std::make_tuple(str, true);
+    }
+    inline std::string CreateExtensionOffer(HttpHeader &header)
+    {
+        std::string str;
+        auto header_it =
+            std::find_if(std::begin(header.Values), std::end(header.Values), [](HeaderKeyValue k) { return k.Key == "Sec-WebSocket-Extensions"; });
+        if (header_it != header.Values.end()) {
+            if (header_it->Value.find("permessage-deflate") != header_it->Value.npos) {
+                str += "Sec-WebSocket-Extensions:permessage-deflate\r\n";
+            }
+        }
+        return str;
     }
     bool isValidUtf8(unsigned char *s, size_t length);
     char *ZlibInflate(char *data, size_t &length, size_t maxPayload, std::string &dynamicInflationBuffer, z_stream &inflationStream,

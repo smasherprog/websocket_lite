@@ -89,5 +89,6 @@ namespace WS_LITE {
         ParseNextLines(remainingtext, header);
         return header;
     }
+
 } // namespace WS_LITE
 } // namespace SL

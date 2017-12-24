@@ -27,7 +27,6 @@ add_library(${PROJECT_NAME}
 	include/internal/Utils.h
 	include/internal/WebSocketProtocol.h
 	include/internal/DataStructures.h
-	include/internal/Extensions.h
 	include/internal/HeaderParser.h
 	include/internal/StringHelpers.h
 	include/WS_Lite.h

@@ -8,7 +8,7 @@ namespace WS_LITE {
 
     struct HandshakeContainer {
         asio::streambuf Read;
-        asio::streambuf Write;
+        std::string Write;
         HttpHeader Header;
     };
 
@@ -24,11 +24,12 @@ namespace WS_LITE {
 
                     handshakecontainer->Header = ParseHeader(asio::buffer_cast<const char *>(handshakecontainer->Read.data()));
 
-                    std::ostream handshake(&handshakecontainer->Write);
+                    if (auto[response, parsesuccess] = CreateHandShake(handshakecontainer->Header); parsesuccess) {
+                        handshakecontainer->Write = response;
+                        handshakecontainer->Write += CreateExtensionOffer(handshakecontainer->Header);
+                        handshakecontainer->Write += "\r\n";
 
-                    if (Generate_Handshake(handshakecontainer->Header, handshake)) {
-
-                        asio::async_write(socket->Socket, handshakecontainer->Write,
+                        asio::async_write(socket->Socket, asio::buffer(handshakecontainer->Write.data(), handshakecontainer->Write.size()),
                                           [listener, socket, handshakecontainer](const std::error_code &ec, size_t bytes_transferred) {
                                               UNUSED(bytes_transferred);
                                               if (!ec) {

@@ -18,10 +18,10 @@ namespace WS_LITE {
         auto write_buffer(std::make_shared<asio::streambuf>());
         std::ostream request(write_buffer.get());
 
-        request << "GET " << endpoint << " HTTP/1.1" << HTTP_ENDLINE;
-        request << HTTP_HOST << HTTP_KEYVALUEDELIM << host << HTTP_ENDLINE;
-        request << "Upgrade: websocket" << HTTP_ENDLINE;
-        request << "Connection: Upgrade" << HTTP_ENDLINE;
+        request << "GET " << endpoint << " HTTP/1.1\r\n";
+        request << "Host:" << host << "\r\n";
+        request << "Upgrade: websocket\r\n";
+        request << "Connection: Upgrade\r\n";
 
         // Make random 16-byte nonce
         std::string nonce;
@@ -33,14 +33,14 @@ namespace WS_LITE {
         }
 
         auto nonce_base64 = Base64encode(nonce);
-        request << HTTP_SECWEBSOCKETKEY << HTTP_KEYVALUEDELIM << nonce_base64 << HTTP_ENDLINE;
-        request << "Sec-WebSocket-Version: 13" << HTTP_ENDLINE;
+        request << "Sec-WebSocket-Key:" << nonce_base64 << "\r\n";
+        request << "Sec-WebSocket-Version: 13\r\n";
         for (auto &h : extraheaders) {
-            request << h.first << HTTP_KEYVALUEDELIM << h.second << HTTP_ENDLINE;
+            request << h.first << ":" << h.second << "\r\n";
         }
         //  request << "" << HTTP_ENDLINE;
         //  request << HTTP_SECWEBSOCKETEXTENSIONS << HTTP_KEYVALUEDELIM << PERMESSAGEDEFLATE << HTTP_ENDLINE;
-        request << HTTP_ENDLINE << HTTP_ENDLINE;
+        request << "\r\n";
 
         auto accept_sha1 = SHA1(nonce_base64 + ws_magic_string);
 
@@ -59,7 +59,7 @@ namespace WS_LITE {
 
                                                    auto header = ParseHeader(asio::buffer_cast<const char *>(read_buffer->data()));
                                                    auto sockey = std::find_if(std::begin(header.Values), std::end(header.Values),
-                                                                              [](HeaderKeyValue k) { return k.Key == HTTP_SECWEBSOCKETACCEPT; });
+                                                                              [](HeaderKeyValue k) { return k.Key == "Sec-WebSocket-Accept"; });
 
                                                    if (sockey == std::end(header.Values)) {
                                                        return;
