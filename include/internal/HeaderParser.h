@@ -11,7 +11,7 @@
 namespace SL {
 namespace WS_LITE {
 
-    constexpr void PlaceValue(std::string_view str, HttpHeader &header)
+    inline void PlaceValue(std::string_view str, HttpHeader &header)
     {
         if (!str.empty()) {
             if (str[0] == '/') { // url
@@ -54,7 +54,7 @@ namespace WS_LITE {
         }
     }
 
-    constexpr auto ParseKeyValue(std::string_view line)
+    inline auto ParseKeyValue(std::string_view line)
     {
         HeaderKeyValue kv;
         auto[key, value] = getline(line, true, ":");
@@ -62,7 +62,7 @@ namespace WS_LITE {
         kv.Value = Trim(value);
         return kv;
     }
-    constexpr void ParseFirstLine(std::string_view line, HttpHeader &header)
+    inline void ParseFirstLine(std::string_view line, HttpHeader &header)
     {
         line = TrimStart(line);
         do {
