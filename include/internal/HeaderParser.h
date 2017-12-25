@@ -92,10 +92,13 @@ namespace WS_LITE {
     {
         auto found =
             std::find_if(std::begin(header.Values), std::end(header.Values), [](HeaderKeyValue hk) { return hk.Key == "Sec-WebSocket-Extensions"; });
-        if (found == std::end(header.Values)) {
-            return ExtensionOptions::NO_OPTIONS;
+        if (found != std::end(header.Values)) {
+
+            if (found->Value.find("deflate") != found->Value.npos) {
+                return ExtensionOptions::DEFLATE;
+            }
         }
-        //  if (std::find(std::begin(found->Value), std::end(found->Value), "deflate"))
+        return ExtensionOptions::NO_OPTIONS;
     }
 
 } // namespace WS_LITE
