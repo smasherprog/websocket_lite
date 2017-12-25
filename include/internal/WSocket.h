@@ -1,7 +1,7 @@
 #pragma once
 #include "Logging.h"
 #include "WS_Lite.h"
-
+#include "WebSocketProtocol.h"
 #if WIN32
 #include <SDKDDKVer.h>
 #endif

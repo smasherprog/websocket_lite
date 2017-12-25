@@ -15,7 +15,7 @@ namespace WS_LITE {
     const size_t LARGE_BUFFER_SIZE = 300 * 1024;
     struct ThreadContext {
         ThreadContext(asio::ssl::context_base::method m = asio::ssl::context_base::method::tlsv12)
-            : work(io_service), context(m), inflationBuffer(std::make_unique<char[]>(LARGE_BUFFER_SIZE))
+            : inflationBuffer(std::make_unique<char[]>(LARGE_BUFFER_SIZE)), work(io_service), context(m)
         {
             inflateInit2(&inflationStream, -MAX_WBITS);
             thread = std::thread([&] {

@@ -98,6 +98,6 @@ namespace WS_LITE {
         //  if (std::find(std::begin(found->Value), std::end(found->Value), "deflate"))
     }
 
-}; // namespace WS_LITE
+} // namespace WS_LITE
 
 } // namespace SL
