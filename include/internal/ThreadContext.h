@@ -24,11 +24,11 @@ namespace WS_LITE {
             });
         }
 
-        auto inflate(char *data, size_t length, size_t maxPayload)
+        auto inflate(char *data, size_t data_len)
         {
             dynamicInflationBuffer.clear();
             inflationStream.next_in = (Bytef *)data;
-            inflationStream.avail_in = length;
+            inflationStream.avail_in = data_len;
 
             int err;
             do {
@@ -40,11 +40,11 @@ namespace WS_LITE {
                 }
 
                 dynamicInflationBuffer.append(inflationBuffer.get(), LARGE_BUFFER_SIZE - inflationStream.avail_out);
-            } while (err == Z_BUF_ERROR && dynamicInflationBuffer.length() <= maxPayload);
+            } while (err == Z_BUF_ERROR && dynamicInflationBuffer.length() <= MaxPayload);
 
             inflateReset(&inflationStream);
 
-            if ((err != Z_BUF_ERROR && err != Z_OK) || dynamicInflationBuffer.length() > maxPayload) {
+            if ((err != Z_BUF_ERROR && err != Z_OK) || dynamicInflationBuffer.length() > MaxPayload) {
                 unsigned char *p = nullptr;
                 size_t o = 0;
                 return std::make_tuple(p, o);

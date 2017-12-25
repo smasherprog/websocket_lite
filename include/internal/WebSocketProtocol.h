@@ -15,6 +15,11 @@ namespace WS_LITE {
     template <bool isServer, class SOCKETTYPE> void ReadHeaderStart(const SOCKETTYPE &socket, const std::shared_ptr<asio::streambuf> &extradata);
     template <bool isServer, class SOCKETTYPE, class SENDBUFFERTYPE> void write_end(const SOCKETTYPE &socket, const SENDBUFFERTYPE &msg);
 
+    template <bool isServer, class SOCKETTYPE, class SENDBUFFERTYPE>
+    void sendImpl(const SOCKETTYPE &socket, const SENDBUFFERTYPE &msg, CompressionOptions compressmessage);
+
+    template <bool isServer, class SOCKETTYPE> void sendclosemessage(const SOCKETTYPE &socket, unsigned short code, const std::string &msg);
+
     inline size_t ReadFromExtraData(unsigned char *dst, size_t desired_bytes_to_read, const std::shared_ptr<asio::streambuf> &extradata)
     {
         size_t dataconsumed = 0;
