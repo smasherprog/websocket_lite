@@ -14,7 +14,6 @@
 
 namespace SL {
 namespace WS_LITE {
-
     struct SendQueueItem {
         WSMessage msg;
         CompressionOptions compressmessage;
@@ -111,7 +110,7 @@ namespace WS_LITE {
             ec.clear();
             ping_deadline.cancel(ec);
         }
-
+        void AddMsg(const WSMessage &msg, CompressionOptions compressmessage) { SendMessageQueue.emplace_back(SendQueueItem{msg, compressmessage}); }
         unsigned char *ReceiveBuffer = nullptr;
         size_t ReceiveBufferSize = 0;
         unsigned char ReceiveHeader[14] = {};

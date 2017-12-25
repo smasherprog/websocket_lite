@@ -198,7 +198,7 @@ namespace WS_LITE {
                     socket->SocketStatus_ = SocketStatus::CLOSING;
                 }
                 socket->Bytes_PendingFlush += msg.len;
-                socket->SendMessageQueue.emplace_back({msg, compressmessage});
+                socket->AddMsg(msg, compressmessage);
                 SL::WS_LITE::startwrite<isServer>(socket);
             }
         });
