@@ -1,5 +1,6 @@
 #pragma once
 #include "Logging.h"
+#include "SocketIOStatus.h"
 #include "WS_Lite.h"
 #include "WebSocketProtocol.h"
 #if WIN32
@@ -18,7 +19,6 @@ namespace WS_LITE {
         WSMessage msg;
         CompressionOptions compressmessage;
     };
-    enum class IOStatus : unsigned char { NOTWRITING, WRITING };
     struct ThreadContext;
     template <bool isServer, class SOCKETTYPE> class WSocket final : public IWSocket {
 
@@ -117,7 +117,7 @@ namespace WS_LITE {
         unsigned char ReceiveHeader[14] = {};
         ExtensionOptions ExtensionOption = ExtensionOptions::NO_OPTIONS;
         SocketStatus SocketStatus_ = SocketStatus::CLOSED;
-        IOStatus Writing = IOStatus::NOTWRITING;
+        SocketIOStatus Writing = SocketIOStatus::NOTWRITING;
         OpCode LastOpCode = OpCode::INVALID;
         std::shared_ptr<ThreadContext> Parent;
         SOCKETTYPE Socket;

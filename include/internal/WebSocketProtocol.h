@@ -1,6 +1,6 @@
 #pragma once
+#include "SocketIOStatus.h"
 #include "Utils.h"
-
 #include "asio/streambuf.hpp"
 #include <deque>
 #include <memory>
@@ -170,9 +170,9 @@ namespace WS_LITE {
     }
     template <bool isServer, class SOCKETTYPE> inline void startwrite(const SOCKETTYPE &socket)
     {
-        if (socket->Writing == IOStatus::NOTWRITING) {
+        if (socket->Writing == SocketIOStatus::NOTWRITING) {
             if (!socket->SendMessageQueue.empty()) {
-                socket->Writing = IOStatus::WRITING;
+                socket->Writing = SocketIOStatus::WRITING;
                 auto msg(socket->SendMessageQueue.front());
                 socket->SendMessageQueue.pop_front();
                 write<isServer>(socket, msg.msg);
@@ -220,7 +220,7 @@ namespace WS_LITE {
     {
         SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "Closed: " << code);
         socket->SocketStatus_ = SocketStatus::CLOSED;
-        socket->Writing = IOStatus::NOTWRITING;
+        socket->Writing = SocketIOStatus::NOTWRITING;
         if (socket->Parent->onDisconnection) {
             socket->Parent->onDisconnection(socket, code, msg);
         }
@@ -237,7 +237,7 @@ namespace WS_LITE {
     {
 
         asio::async_write(socket->Socket, asio::buffer(msg.data, msg.len), [socket, msg](const std::error_code &ec, size_t bytes_transferred) {
-            socket->Writing = IOStatus::NOTWRITING;
+            socket->Writing = SocketIOStatus::NOTWRITING;
             UNUSED(bytes_transferred);
             socket->Bytes_PendingFlush -= msg.len;
             if (msg.code == OpCode::CLOSE) {

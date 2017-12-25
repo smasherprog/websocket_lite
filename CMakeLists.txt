@@ -31,6 +31,7 @@ add_library(${PROJECT_NAME}
 	include/internal/ThreadContext.h
 	include/internal/WSContext.h
 	include/internal/WSocket.h
+	include/internal/SocketIOStatus.h
 	include/WS_Lite.h
 	src/Utils.cpp
 	src/ListenerImpl.cpp
