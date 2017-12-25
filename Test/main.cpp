@@ -27,7 +27,7 @@ void wssautobahntest()
 
     auto listener = SL::WS_LITE::CreateContext(SL::WS_LITE::ThreadCount(1))
                         ->NoTLS()
-                        ->CreateListener(SL::WS_LITE::PortNumber(3000))
+                        ->CreateListener(SL::WS_LITE::PortNumber(3000), SL::WS_LITE::NetworkProtocol::IPV4, SL::WS_LITE::ExtensionOptions::DEFLATE)
                         ->onConnection([&](const std::shared_ptr<SL::WS_LITE::IWSocket> &socket, const SL::WS_LITE::HttpHeader &header) {
                             lastheard = std::chrono::high_resolution_clock::now();
                             SL_WS_LITE_LOG(SL::WS_LITE::Logging_Levels::INFO_log_level, "listener::onConnection");
@@ -83,7 +83,7 @@ void wssautobahntest()
                     }
                 },
                 SL::WS_LITE::method::tlsv11)
-            ->CreateListener(SL::WS_LITE::PortNumber(3001))
+            ->CreateListener(SL::WS_LITE::PortNumber(3001), SL::WS_LITE::NetworkProtocol::IPV4, SL::WS_LITE::ExtensionOptions::DEFLATE)
             ->onConnection([&](const std::shared_ptr<SL::WS_LITE::IWSocket> &socket, const SL::WS_LITE::HttpHeader &header) {
                 lastheard = std::chrono::high_resolution_clock::now();
                 SL_WS_LITE_LOG(SL::WS_LITE::Logging_Levels::INFO_log_level, "tlslistener::onConnection");

@@ -174,9 +174,9 @@ namespace WS_LITE {
     }
     template <bool isServer, class SOCKETTYPE> inline void startwrite(const std::shared_ptr<WSContext> parent, const SOCKETTYPE &socket)
     {
-        if (!socket->Writing) {
+        if (socket->Writing == IOStatus::NOTWRITING) {
             if (!socket->SendMessageQueue.empty()) {
-                socket->Writing = true;
+                socket->Writing = IOStatus::WRITING;
                 auto msg(socket->SendMessageQueue.front());
                 socket->SendMessageQueue.pop_front();
                 write<isServer>(parent, socket, msg.msg);
@@ -226,7 +226,7 @@ namespace WS_LITE {
     {
         SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "Closed: " << code);
         socket->SocketStatus_ = SocketStatus::CLOSED;
-        socket->Writing = false;
+        socket->Writing = IOStatus::NOTWRITING;
         if (parent->onDisconnection) {
             parent->onDisconnection(socket, code, msg);
         }
@@ -245,7 +245,7 @@ namespace WS_LITE {
 
         asio::async_write(socket->Socket, asio::buffer(msg.data, msg.len),
                           [parent, socket, msg](const std::error_code &ec, size_t bytes_transferred) {
-                              socket->Writing = false;
+                              socket->Writing = IOStatus::NOTWRITING;
                               UNUSED(bytes_transferred);
                               socket->Bytes_PendingFlush -= msg.len;
                               if (msg.code == OpCode::CLOSE) {
@@ -383,7 +383,8 @@ namespace WS_LITE {
         if (!DidPassMaskRequirement(socket->ReceiveHeader, isServer)) { // Close connection if it did not meet the mask requirement.
             return sendclosemessage<isServer>(parent, socket, 1002, "Closing connection because mask requirement not met");
         }
-        if (getrsv2(socket->ReceiveHeader) || getrsv3(socket->ReceiveHeader) || (getrsv1(socket->ReceiveHeader) && !socket->CompressionEnabled)) {
+        if (getrsv2(socket->ReceiveHeader) || getrsv3(socket->ReceiveHeader) ||
+            (getrsv1(socket->ReceiveHeader) && socket->ExtensionOption == ExtensionOptions::NO_OPTIONS)) {
             return sendclosemessage<isServer>(parent, socket, 1002, "Closing connection. rsv bit set");
         }
         auto opcode = static_cast<OpCode>(getOpCode(socket->ReceiveHeader));

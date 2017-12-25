@@ -18,6 +18,7 @@ namespace WS_LITE {
         WSMessage msg;
         CompressionOptions compressmessage;
     };
+    enum class IOStatus : unsigned char { NOTWRITING, WRITING };
     class WSContext;
     template <bool isServer, class SOCKETTYPE> class WSocket final : public IWSocket {
 
@@ -120,9 +121,9 @@ namespace WS_LITE {
         unsigned char *ReceiveBuffer = nullptr;
         size_t ReceiveBufferSize = 0;
         unsigned char ReceiveHeader[14] = {};
-        bool CompressionEnabled = false;
+        ExtensionOptions ExtensionOption = ExtensionOptions::NO_OPTIONS;
         SocketStatus SocketStatus_ = SocketStatus::CLOSED;
-        bool Writing = false;
+        IOStatus Writing = IOStatus::NOTWRITING;
         OpCode LastOpCode = OpCode::INVALID;
         std::shared_ptr<WSContext> Parent;
         SOCKETTYPE Socket;

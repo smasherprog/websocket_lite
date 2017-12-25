@@ -191,7 +191,6 @@ namespace WS_LITE {
     }
 
     const std::string ws_magic_string = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
-    const int LARGE_BUFFER_SIZE = 300 * 1024;
 
     inline std::string url_decode(const std::string &in)
     {
@@ -245,15 +244,14 @@ namespace WS_LITE {
     }
     template <typename T> auto CreateExtensionOffer(T &header)
     {
-        std::string str;
         auto header_it =
             std::find_if(std::begin(header.Values), std::end(header.Values), [](HeaderKeyValue k) { return k.Key == "Sec-WebSocket-Extensions"; });
         if (header_it != header.Values.end()) {
             if (header_it->Value.find("permessage-deflate") != header_it->Value.npos) {
-                str += "Sec-WebSocket-Extensions:permessage-deflate\r\n";
+                return std::make_tuple(std::string("Sec-WebSocket-Extensions:permessage-deflate\r\n"), ExtensionOptions::DEFLATE);
             }
         }
-        return str;
+        return std::make_tuple(std::string(), ExtensionOptions::NO_OPTIONS);
     }
     bool isValidUtf8(unsigned char *s, size_t length);
 } // namespace WS_LITE

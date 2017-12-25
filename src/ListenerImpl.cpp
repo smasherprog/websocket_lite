@@ -33,7 +33,9 @@ namespace WS_LITE {
                     if (auto[response, parsesuccess] = CreateHandShake(handshakecontainer->Header); parsesuccess) {
                         handshakecontainer->Write = response;
                         if (listener->ExtensionOptions_ != ExtensionOptions::NO_OPTIONS) {
-                            handshakecontainer->Write += CreateExtensionOffer(handshakecontainer->Header);
+                            auto[headerresponse, agreedcompression] = CreateExtensionOffer(handshakecontainer->Header);
+                            handshakecontainer->Write += headerresponse;
+                            socket->ExtensionOption = agreedcompression;
                         }
                         handshakecontainer->Write += "\r\n";
 
