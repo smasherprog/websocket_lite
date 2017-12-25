@@ -2,7 +2,6 @@
 #include "StringHelpers.h"
 #include "WS_Lite.h"
 #include <algorithm>
-#include <sstream>
 #include <string>
 #include <string_view>
 #include <tuple>
@@ -81,7 +80,7 @@ namespace WS_LITE {
             header.Values.emplace_back(ParseKeyValue(line));
         } while (!headerstring.empty());
     }
-    inline SL::WS_LITE::HttpHeader ParseHeader(std::string_view headerstring)
+    inline auto ParseHeader(std::string_view headerstring)
     {
         HttpHeader header;
         auto[line, remainingtext] = getline(headerstring, true, "\r\n");
@@ -89,6 +88,16 @@ namespace WS_LITE {
         ParseNextLines(remainingtext, header);
         return header;
     }
+    inline auto GetCompressionOptions(HttpHeader &header)
+    {
+        auto found =
+            std::find_if(std::begin(header.Values), std::end(header.Values), [](HeaderKeyValue hk) { return hk.Key == "Sec-WebSocket-Extensions"; });
+        if (found == std::end(header.Values)) {
+            return ExtensionOptions::NO_OPTIONS;
+        }
+        //  if (std::find(std::begin(found->Value), std::end(found->Value), "deflate"))
+    }
 
-} // namespace WS_LITE
+}; // namespace WS_LITE
+
 } // namespace SL

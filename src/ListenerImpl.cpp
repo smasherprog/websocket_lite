@@ -1,8 +1,14 @@
 #include "Logging.h"
 #include "WS_Lite.h"
 #include "internal/HeaderParser.h"
+#include "internal/WSContext.h"
+#include "internal/WSocket.h"
 #include "internal/WebSocketProtocol.h"
-
+#if WIN32
+#include <SDKDDKVer.h>
+#endif
+#include "asio.hpp"
+#include "asio/ssl.hpp"
 namespace SL {
 namespace WS_LITE {
 
@@ -12,7 +18,7 @@ namespace WS_LITE {
         HttpHeader Header;
     };
 
-    template <class SOCKETTYPE> void read_handshake(const std::shared_ptr<WSContextImpl> listener, const SOCKETTYPE &socket)
+    template <class SOCKETTYPE> void read_handshake(const std::shared_ptr<WSContext> listener, const SOCKETTYPE &socket)
     {
         auto handshakecontainer(std::make_shared<HandshakeContainer>());
         asio::async_read_until(
@@ -26,7 +32,9 @@ namespace WS_LITE {
 
                     if (auto[response, parsesuccess] = CreateHandShake(handshakecontainer->Header); parsesuccess) {
                         handshakecontainer->Write = response;
-                        //    handshakecontainer->Write += CreateExtensionOffer(handshakecontainer->Header);
+                        if (listener->ExtensionOptions_ != ExtensionOptions::NO_OPTIONS) {
+                            handshakecontainer->Write += CreateExtensionOffer(handshakecontainer->Header);
+                        }
                         handshakecontainer->Write += "\r\n";
 
                         asio::async_write(socket->Socket, asio::buffer(handshakecontainer->Write.data(), handshakecontainer->Write.size()),
@@ -62,11 +70,11 @@ namespace WS_LITE {
             });
     }
 
-    void async_handshake(const std::shared_ptr<WSContextImpl> listener, const std::shared_ptr<WSocket<true, asio::ip::tcp::socket>> socket)
+    void async_handshake(const std::shared_ptr<WSContext> listener, const std::shared_ptr<WSocket<true, asio::ip::tcp::socket>> socket)
     {
         read_handshake(listener, socket);
     }
-    void async_handshake(const std::shared_ptr<WSContextImpl> listener,
+    void async_handshake(const std::shared_ptr<WSContext> listener,
                          const std::shared_ptr<WSocket<true, asio::ssl::stream<asio::ip::tcp::socket>>> socket)
     {
         socket->Socket.async_handshake(asio::ssl::stream_base::server, [listener, socket](const std::error_code &ec) {
@@ -81,7 +89,7 @@ namespace WS_LITE {
     }
 
     template <typename SOCKETCREATOR>
-    void Listen(const std::shared_ptr<WSContextImpl> &listener, SOCKETCREATOR &&socketcreator, bool no_delay, bool reuse_address)
+    void Listen(const std::shared_ptr<WSContext> &listener, SOCKETCREATOR &&socketcreator, bool no_delay, bool reuse_address)
     {
 
         auto socket = socketcreator(listener);

@@ -1,9 +1,5 @@
-#include "Logging.h"
 #include "WS_Lite.h"
 #include "internal/Utils.h"
-
-#include <fstream>
-#include <random>
 
 namespace SL {
 namespace WS_LITE {
@@ -51,44 +47,5 @@ namespace WS_LITE {
         }
         return true;
     }
-
-    char *ZlibInflate(char *data, size_t &length, size_t maxPayload, std::string &dynamicInflationBuffer, z_stream &inflationStream,
-                      char *inflationBuffer)
-    {
-        dynamicInflationBuffer.clear();
-
-        inflationStream.next_in = (Bytef *)data;
-        inflationStream.avail_in = length;
-
-        int err;
-        do {
-            inflationStream.next_out = (Bytef *)inflationBuffer;
-            inflationStream.avail_out = LARGE_BUFFER_SIZE;
-            err = ::inflate(&inflationStream, Z_FINISH);
-            if (!inflationStream.avail_in) {
-                break;
-            }
-
-            dynamicInflationBuffer.append(inflationBuffer, LARGE_BUFFER_SIZE - inflationStream.avail_out);
-        } while (err == Z_BUF_ERROR && dynamicInflationBuffer.length() <= maxPayload);
-
-        inflateReset(&inflationStream);
-
-        if ((err != Z_BUF_ERROR && err != Z_OK) || dynamicInflationBuffer.length() > maxPayload) {
-            length = 0;
-            return nullptr;
-        }
-
-        if (dynamicInflationBuffer.length()) {
-            dynamicInflationBuffer.append(inflationBuffer, LARGE_BUFFER_SIZE - inflationStream.avail_out);
-
-            length = dynamicInflationBuffer.length();
-            return (char *)dynamicInflationBuffer.data();
-        }
-
-        length = LARGE_BUFFER_SIZE - inflationStream.avail_out;
-        return inflationBuffer;
-    }
-
 } // namespace WS_LITE
 } // namespace SL

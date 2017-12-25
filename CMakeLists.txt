@@ -26,9 +26,11 @@ include_directories(
 add_library(${PROJECT_NAME} 	
 	include/internal/Utils.h
 	include/internal/WebSocketProtocol.h
-	include/internal/DataStructures.h
 	include/internal/HeaderParser.h
 	include/internal/StringHelpers.h
+	include/internal/ThreadContext.h
+	include/internal/WSContext.h
+	include/internal/WSocket.h
 	include/WS_Lite.h
 	src/Utils.cpp
 	src/ListenerImpl.cpp

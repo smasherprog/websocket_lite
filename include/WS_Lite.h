@@ -145,7 +145,7 @@ namespace WS_LITE {
     enum verify_mode : int { verify_none = 0x00, verify_peer = 0x01, verify_fail_if_no_peer_cert = 0x02, verify_client_once = 0x04 };
     enum OpCode : unsigned char { CONTINUATION = 0, TEXT = 1, BINARY = 2, CLOSE = 8, PING = 9, PONG = 10, INVALID = 255 };
     enum SocketStatus : int { CONNECTING, CONNECTED, CLOSING, CLOSED };
-    enum ExtensionOptions : unsigned char { NO_OPTIONS = 0, DEFLATE = 1, NO_CONTEXT_TAKEOVER = 2 };
+    enum ExtensionOptions : unsigned char { NO_OPTIONS = 0, DEFLATE = 1 };
     enum class CompressionOptions { COMPRESS, NO_COMPRESSION };
     enum class NetworkProtocol { IPV4, IPV6 };
 

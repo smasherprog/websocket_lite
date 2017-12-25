@@ -1,8 +1,9 @@
 #include "Logging.h"
 #include "WS_Lite.h"
 #include "internal/HeaderParser.h"
+#include "internal/WSContext.h"
+#include "internal/WSocket.h"
 #include "internal/WebSocketProtocol.h"
-
 #include <algorithm>
 #include <chrono>
 #include <fstream>
@@ -12,7 +13,7 @@ namespace SL {
 namespace WS_LITE {
 
     template <class SOCKETTYPE>
-    void ConnectHandshake(const std::shared_ptr<WSContextImpl> self, SOCKETTYPE &socket, const std::string &host, const std::string &endpoint,
+    void ConnectHandshake(const std::shared_ptr<WSContext> self, SOCKETTYPE &socket, const std::string &host, const std::string &endpoint,
                           const std::unordered_map<std::string, std::string> &extraheaders)
     {
         auto write_buffer(std::make_shared<asio::streambuf>());
@@ -101,12 +102,12 @@ namespace WS_LITE {
                 }
             });
     }
-    void async_handshake(const std::shared_ptr<WSContextImpl> self, std::shared_ptr<WSocket<false, asio::ip::tcp::socket>> socket,
+    void async_handshake(const std::shared_ptr<WSContext> self, std::shared_ptr<WSocket<false, asio::ip::tcp::socket>> socket,
                          const std::string &host, const std::string &endpoint, const std::unordered_map<std::string, std::string> &extraheaders)
     {
         ConnectHandshake(self, socket, host, endpoint, extraheaders);
     }
-    void async_handshake(const std::shared_ptr<WSContextImpl> self, std::shared_ptr<WSocket<false, asio::ssl::stream<asio::ip::tcp::socket>>> socket,
+    void async_handshake(const std::shared_ptr<WSContext> self, std::shared_ptr<WSocket<false, asio::ssl::stream<asio::ip::tcp::socket>>> socket,
                          const std::string &host, const std::string &endpoint, const std::unordered_map<std::string, std::string> &extraheaders)
     {
         socket->Socket.async_handshake(asio::ssl::stream_base::client, [socket, self, host, endpoint, extraheaders](const std::error_code &ec) {
@@ -123,7 +124,7 @@ namespace WS_LITE {
         });
     }
     template <typename SOCKETCREATOR>
-    void Connect(const std::shared_ptr<WSContextImpl> self, const std::string &host, PortNumber port, bool no_delay, SOCKETCREATOR &&socketcreator,
+    void Connect(const std::shared_ptr<WSContext> self, const std::string &host, PortNumber port, bool no_delay, SOCKETCREATOR &&socketcreator,
                  const std::string &endpoint, const std::unordered_map<std::string, std::string> &extraheaders)
     {
 

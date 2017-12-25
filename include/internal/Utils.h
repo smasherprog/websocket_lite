@@ -1,18 +1,15 @@
 #pragma once
 #include "Logging.h"
 #include <fstream>
-#include <sstream>
-#include <string>
-#include <unordered_map>
-
 #include <openssl/buffer.h>
 #include <openssl/evp.h>
 #include <openssl/md5.h>
 #include <openssl/sha.h>
+#include <sstream>
+#include <string>
 
 #include <algorithm>
 #include <math.h>
-#include <zlib.h>
 
 #if defined(WINDOWS) || defined(WIN32)
 #if defined(WS_LITE_DLL)
@@ -26,6 +23,7 @@
 
 namespace SL {
 namespace WS_LITE {
+    const auto CONTROLBUFFERMAXSIZE = 125;
 
     /*
     0                   1                   2                   3
@@ -100,52 +98,6 @@ namespace WS_LITE {
         else {
             setMask(frame, 0xff);
         }
-    }
-
-    template <class T> std::string get_address(T &_socket)
-    {
-        std::error_code ec;
-        auto rt(_socket.lowest_layer().remote_endpoint(ec));
-        if (!ec)
-            return rt.address().to_string();
-        else
-            return "";
-    }
-    template <class T> unsigned short get_port(T &_socket)
-    {
-        std::error_code ec;
-        auto rt(_socket.lowest_layer().remote_endpoint(ec));
-        if (!ec)
-            return rt.port();
-        else
-            return static_cast<unsigned short>(-1);
-    }
-    template <class T> bool is_v4(T &_socket)
-    {
-        std::error_code ec;
-        auto rt(_socket.lowest_layer().remote_endpoint(ec));
-        if (!ec)
-            return rt.address().is_v4();
-        else
-            return true;
-    }
-    template <class T> bool is_v6(T &_socket)
-    {
-        std::error_code ec;
-        auto rt(_socket.lowest_layer().remote_endpoint(ec));
-        if (!ec)
-            return rt.address().is_v6();
-        else
-            return true;
-    }
-    template <class T> bool is_loopback(T &_socket)
-    {
-        std::error_code ec;
-        auto rt(_socket.lowest_layer().remote_endpoint(ec));
-        if (!ec)
-            return rt.address().is_loopback();
-        else
-            return true;
     }
     template <class type> void SHA1(const type &input, type &hash)
     {
@@ -272,7 +224,7 @@ namespace WS_LITE {
         return out;
     }
 
-    inline auto CreateHandShake(HttpHeader &header)
+    template <typename T> auto CreateHandShake(T &header)
     {
         auto header_it =
             std::find_if(std::begin(header.Values), std::end(header.Values), [](HeaderKeyValue k) { return k.Key == "Sec-WebSocket-Key"; });
@@ -291,7 +243,7 @@ namespace WS_LITE {
 
         return std::make_tuple(str, true);
     }
-    inline std::string CreateExtensionOffer(HttpHeader &header)
+    template <typename T> auto CreateExtensionOffer(T &header)
     {
         std::string str;
         auto header_it =
@@ -304,8 +256,5 @@ namespace WS_LITE {
         return str;
     }
     bool isValidUtf8(unsigned char *s, size_t length);
-    char *ZlibInflate(char *data, size_t &length, size_t maxPayload, std::string &dynamicInflationBuffer, z_stream &inflationStream,
-                      char *inflationBuffer);
-
 } // namespace WS_LITE
 } // namespace SL
