@@ -13,16 +13,16 @@ namespace WS_LITE {
 
     WSContext::WSContext(ThreadCount threadcount, asio::ssl::context_base::method m)
     {
-        TLSEnabled = true;
         for (auto i = 0; i < threadcount.value; i++) {
             ThreadContexts.push_back(std::make_shared<ThreadContext>(m));
+            ThreadContexts.back()->TLSEnabled = true;
         }
     }
     WSContext::WSContext(ThreadCount threadcount)
     {
-        TLSEnabled = false;
         for (auto i = 0; i < threadcount.value; i++) {
             ThreadContexts.push_back(std::make_shared<ThreadContext>());
+            ThreadContexts.back()->TLSEnabled = false;
         }
     }
     WSContext::~WSContext()
@@ -411,19 +411,23 @@ namespace WS_LITE {
                                                                           ExtensionOptions options) override
         {
             if (protocol == NetworkProtocol::IPV4) {
-                WSContext_->acceptor = std::make_unique<asio::ip::tcp::acceptor>(WSContext_->getnextContext().io_service,
+                WSContext_->acceptor = std::make_unique<asio::ip::tcp::acceptor>(WSContext_->getnextContext()->io_service,
                                                                                  asio::ip::tcp::endpoint(asio::ip::tcp::v4(), port.value));
             }
             else {
-                WSContext_->acceptor = std::make_unique<asio::ip::tcp::acceptor>(WSContext_->getnextContext().io_service,
+                WSContext_->acceptor = std::make_unique<asio::ip::tcp::acceptor>(WSContext_->getnextContext()->io_service,
                                                                                  asio::ip::tcp::endpoint(asio::ip::tcp::v6(), port.value));
             }
-            WSContext_->ExtensionOptions_ = options;
+            for (auto &t : WSContext_->ThreadContexts) {
+                t->ExtensionOptions_ = options;
+            }
             return std::make_shared<WSListener_Configuration>(WSContext_);
         }
         virtual std::shared_ptr<IWSClient_Configuration> CreateClient(ExtensionOptions options) override
         {
-            WSContext_->ExtensionOptions_ = options;
+            for (auto &t : WSContext_->ThreadContexts) {
+                t->ExtensionOptions_ = options;
+            }
             return std::make_shared<WSClient_Configuration>(WSContext_);
         }
     };
@@ -437,7 +441,10 @@ namespace WS_LITE {
         virtual std::shared_ptr<IWSContext_Configuration> UseTLS(const std::function<void(ITLSContext *context)> &callback, method m) override
         {
             auto ret = std::make_shared<WSContext>(WSContext_->threadcount, static_cast<asio::ssl::context_base::method>(m));
-            ret->TLSEnabled = true;
+
+            for (auto &t : ret->ThreadContexts) {
+                t->TLSEnabled = true;
+            }
             TLSContext tlscontext(ret);
             callback(&tlscontext);
             return std::make_shared<WSContext_Configuration>(ret);
@@ -445,7 +452,10 @@ namespace WS_LITE {
         virtual std::shared_ptr<IWSContext_Configuration> NoTLS() override
         {
             auto ret = std::make_shared<WSContext>(WSContext_->threadcount);
-            ret->TLSEnabled = false;
+
+            for (auto &t : ret->ThreadContexts) {
+                t->TLSEnabled = false;
+            }
             return std::make_shared<WSContext_Configuration>(ret);
         }
     };

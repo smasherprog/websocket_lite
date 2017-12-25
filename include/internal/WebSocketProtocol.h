@@ -9,12 +9,11 @@
 #include <string>
 namespace SL {
 namespace WS_LITE {
-    template <bool isServer, class SOCKETTYPE>
-    void ReadHeaderNext(const std::shared_ptr<WSContext> parent, const SOCKETTYPE &socket, const std::shared_ptr<asio::streambuf> &extradata);
-    template <bool isServer, class SOCKETTYPE>
-    void ReadHeaderStart(const std::shared_ptr<WSContext> parent, const SOCKETTYPE &socket, const std::shared_ptr<asio::streambuf> &extradata);
-    template <bool isServer, class SOCKETTYPE, class SENDBUFFERTYPE>
-    void write_end(const std::shared_ptr<WSContext> parent, const SOCKETTYPE &socket, const SENDBUFFERTYPE &msg);
+
+    struct ThreadContext;
+    template <bool isServer, class SOCKETTYPE> void ReadHeaderNext(const SOCKETTYPE &socket, const std::shared_ptr<asio::streambuf> &extradata);
+    template <bool isServer, class SOCKETTYPE> void ReadHeaderStart(const SOCKETTYPE &socket, const std::shared_ptr<asio::streambuf> &extradata);
+    template <bool isServer, class SOCKETTYPE, class SENDBUFFERTYPE> void write_end(const SOCKETTYPE &socket, const SENDBUFFERTYPE &msg);
 
     inline size_t ReadFromExtraData(unsigned char *dst, size_t desired_bytes_to_read, const std::shared_ptr<asio::streambuf> &extradata)
     {
@@ -32,8 +31,7 @@ namespace WS_LITE {
         }
         return dataconsumed;
     }
-    template <bool isServer, class SOCKETTYPE>
-    void readexpire_from_now(const std::shared_ptr<WSContext> parent, const SOCKETTYPE &socket, std::chrono::seconds secs)
+    template <bool isServer, class SOCKETTYPE> void readexpire_from_now(const SOCKETTYPE &socket, std::chrono::seconds secs)
     {
         std::error_code ec;
         if (secs.count() == 0)
@@ -43,15 +41,14 @@ namespace WS_LITE {
             SL_WS_LITE_LOG(Logging_Levels::ERROR_log_level, ec.message());
         }
         else if (secs.count() > 0) {
-            socket->read_deadline.async_wait([parent, socket](const std::error_code &ec) {
+            socket->read_deadline.async_wait([socket](const std::error_code &ec) {
                 if (ec != asio::error::operation_aborted) {
-                    return sendclosemessage<isServer>(parent, socket, 1001, "read timer expired on the socket ");
+                    return sendclosemessage<isServer>(socket, 1001, "read timer expired on the socket ");
                 }
             });
         }
     }
-    template <bool isServer, class SOCKETTYPE>
-    void start_ping(const std::shared_ptr<WSContext> parent, const SOCKETTYPE &socket, std::chrono::seconds secs)
+    template <bool isServer, class SOCKETTYPE> void start_ping(const SOCKETTYPE &socket, std::chrono::seconds secs)
     {
         std::error_code ec;
         if (secs.count() == 0)
@@ -61,7 +58,7 @@ namespace WS_LITE {
             SL_WS_LITE_LOG(Logging_Levels::ERROR_log_level, ec.message());
         }
         else if (secs.count() > 0) {
-            socket->ping_deadline.async_wait([parent, socket, secs](const std::error_code &ec) {
+            socket->ping_deadline.async_wait([socket, secs](const std::error_code &ec) {
                 if (ec != asio::error::operation_aborted) {
                     WSMessage msg;
                     char p[] = "ping";
@@ -70,14 +67,13 @@ namespace WS_LITE {
                     msg.len = sizeof(p);
                     msg.code = OpCode::PING;
                     msg.data = msg.Buffer.get();
-                    SL::WS_LITE::sendImpl<isServer>(parent, socket, msg, CompressionOptions::NO_COMPRESSION);
-                    start_ping<isServer>(parent, socket, secs);
+                    SL::WS_LITE::sendImpl<isServer>(socket, msg, CompressionOptions::NO_COMPRESSION);
+                    start_ping<isServer>(socket, secs);
                 }
             });
         }
     }
-    template <bool isServer, class SOCKETTYPE>
-    void writeexpire_from_now(const std::shared_ptr<WSContext> parent, const SOCKETTYPE &socket, std::chrono::seconds secs)
+    template <bool isServer, class SOCKETTYPE> void writeexpire_from_now(const SOCKETTYPE &socket, std::chrono::seconds secs)
     {
 
         std::error_code ec;
@@ -88,16 +84,15 @@ namespace WS_LITE {
             SL_WS_LITE_LOG(Logging_Levels::ERROR_log_level, ec.message());
         }
         else if (secs.count() > 0) {
-            socket->write_deadline.async_wait([parent, socket](const std::error_code &ec) {
+            socket->write_deadline.async_wait([socket](const std::error_code &ec) {
                 if (ec != asio::error::operation_aborted) {
-                    return sendclosemessage<isServer>(parent, socket, 1001, "write timer expired on the socket ");
+                    return sendclosemessage<isServer>(socket, 1001, "write timer expired on the socket ");
                 }
             });
         }
     }
 
-    template <bool isServer, class SOCKETTYPE, class SENDBUFFERTYPE>
-    void writeend(const std::shared_ptr<WSContext> parent, const SOCKETTYPE &socket, const SENDBUFFERTYPE &msg, bool iserver)
+    template <bool isServer, class SOCKETTYPE, class SENDBUFFERTYPE> void writeend(const SOCKETTYPE &socket, const SENDBUFFERTYPE &msg, bool iserver)
     {
         if (!iserver) {
             std::uniform_int_distribution<unsigned int> dist(0, 255);
@@ -115,24 +110,23 @@ namespace WS_LITE {
             auto bytes_transferred = asio::write(socket->Socket, asio::buffer(mask, 4), ec);
             if (ec) {
                 if (msg.code == OpCode::CLOSE) {
-                    return handleclose(parent, socket, msg.code, "");
+                    return handleclose(socket, msg.code, "");
                 }
                 else {
-                    return handleclose(parent, socket, 1002, "write mask failed " + ec.message());
+                    return handleclose(socket, 1002, "write mask failed " + ec.message());
                 }
             }
             else {
                 UNUSED(bytes_transferred);
                 assert(bytes_transferred == 4);
-                write_end<isServer>(parent, socket, msg);
+                write_end<isServer>(socket, msg);
             }
         }
         else {
-            write_end<isServer>(parent, socket, msg);
+            write_end<isServer>(socket, msg);
         }
     }
-    template <bool isServer, class SOCKETTYPE, class SENDBUFFERTYPE>
-    inline void write(const std::shared_ptr<WSContext> parent, const SOCKETTYPE &socket, const SENDBUFFERTYPE &msg)
+    template <bool isServer, class SOCKETTYPE, class SENDBUFFERTYPE> inline void write(const SOCKETTYPE &socket, const SENDBUFFERTYPE &msg)
     {
         size_t sendsize = 0;
         unsigned char header[10] = {};
@@ -160,40 +154,40 @@ namespace WS_LITE {
         }
 
         assert(msg.len < UINT32_MAX);
-        writeexpire_from_now<isServer>(parent, socket, parent->WriteTimeout);
+        writeexpire_from_now<isServer>(socket, socket->Parent->WriteTimeout);
         std::error_code ec;
         auto bytes_transferred = asio::write(socket->Socket, asio::buffer(header, sendsize), ec);
         UNUSED(bytes_transferred);
         if (!ec) {
             assert(sendsize == bytes_transferred);
-            writeend<isServer>(parent, socket, msg, isServer);
+            writeend<isServer>(socket, msg, isServer);
         }
         else {
-            handleclose(parent, socket, 1002, "write header failed " + ec.message());
+            handleclose(socket, 1002, "write header failed " + ec.message());
         }
     }
-    template <bool isServer, class SOCKETTYPE> inline void startwrite(const std::shared_ptr<WSContext> parent, const SOCKETTYPE &socket)
+    template <bool isServer, class SOCKETTYPE> inline void startwrite(const SOCKETTYPE &socket)
     {
         if (socket->Writing == IOStatus::NOTWRITING) {
             if (!socket->SendMessageQueue.empty()) {
                 socket->Writing = IOStatus::WRITING;
                 auto msg(socket->SendMessageQueue.front());
                 socket->SendMessageQueue.pop_front();
-                write<isServer>(parent, socket, msg.msg);
+                write<isServer>(socket, msg.msg);
             }
             else {
-                writeexpire_from_now<isServer>(parent, socket, std::chrono::seconds(0)); // make sure the write timer doesnt kick off
+                writeexpire_from_now<isServer>(socket, std::chrono::seconds(0)); // make sure the write timer doesnt kick off
             }
         }
     }
     template <bool isServer, class SOCKETTYPE, class SENDBUFFERTYPE>
-    void sendImpl(const std::shared_ptr<WSContext> parent, const SOCKETTYPE &socket, const SENDBUFFERTYPE &msg, CompressionOptions compressmessage)
+    void sendImpl(const SOCKETTYPE &socket, const SENDBUFFERTYPE &msg, CompressionOptions compressmessage)
     {
         if (compressmessage == CompressionOptions::COMPRESS) {
             assert(msg.code == OpCode::BINARY || msg.code == OpCode::TEXT);
         }
 
-        socket->Socket.get_io_service().post([socket, msg, parent, compressmessage]() {
+        socket->Socket.get_io_service().post([socket, msg, compressmessage]() {
 
             if (socket->SocketStatus_ == SocketStatus::CONNECTED) {
                 // update the socket status to reflect it is closing to prevent other messages from being sent.. this is the last valid message
@@ -203,12 +197,11 @@ namespace WS_LITE {
                 }
                 socket->Bytes_PendingFlush += msg.len;
                 socket->SendMessageQueue.emplace_back(SendQueueItem{msg, compressmessage});
-                SL::WS_LITE::startwrite<isServer>(parent, socket);
+                SL::WS_LITE::startwrite<isServer>(socket);
             }
         });
     }
-    template <bool isServer, class SOCKETTYPE>
-    void sendclosemessage(const std::shared_ptr<WSContext> parent, const SOCKETTYPE &socket, unsigned short code, const std::string &msg)
+    template <bool isServer, class SOCKETTYPE> void sendclosemessage(const SOCKETTYPE &socket, unsigned short code, const std::string &msg)
     {
         SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "closeImpl " << msg);
         WSMessage ws;
@@ -218,17 +211,16 @@ namespace WS_LITE {
         *reinterpret_cast<unsigned short *>(ws.Buffer.get()) = ntoh(code);
         memcpy(ws.Buffer.get() + sizeof(code), msg.c_str(), msg.size());
         ws.data = ws.Buffer.get();
-        sendImpl<isServer>(parent, socket, ws, CompressionOptions::NO_COMPRESSION);
+        sendImpl<isServer>(socket, ws, CompressionOptions::NO_COMPRESSION);
     }
 
-    template <class SOCKETTYPE>
-    inline void handleclose(const std::shared_ptr<WSContext> parent, const SOCKETTYPE &socket, unsigned short code, const std::string &msg)
+    template <class SOCKETTYPE> inline void handleclose(const SOCKETTYPE &socket, unsigned short code, const std::string &msg)
     {
         SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "Closed: " << code);
         socket->SocketStatus_ = SocketStatus::CLOSED;
         socket->Writing = IOStatus::NOTWRITING;
-        if (parent->onDisconnection) {
-            parent->onDisconnection(socket, code, msg);
+        if (socket->Parent->onDisconnection) {
+            socket->Parent->onDisconnection(socket, code, msg);
         }
 
         socket->SendMessageQueue.clear(); // clear all outbound messages
@@ -239,25 +231,23 @@ namespace WS_LITE {
         socket->Socket.lowest_layer().close(ec);
     }
 
-    template <bool isServer, class SOCKETTYPE, class SENDBUFFERTYPE>
-    void write_end(const std::shared_ptr<WSContext> parent, const SOCKETTYPE &socket, const SENDBUFFERTYPE &msg)
+    template <bool isServer, class SOCKETTYPE, class SENDBUFFERTYPE> void write_end(const SOCKETTYPE &socket, const SENDBUFFERTYPE &msg)
     {
 
-        asio::async_write(socket->Socket, asio::buffer(msg.data, msg.len),
-                          [parent, socket, msg](const std::error_code &ec, size_t bytes_transferred) {
-                              socket->Writing = IOStatus::NOTWRITING;
-                              UNUSED(bytes_transferred);
-                              socket->Bytes_PendingFlush -= msg.len;
-                              if (msg.code == OpCode::CLOSE) {
-                                  // final close.. get out and dont come back mm kay?
-                                  return handleclose(parent, socket, 1000, "");
-                              }
-                              if (ec) {
-                                  return handleclose(parent, socket, 1002, "write header failed " + ec.message());
-                              }
-                              assert(msg.len == bytes_transferred);
-                              startwrite<isServer>(parent, socket);
-                          });
+        asio::async_write(socket->Socket, asio::buffer(msg.data, msg.len), [socket, msg](const std::error_code &ec, size_t bytes_transferred) {
+            socket->Writing = IOStatus::NOTWRITING;
+            UNUSED(bytes_transferred);
+            socket->Bytes_PendingFlush -= msg.len;
+            if (msg.code == OpCode::CLOSE) {
+                // final close.. get out and dont come back mm kay?
+                return handleclose(socket, 1000, "");
+            }
+            if (ec) {
+                return handleclose(socket, 1002, "write header failed " + ec.message());
+            }
+            assert(msg.len == bytes_transferred);
+            startwrite<isServer>(socket);
+        });
     }
 
     inline void UnMaskMessage(size_t readsize, unsigned char *buffer, bool isserver)
@@ -272,8 +262,7 @@ namespace WS_LITE {
         }
     }
 
-    template <bool isServer, class SOCKETTYPE>
-    inline void ProcessMessage(const std::shared_ptr<WSContext> parent, const SOCKETTYPE &socket, const std::shared_ptr<asio::streambuf> &extradata)
+    template <bool isServer, class SOCKETTYPE> inline void ProcessMessage(const SOCKETTYPE &socket, const std::shared_ptr<asio::streambuf> &extradata)
     {
 
         auto opcode = static_cast<OpCode>(getOpCode(socket->ReceiveHeader));
@@ -281,38 +270,42 @@ namespace WS_LITE {
         if (!getFin(socket->ReceiveHeader)) {
             if (socket->LastOpCode == OpCode::INVALID) {
                 if (opcode != OpCode::BINARY && opcode != OpCode::TEXT) {
-                    return sendclosemessage<isServer>(parent, socket, 1002, "First Non Fin Frame must be binary or text");
+                    return sendclosemessage<isServer>(socket, 1002, "First Non Fin Frame must be binary or text");
                 }
                 socket->LastOpCode = opcode;
             }
             else if (opcode != OpCode::CONTINUATION) {
-                return sendclosemessage<isServer>(parent, socket, 1002, "Continuation Received without a previous frame");
+                return sendclosemessage<isServer>(socket, 1002, "Continuation Received without a previous frame");
             }
-            return ReadHeaderNext<isServer>(parent, socket, extradata);
+            return ReadHeaderNext<isServer>(socket, extradata);
         }
         else {
 
             if (socket->LastOpCode != OpCode::INVALID && opcode != OpCode::CONTINUATION) {
-                return sendclosemessage<isServer>(parent, socket, 1002, "Continuation Received without a previous frame");
+                return sendclosemessage<isServer>(socket, 1002, "Continuation Received without a previous frame");
             }
             else if (socket->LastOpCode == OpCode::INVALID && opcode == OpCode::CONTINUATION) {
-                return sendclosemessage<isServer>(parent, socket, 1002, "Continuation Received without a previous frame");
+                return sendclosemessage<isServer>(socket, 1002, "Continuation Received without a previous frame");
             }
             else if (socket->LastOpCode == OpCode::TEXT || opcode == OpCode::TEXT) {
                 if (!isValidUtf8(socket->ReceiveBuffer, socket->ReceiveBufferSize)) {
-                    return sendclosemessage<isServer>(parent, socket, 1007, "Frame not valid utf8");
+                    return sendclosemessage<isServer>(socket, 1007, "Frame not valid utf8");
                 }
             }
-            if (parent->onMessage) {
+            if (socket->Parent->onMessage) {
+                if (getrsv1(socket->ReceiveHeader) && socket->ExtensionOption == ExtensionOptions::DEFLATE) {
+                }
+
                 auto unpacked =
                     WSMessage{socket->ReceiveBuffer, socket->ReceiveBufferSize, socket->LastOpCode != OpCode::INVALID ? socket->LastOpCode : opcode};
-                parent->onMessage(socket, unpacked);
+                socket->Parent->onMessage(socket, unpacked);
             }
-            ReadHeaderStart<isServer>(parent, socket, extradata);
         }
+        ReadHeaderStart<isServer>(socket, extradata);
     }
+
     template <bool isServer, class SOCKETTYPE>
-    inline void SendPong(const std::shared_ptr<WSContext> parent, const SOCKETTYPE &socket, const std::shared_ptr<unsigned char> &buffer, size_t size)
+    inline void SendPong(const SOCKETTYPE &socket, const std::shared_ptr<unsigned char> &buffer, size_t size)
     {
         WSMessage msg;
         msg.Buffer = buffer;
@@ -320,72 +313,70 @@ namespace WS_LITE {
         msg.code = OpCode::PONG;
         msg.data = msg.Buffer.get();
 
-        sendImpl<isServer>(parent, socket, msg, CompressionOptions::NO_COMPRESSION);
+        sendImpl<isServer>(socket, msg, CompressionOptions::NO_COMPRESSION);
     }
     template <bool isServer, class SOCKETTYPE>
-    inline void ProcessClose(const std::shared_ptr<WSContext> parent, const SOCKETTYPE &socket, const std::shared_ptr<unsigned char> &buffer,
-                             size_t size)
+    inline void ProcessClose(const SOCKETTYPE &socket, const std::shared_ptr<unsigned char> &buffer, size_t size)
     {
         if (size >= 2) {
             auto closecode = hton(*reinterpret_cast<unsigned short *>(buffer.get()));
             if (size > 2) {
                 if (!isValidUtf8(buffer.get() + sizeof(closecode), size - sizeof(closecode))) {
-                    return sendclosemessage<isServer>(parent, socket, 1007, "Frame not valid utf8");
+                    return sendclosemessage<isServer>(socket, 1007, "Frame not valid utf8");
                 }
             }
 
             if (((closecode >= 1000 && closecode <= 1011) || (closecode >= 3000 && closecode <= 4999)) && closecode != 1004 && closecode != 1005 &&
                 closecode != 1006) {
-                return sendclosemessage<isServer>(parent, socket, 1000, "");
+                return sendclosemessage<isServer>(socket, 1000, "");
             }
             else {
-                return sendclosemessage<isServer>(parent, socket, 1002, "");
+                return sendclosemessage<isServer>(socket, 1002, "");
             }
         }
         else if (size != 0) {
-            return sendclosemessage<isServer>(parent, socket, 1002, "");
+            return sendclosemessage<isServer>(socket, 1002, "");
         }
-        return sendclosemessage<isServer>(parent, socket, 1000, "");
+        return sendclosemessage<isServer>(socket, 1000, "");
     }
     template <bool isServer, class SOCKETTYPE>
-    inline void ProcessControlMessage(const std::shared_ptr<WSContext> parent, const SOCKETTYPE &socket, const std::shared_ptr<unsigned char> &buffer,
-                                      size_t size, const std::shared_ptr<asio::streambuf> &extradata)
+    inline void ProcessControlMessage(const SOCKETTYPE &socket, const std::shared_ptr<unsigned char> &buffer, size_t size,
+                                      const std::shared_ptr<asio::streambuf> &extradata)
     {
         if (!getFin(socket->ReceiveHeader)) {
-            return sendclosemessage<isServer>(parent, socket, 1002, "Closing connection. Control Frames must be Fin");
+            return sendclosemessage<isServer>(socket, 1002, "Closing connection. Control Frames must be Fin");
         }
         auto opcode = static_cast<OpCode>(getOpCode(socket->ReceiveHeader));
 
         switch (opcode) {
         case OpCode::PING:
-            if (parent->onPing) {
-                parent->onPing(socket, buffer.get(), size);
+            if (socket->Parent->onPing) {
+                socket->Parent->onPing(socket, buffer.get(), size);
             }
-            SendPong<isServer>(parent, socket, buffer, size);
+            SendPong<isServer>(socket, buffer, size);
             break;
         case OpCode::PONG:
-            if (parent->onPong) {
-                parent->onPong(socket, buffer.get(), size);
+            if (socket->Parent->onPong) {
+                socket->Parent->onPong(socket, buffer.get(), size);
             }
             break;
         case OpCode::CLOSE:
-            return ProcessClose<isServer>(parent, socket, buffer, size);
+            return ProcessClose<isServer>(socket, buffer, size);
 
         default:
-            return sendclosemessage<isServer>(parent, socket, 1002, "Closing connection. nonvalid op code");
+            return sendclosemessage<isServer>(socket, 1002, "Closing connection. nonvalid op code");
         }
-        ReadHeaderNext<isServer>(parent, socket, extradata);
+        ReadHeaderNext<isServer>(socket, extradata);
     }
 
-    template <bool isServer, class SOCKETTYPE>
-    inline void ReadBody(const std::shared_ptr<WSContext> parent, const SOCKETTYPE &socket, const std::shared_ptr<asio::streambuf> &extradata)
+    template <bool isServer, class SOCKETTYPE> inline void ReadBody(const SOCKETTYPE &socket, const std::shared_ptr<asio::streambuf> &extradata)
     {
         if (!DidPassMaskRequirement(socket->ReceiveHeader, isServer)) { // Close connection if it did not meet the mask requirement.
-            return sendclosemessage<isServer>(parent, socket, 1002, "Closing connection because mask requirement not met");
+            return sendclosemessage<isServer>(socket, 1002, "Closing connection because mask requirement not met");
         }
         if (getrsv2(socket->ReceiveHeader) || getrsv3(socket->ReceiveHeader) ||
             (getrsv1(socket->ReceiveHeader) && socket->ExtensionOption == ExtensionOptions::NO_OPTIONS)) {
-            return sendclosemessage<isServer>(parent, socket, 1002, "Closing connection. rsv bit set");
+            return sendclosemessage<isServer>(socket, 1002, "Closing connection. rsv bit set");
         }
         auto opcode = static_cast<OpCode>(getOpCode(socket->ReceiveHeader));
 
@@ -397,7 +388,7 @@ namespace WS_LITE {
         case 127:
             size = static_cast<size_t>(ntoh(getpayloadLength8(socket->ReceiveHeader)));
             if (size > std::numeric_limits<std::size_t>::max()) {
-                return sendclosemessage<isServer>(parent, socket, 1009, "Payload exceeded MaxPayload size");
+                return sendclosemessage<isServer>(socket, 1009, "Payload exceeded MaxPayload size");
             }
             break;
         default:
@@ -407,8 +398,7 @@ namespace WS_LITE {
         size += AdditionalBodyBytesToRead(isServer);
         if (opcode == OpCode::PING || opcode == OpCode::PONG || opcode == OpCode::CLOSE) {
             if (size - AdditionalBodyBytesToRead(isServer) > CONTROLBUFFERMAXSIZE) {
-                return sendclosemessage<isServer>(parent, socket, 1002,
-                                                  "Payload exceeded for control frames. Size requested " + std::to_string(size));
+                return sendclosemessage<isServer>(socket, 1002, "Payload exceeded for control frames. Size requested " + std::to_string(size));
             }
             else if (size > 0) {
                 auto buffer = std::shared_ptr<unsigned char>(new unsigned char[size], [](unsigned char *p) { delete[] p; });
@@ -418,20 +408,20 @@ namespace WS_LITE {
                 bytestoread -= dataconsumed;
 
                 asio::async_read(socket->Socket, asio::buffer(buffer.get() + dataconsumed, bytestoread),
-                                 [size, extradata, parent, socket, buffer](const std::error_code &ec, size_t) {
+                                 [size, extradata, socket, buffer](const std::error_code &ec, size_t) {
                                      if (!ec) {
                                          UnMaskMessage(size, buffer.get(), isServer);
                                          auto tempsize = size - AdditionalBodyBytesToRead(isServer);
-                                         return ProcessControlMessage<isServer>(parent, socket, buffer, tempsize, extradata);
+                                         return ProcessControlMessage<isServer>(socket, buffer, tempsize, extradata);
                                      }
                                      else {
-                                         return sendclosemessage<isServer>(parent, socket, 1002, "ReadBody Error " + ec.message());
+                                         return sendclosemessage<isServer>(socket, 1002, "ReadBody Error " + ec.message());
                                      }
                                  });
             }
             else {
                 std::shared_ptr<unsigned char> ptr;
-                return ProcessControlMessage<isServer>(parent, socket, ptr, 0, extradata);
+                return ProcessControlMessage<isServer>(socket, ptr, 0, extradata);
             }
         }
 
@@ -439,23 +429,23 @@ namespace WS_LITE {
             auto addedsize = socket->ReceiveBufferSize + size;
             if (addedsize > std::numeric_limits<std::size_t>::max()) {
                 SL_WS_LITE_LOG(Logging_Levels::ERROR_log_level, "payload exceeds memory on system!!! ");
-                return sendclosemessage<isServer>(parent, socket, 1009, "Payload exceeded MaxPayload size");
+                return sendclosemessage<isServer>(socket, 1009, "Payload exceeded MaxPayload size");
             }
             socket->ReceiveBufferSize = addedsize;
 
-            if (socket->ReceiveBufferSize > parent->MaxPayload) {
-                return sendclosemessage<isServer>(parent, socket, 1009, "Payload exceeded MaxPayload size");
+            if (socket->ReceiveBufferSize > socket->Parent->MaxPayload) {
+                return sendclosemessage<isServer>(socket, 1009, "Payload exceeded MaxPayload size");
             }
             if (socket->ReceiveBufferSize > std::numeric_limits<std::size_t>::max()) {
                 SL_WS_LITE_LOG(Logging_Levels::ERROR_log_level, "payload exceeds memory on system!!! ");
-                return sendclosemessage<isServer>(parent, socket, 1009, "Payload exceeded MaxPayload size");
+                return sendclosemessage<isServer>(socket, 1009, "Payload exceeded MaxPayload size");
             }
 
             if (size > 0) {
                 socket->ReceiveBuffer = static_cast<unsigned char *>(realloc(socket->ReceiveBuffer, socket->ReceiveBufferSize));
                 if (!socket->ReceiveBuffer) {
                     SL_WS_LITE_LOG(Logging_Levels::ERROR_log_level, "MEMORY ALLOCATION ERROR!!! Tried to realloc " << socket->ReceiveBufferSize);
-                    return sendclosemessage<isServer>(parent, socket, 1009, "Payload exceeded MaxPayload size");
+                    return sendclosemessage<isServer>(socket, 1009, "Payload exceeded MaxPayload size");
                 }
 
                 auto bytestoread = size;
@@ -463,81 +453,78 @@ namespace WS_LITE {
                 bytestoread -= dataconsumed;
 
                 asio::async_read(socket->Socket, asio::buffer(socket->ReceiveBuffer + socket->ReceiveBufferSize - size + dataconsumed, bytestoread),
-                                 [size, extradata, parent, socket](const std::error_code &ec, size_t) {
+                                 [size, extradata, socket](const std::error_code &ec, size_t) {
                                      if (!ec) {
                                          auto buffer = socket->ReceiveBuffer + socket->ReceiveBufferSize - size;
                                          UnMaskMessage(size, buffer, isServer);
                                          socket->ReceiveBufferSize -= AdditionalBodyBytesToRead(isServer);
-                                         return ProcessMessage<isServer>(parent, socket, extradata);
+                                         return ProcessMessage<isServer>(socket, extradata);
                                      }
                                      else {
-                                         return sendclosemessage<isServer>(parent, socket, 1002, "ReadBody Error " + ec.message());
+                                         return sendclosemessage<isServer>(socket, 1002, "ReadBody Error " + ec.message());
                                      }
                                  });
             }
             else {
-                return ProcessMessage<isServer>(parent, socket, extradata);
+                return ProcessMessage<isServer>(socket, extradata);
             }
         }
         else {
-            return sendclosemessage<isServer>(parent, socket, 1002, "Closing connection. nonvalid op code");
+            return sendclosemessage<isServer>(socket, 1002, "Closing connection. nonvalid op code");
         }
     }
 
-    template <bool isServer, class SOCKETTYPE>
-    void ReadHeaderNext(const std::shared_ptr<WSContext> parent, const SOCKETTYPE &socket, const std::shared_ptr<asio::streambuf> &extradata)
+    template <bool isServer, class SOCKETTYPE> void ReadHeaderNext(const SOCKETTYPE &socket, const std::shared_ptr<asio::streambuf> &extradata)
     {
-        readexpire_from_now<isServer>(parent, socket, parent->ReadTimeout);
+        readexpire_from_now<isServer>(socket, socket->Parent->ReadTimeout);
         size_t bytestoread = 2;
         auto dataconsumed = ReadFromExtraData(socket->ReceiveHeader, bytestoread, extradata);
         bytestoread -= dataconsumed;
 
-        asio::async_read(socket->Socket, asio::buffer(socket->ReceiveHeader + dataconsumed, bytestoread),
-                         [parent, socket, extradata](const std::error_code &ec, size_t) {
-                             if (!ec) {
-                                 size_t bytestoread = getpayloadLength1(socket->ReceiveHeader);
-                                 switch (bytestoread) {
-                                 case 126:
-                                     bytestoread = 2;
-                                     break;
-                                 case 127:
-                                     bytestoread = 8;
-                                     break;
-                                 default:
-                                     bytestoread = 0;
-                                 }
-                                 if (bytestoread > 1) {
-                                     auto dataconsumed = ReadFromExtraData(socket->ReceiveHeader + 2, bytestoread, extradata);
-                                     bytestoread -= dataconsumed;
+        asio::async_read(
+            socket->Socket, asio::buffer(socket->ReceiveHeader + dataconsumed, bytestoread), [socket, extradata](const std::error_code &ec, size_t) {
+                if (!ec) {
+                    size_t bytestoread = getpayloadLength1(socket->ReceiveHeader);
+                    switch (bytestoread) {
+                    case 126:
+                        bytestoread = 2;
+                        break;
+                    case 127:
+                        bytestoread = 8;
+                        break;
+                    default:
+                        bytestoread = 0;
+                    }
+                    if (bytestoread > 1) {
+                        auto dataconsumed = ReadFromExtraData(socket->ReceiveHeader + 2, bytestoread, extradata);
+                        bytestoread -= dataconsumed;
 
-                                     asio::async_read(socket->Socket, asio::buffer(socket->ReceiveHeader + 2 + dataconsumed, bytestoread),
-                                                      [parent, socket, extradata](const std::error_code &ec, size_t) {
-                                                          if (!ec) {
-                                                              ReadBody<isServer>(parent, socket, extradata);
-                                                          }
-                                                          else {
-                                                              return sendclosemessage<isServer>(parent, socket, 1002,
-                                                                                                "readheader ExtendedPayloadlen " + ec.message());
-                                                          }
-                                                      });
-                                 }
-                                 else {
-                                     ReadBody<isServer>(parent, socket, extradata);
-                                 }
-                             }
-                             else {
-                                 return sendclosemessage<isServer>(parent, socket, 1002, "WebSocket ReadHeader failed " + ec.message());
-                             }
-                         });
+                        asio::async_read(socket->Socket, asio::buffer(socket->ReceiveHeader + 2 + dataconsumed, bytestoread),
+                                         [socket, extradata](const std::error_code &ec, size_t) {
+                                             if (!ec) {
+                                                 ReadBody<isServer>(socket, extradata);
+                                             }
+                                             else {
+                                                 return sendclosemessage<isServer>(socket, 1002, "readheader ExtendedPayloadlen " + ec.message());
+                                             }
+                                         });
+                    }
+                    else {
+                        ReadBody<isServer>(socket, extradata);
+                    }
+                }
+                else {
+                    return sendclosemessage<isServer>(socket, 1002, "WebSocket ReadHeader failed " + ec.message());
+                }
+            });
     }
-    template <bool isServer, class SOCKETTYPE>
-    void ReadHeaderStart(const std::shared_ptr<WSContext> parent, const SOCKETTYPE &socket, const std::shared_ptr<asio::streambuf> &extradata)
+    template <bool isServer, class SOCKETTYPE> void ReadHeaderStart(const SOCKETTYPE &socket, const std::shared_ptr<asio::streambuf> &extradata)
     {
         free(socket->ReceiveBuffer);
         socket->ReceiveBuffer = nullptr;
         socket->ReceiveBufferSize = 0;
         socket->LastOpCode = OpCode::INVALID;
-        ReadHeaderNext<isServer>(parent, socket, extradata);
+        ReadHeaderNext<isServer>(socket, extradata);
     }
 
     class WSClient final : public IWSHub {

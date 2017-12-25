@@ -32,7 +32,7 @@ namespace WS_LITE {
 
                     if (auto[response, parsesuccess] = CreateHandShake(handshakecontainer->Header); parsesuccess) {
                         handshakecontainer->Write = response;
-                        if (listener->ExtensionOptions_ != ExtensionOptions::NO_OPTIONS) {
+                        if (socket->Parent->ExtensionOptions_ != ExtensionOptions::NO_OPTIONS) {
                             auto[headerresponse, agreedcompression] = CreateExtensionOffer(handshakecontainer->Header);
                             handshakecontainer->Write += headerresponse;
                             socket->ExtensionOption = agreedcompression;
@@ -47,12 +47,12 @@ namespace WS_LITE {
                                                                  "Connected: Sent Handshake bytes " << bytes_transferred);
 
                                                   socket->SocketStatus_ = SocketStatus::CONNECTED;
-                                                  if (listener->onConnection) {
-                                                      listener->onConnection(socket, handshakecontainer->Header);
+                                                  if (socket->Parent->onConnection) {
+                                                      socket->Parent->onConnection(socket, handshakecontainer->Header);
                                                   }
                                                   auto bufptr = std::make_shared<asio::streambuf>();
-                                                  ReadHeaderStart<true>(listener, socket, bufptr);
-                                                  start_ping<true>(listener, socket, std::chrono::seconds(5));
+                                                  ReadHeaderStart<true>(socket, bufptr);
+                                                  start_ping<true>(socket, std::chrono::seconds(5));
                                               }
                                               else {
                                                   socket->SocketStatus_ = SocketStatus::CLOSED;
@@ -93,8 +93,8 @@ namespace WS_LITE {
     template <typename SOCKETCREATOR>
     void Listen(const std::shared_ptr<WSContext> &listener, SOCKETCREATOR &&socketcreator, bool no_delay, bool reuse_address)
     {
-
-        auto socket = socketcreator(listener);
+        auto res = listener->getnextContext();
+        auto socket = socketcreator(res);
         socket->SocketStatus_ = SocketStatus::CONNECTING;
         listener->acceptor->async_accept(socket->Socket.lowest_layer(),
                                          [listener, socket, socketcreator, no_delay, reuse_address](const std::error_code &ec) {
@@ -119,61 +119,94 @@ namespace WS_LITE {
                                          });
     }
 
-    void WSListener::set_ReadTimeout(std::chrono::seconds seconds) { Impl_->ReadTimeout = seconds; }
-    std::chrono::seconds WSListener::get_ReadTimeout() { return Impl_->ReadTimeout; }
-    void WSListener::set_WriteTimeout(std::chrono::seconds seconds) { Impl_->WriteTimeout = seconds; }
-    std::chrono::seconds WSListener::get_WriteTimeout() { return Impl_->WriteTimeout; }
-    void WSListener::set_MaxPayload(size_t bytes) { Impl_->MaxPayload = bytes; }
-    size_t WSListener::get_MaxPayload() { return Impl_->MaxPayload; }
+    void WSListener::set_ReadTimeout(std::chrono::seconds seconds)
+    {
+        for (auto &t : Impl_->ThreadContexts) {
+            t->ReadTimeout = seconds;
+        }
+    }
+    std::chrono::seconds WSListener::get_ReadTimeout()
+    {
+        return Impl_->ThreadContexts.empty() ? std::chrono::seconds(1) : Impl_->ThreadContexts.front()->ReadTimeout;
+    }
+    void WSListener::set_WriteTimeout(std::chrono::seconds seconds)
+    {
+        for (auto &t : Impl_->ThreadContexts) {
+            t->WriteTimeout = seconds;
+        }
+    }
+    std::chrono::seconds WSListener::get_WriteTimeout()
+    {
+        return Impl_->ThreadContexts.empty() ? std::chrono::seconds(1) : Impl_->ThreadContexts.front()->WriteTimeout;
+    }
+    void WSListener::set_MaxPayload(size_t bytes)
+    {
+        for (auto &t : Impl_->ThreadContexts) {
+            t->MaxPayload = bytes;
+        }
+    }
+    size_t WSListener::get_MaxPayload() { return Impl_->ThreadContexts.empty() ? 1024 * 1024 * 20 : Impl_->ThreadContexts.front()->MaxPayload; }
 
     std::shared_ptr<IWSListener_Configuration>
     WSListener_Configuration::onConnection(const std::function<void(const std::shared_ptr<IWSocket> &, const HttpHeader &)> &handle)
     {
-        assert(!Impl_->onConnection);
-        Impl_->onConnection = handle;
+        for (auto &t : Impl_->ThreadContexts) {
+            assert(!t->onConnection);
+            t->onConnection = handle;
+        }
         return std::make_shared<WSListener_Configuration>(Impl_);
     }
     std::shared_ptr<IWSListener_Configuration>
     WSListener_Configuration::onMessage(const std::function<void(const std::shared_ptr<IWSocket> &, const WSMessage &)> &handle)
     {
-        assert(!Impl_->onMessage);
-        Impl_->onMessage = handle;
+        for (auto &t : Impl_->ThreadContexts) {
+            assert(!t->onMessage);
+            t->onMessage = handle;
+        }
         return std::make_shared<WSListener_Configuration>(Impl_);
     }
     std::shared_ptr<IWSListener_Configuration> WSListener_Configuration::onDisconnection(
         const std::function<void(const std::shared_ptr<IWSocket> &, unsigned short, const std::string &)> &handle)
     {
-        assert(!Impl_->onDisconnection);
-        Impl_->onDisconnection = handle;
+
+        for (auto &t : Impl_->ThreadContexts) {
+            assert(!t->onDisconnection);
+            t->onDisconnection = handle;
+        }
         return std::make_shared<WSListener_Configuration>(Impl_);
     }
     std::shared_ptr<IWSListener_Configuration>
     WSListener_Configuration::onPing(const std::function<void(const std::shared_ptr<IWSocket> &, const unsigned char *, size_t)> &handle)
     {
-        assert(!Impl_->onPing);
-        Impl_->onPing = handle;
+        for (auto &t : Impl_->ThreadContexts) {
+            assert(!t->onPing);
+            t->onPing = handle;
+        }
         return std::make_shared<WSListener_Configuration>(Impl_);
     }
     std::shared_ptr<IWSListener_Configuration>
     WSListener_Configuration::onPong(const std::function<void(const std::shared_ptr<IWSocket> &, const unsigned char *, size_t)> &handle)
     {
-        assert(!Impl_->onPong);
-        Impl_->onPong = handle;
+
+        for (auto &t : Impl_->ThreadContexts) {
+            assert(!t->onPong);
+            t->onPong = handle;
+        }
         return std::make_shared<WSListener_Configuration>(Impl_);
     }
     std::shared_ptr<IWSHub> WSListener_Configuration::listen(bool no_delay, bool reuse_address)
     {
-        if (Impl_->TLSEnabled) {
-            auto createsocket = [](auto c) {
-                auto &res = c->getnextContext();
-                return std::make_shared<WSocket<true, asio::ssl::stream<asio::ip::tcp::socket>>>(c, res.io_service, res.context);
+        auto tlsenabled = Impl_->ThreadContexts.empty() ? false : Impl_->ThreadContexts.front()->TLSEnabled;
+
+        if (tlsenabled) {
+            auto createsocket = [](const std::shared_ptr<ThreadContext> &res) {
+                return std::make_shared<WSocket<true, asio::ssl::stream<asio::ip::tcp::socket>>>(res, res->io_service, res->context);
             };
             Listen(Impl_, createsocket, no_delay, reuse_address);
         }
         else {
-            auto createsocket = [](auto c) {
-                auto &res = c->getnextContext();
-                return std::make_shared<WSocket<true, asio::ip::tcp::socket>>(c, res.io_service);
+            auto createsocket = [](const std::shared_ptr<ThreadContext> &res) {
+                return std::make_shared<WSocket<true, asio::ip::tcp::socket>>(res, res->io_service);
             };
             Listen(Impl_, createsocket, no_delay, reuse_address);
         }

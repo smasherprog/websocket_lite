@@ -70,25 +70,25 @@ namespace WS_LITE {
                                                        SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "Connected ");
 
                                                        socket->SocketStatus_ = SocketStatus::CONNECTED;
-                                                       start_ping<false>(self, socket, std::chrono::seconds(5));
-                                                       if (self->onConnection) {
-                                                           self->onConnection(socket, header);
+                                                       start_ping<false>(socket, std::chrono::seconds(5));
+                                                       if (socket->Parent->onConnection) {
+                                                           socket->Parent->onConnection(socket, header);
                                                        }
-                                                       ReadHeaderStart<false>(self, socket, read_buffer);
+                                                       ReadHeaderStart<false>(socket, read_buffer);
                                                    }
                                                    else {
                                                        socket->SocketStatus_ = SocketStatus::CLOSED;
                                                        SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "WebSocket handshake failed  ");
-                                                       if (self->onDisconnection) {
-                                                           self->onDisconnection(socket, 1002, "WebSocket handshake failed  ");
+                                                       if (socket->Parent->onDisconnection) {
+                                                           socket->Parent->onDisconnection(socket, 1002, "WebSocket handshake failed  ");
                                                        }
                                                    }
                                                }
                                                else {
                                                    socket->SocketStatus_ = SocketStatus::CLOSED;
                                                    SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "async_read_until failed  " << ec.message());
-                                                   if (self->onDisconnection) {
-                                                       self->onDisconnection(socket, 1002, "async_read_until failed  " + ec.message());
+                                                   if (socket->Parent->onDisconnection) {
+                                                       socket->Parent->onDisconnection(socket, 1002, "async_read_until failed  " + ec.message());
                                                    }
                                                }
                                            });
@@ -96,8 +96,8 @@ namespace WS_LITE {
                 else {
                     socket->SocketStatus_ = SocketStatus::CLOSED;
                     SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "Failed sending handshake" << ec.message());
-                    if (self->onDisconnection) {
-                        self->onDisconnection(socket, 1002, "Failed sending handshake" + ec.message());
+                    if (socket->Parent->onDisconnection) {
+                        socket->Parent->onDisconnection(socket, 1002, "Failed sending handshake" + ec.message());
                     }
                 }
             });
@@ -117,8 +117,8 @@ namespace WS_LITE {
             else {
                 socket->SocketStatus_ = SocketStatus::CLOSED;
                 SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "Failed async_handshake " << ec.message());
-                if (self->onDisconnection) {
-                    self->onDisconnection(socket, 1002, "Failed async_handshake " + ec.message());
+                if (socket->Parent->onDisconnection) {
+                    socket->Parent->onDisconnection(socket, 1002, "Failed async_handshake " + ec.message());
                 }
             }
         });
@@ -127,8 +127,8 @@ namespace WS_LITE {
     void Connect(const std::shared_ptr<WSContext> self, const std::string &host, PortNumber port, bool no_delay, SOCKETCREATOR &&socketcreator,
                  const std::string &endpoint, const std::unordered_map<std::string, std::string> &extraheaders)
     {
-
-        auto socket = socketcreator(self);
+        auto res = self->getnextContext();
+        auto socket = socketcreator(res);
         socket->SocketStatus_ = SocketStatus::CONNECTING;
 
         auto portstr = std::to_string(port.value);
@@ -159,71 +159,102 @@ namespace WS_LITE {
                     else {
                         SL_WS_LITE_LOG(Logging_Levels::INFO_log_level, "Failed async_connect " << ec.message());
                         socket->SocketStatus_ = SocketStatus::CLOSED;
-                        if (self->onDisconnection) {
-                            self->onDisconnection(socket, 1002, "Failed async_connect " + ec.message());
+                        if (socket->Parent->onDisconnection) {
+                            socket->Parent->onDisconnection(socket, 1002, "Failed async_connect " + ec.message());
                         }
                     }
                 });
         });
     }
-
-    void WSClient::set_ReadTimeout(std::chrono::seconds seconds) { Impl_->ReadTimeout = seconds; }
-    std::chrono::seconds WSClient::get_ReadTimeout() { return Impl_->ReadTimeout; }
-    void WSClient::set_WriteTimeout(std::chrono::seconds seconds) { Impl_->WriteTimeout = seconds; }
-    std::chrono::seconds WSClient::get_WriteTimeout() { return Impl_->WriteTimeout; }
-    void WSClient::set_MaxPayload(size_t bytes) { Impl_->MaxPayload = bytes; }
-    size_t WSClient::get_MaxPayload() { return Impl_->MaxPayload; }
+    void WSClient::set_ReadTimeout(std::chrono::seconds seconds)
+    {
+        for (auto &t : Impl_->ThreadContexts) {
+            t->ReadTimeout = seconds;
+        }
+    }
+    std::chrono::seconds WSClient::get_ReadTimeout()
+    {
+        return Impl_->ThreadContexts.empty() ? std::chrono::seconds(1) : Impl_->ThreadContexts.front()->ReadTimeout;
+    }
+    void WSClient::set_WriteTimeout(std::chrono::seconds seconds)
+    {
+        for (auto &t : Impl_->ThreadContexts) {
+            t->WriteTimeout = seconds;
+        }
+    }
+    std::chrono::seconds WSClient::get_WriteTimeout()
+    {
+        return Impl_->ThreadContexts.empty() ? std::chrono::seconds(1) : Impl_->ThreadContexts.front()->WriteTimeout;
+    }
+    void WSClient::set_MaxPayload(size_t bytes)
+    {
+        for (auto &t : Impl_->ThreadContexts) {
+            t->MaxPayload = bytes;
+        }
+    }
+    size_t WSClient::get_MaxPayload() { return Impl_->ThreadContexts.empty() ? 1024 * 1024 * 20 : Impl_->ThreadContexts.front()->MaxPayload; }
 
     std::shared_ptr<IWSClient_Configuration>
     WSClient_Configuration::onConnection(const std::function<void(const std::shared_ptr<IWSocket> &, const HttpHeader &)> &handle)
     {
-        assert(!Impl_->onConnection);
-        Impl_->onConnection = handle;
+        for (auto &t : Impl_->ThreadContexts) {
+            assert(!t->onConnection);
+            t->onConnection = handle;
+        }
         return std::make_shared<WSClient_Configuration>(Impl_);
     }
     std::shared_ptr<IWSClient_Configuration>
     WSClient_Configuration::onMessage(const std::function<void(const std::shared_ptr<IWSocket> &, const WSMessage &)> &handle)
     {
-        assert(!Impl_->onMessage);
-        Impl_->onMessage = handle;
+        for (auto &t : Impl_->ThreadContexts) {
+            assert(!t->onMessage);
+            t->onMessage = handle;
+        }
         return std::make_shared<WSClient_Configuration>(Impl_);
     }
     std::shared_ptr<IWSClient_Configuration>
     WSClient_Configuration::onDisconnection(const std::function<void(const std::shared_ptr<IWSocket> &, unsigned short, const std::string &)> &handle)
     {
-        assert(!Impl_->onDisconnection);
-        Impl_->onDisconnection = handle;
+
+        for (auto &t : Impl_->ThreadContexts) {
+            assert(!t->onDisconnection);
+            t->onDisconnection = handle;
+        }
         return std::make_shared<WSClient_Configuration>(Impl_);
     }
     std::shared_ptr<IWSClient_Configuration>
     WSClient_Configuration::onPing(const std::function<void(const std::shared_ptr<IWSocket> &, const unsigned char *, size_t)> &handle)
     {
-        assert(!Impl_->onPing);
-        Impl_->onPing = handle;
+        for (auto &t : Impl_->ThreadContexts) {
+            assert(!t->onPing);
+            t->onPing = handle;
+        }
         return std::make_shared<WSClient_Configuration>(Impl_);
     }
     std::shared_ptr<IWSClient_Configuration>
     WSClient_Configuration::onPong(const std::function<void(const std::shared_ptr<IWSocket> &, const unsigned char *, size_t)> &handle)
     {
-        assert(!Impl_->onPong);
-        Impl_->onPong = handle;
+
+        for (auto &t : Impl_->ThreadContexts) {
+            assert(!t->onPong);
+            t->onPong = handle;
+        }
         return std::make_shared<WSClient_Configuration>(Impl_);
     }
-
     std::shared_ptr<IWSHub> WSClient_Configuration::connect(const std::string &host, PortNumber port, bool no_delay, const std::string &endpoint,
                                                             const std::unordered_map<std::string, std::string> &extraheaders)
     {
-        if (Impl_->TLSEnabled) {
-            auto createsocket = [](auto c) {
-                auto &res = c->getnextContext();
-                return std::make_shared<WSocket<false, asio::ssl::stream<asio::ip::tcp::socket>>>(c, res.io_service, res.context);
+        auto tlsenabled = Impl_->ThreadContexts.empty() ? false : Impl_->ThreadContexts.front()->TLSEnabled;
+
+        if (tlsenabled) {
+            auto createsocket = [](const std::shared_ptr<ThreadContext> &res) {
+                return std::make_shared<WSocket<false, asio::ssl::stream<asio::ip::tcp::socket>>>(res, res->io_service, res->context);
             };
             Connect(Impl_, host, port, no_delay, createsocket, endpoint, extraheaders);
         }
         else {
-            auto createsocket = [](auto c) {
-                auto &res = c->getnextContext();
-                return std::make_shared<WSocket<false, asio::ip::tcp::socket>>(c, res.io_service);
+            auto createsocket = [](const std::shared_ptr<ThreadContext> &res) {
+                return std::make_shared<WSocket<false, asio::ip::tcp::socket>>(res, res->io_service);
             };
             Connect(Impl_, host, port, no_delay, createsocket, endpoint, extraheaders);
         }

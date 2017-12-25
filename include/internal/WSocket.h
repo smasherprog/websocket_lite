@@ -19,15 +19,15 @@ namespace WS_LITE {
         CompressionOptions compressmessage;
     };
     enum class IOStatus : unsigned char { NOTWRITING, WRITING };
-    class WSContext;
+    struct ThreadContext;
     template <bool isServer, class SOCKETTYPE> class WSocket final : public IWSocket {
 
       public:
-        WSocket(const std::shared_ptr<WSContext> &s, asio::io_service &ioservice, asio::ssl::context &sslcontext)
+        WSocket(const std::shared_ptr<ThreadContext> &s, asio::io_service &ioservice, asio::ssl::context &sslcontext)
             : Parent(s), Socket(ioservice, sslcontext), ping_deadline(ioservice), read_deadline(ioservice), write_deadline(ioservice)
         {
         }
-        WSocket(const std::shared_ptr<WSContext> &s, asio::io_service &ioservice)
+        WSocket(const std::shared_ptr<ThreadContext> &s, asio::io_service &ioservice)
             : Parent(s), Socket(ioservice), ping_deadline(ioservice), read_deadline(ioservice), write_deadline(ioservice)
         {
         }
@@ -91,10 +91,7 @@ namespace WS_LITE {
         {
             if (SocketStatus_ == SocketStatus::CONNECTED) { // only send to a conected socket
                 auto self(std::static_pointer_cast<WSocket<isServer, SOCKETTYPE>>(shared_from_this()));
-                auto p(Parent);
-                if (p) {
-                    sendImpl<isServer>(p, self, msg, compressmessage);
-                }
+                sendImpl<isServer>(self, msg, compressmessage);
             }
         }
         // send a close message and close the socket
@@ -102,10 +99,7 @@ namespace WS_LITE {
         {
             if (SocketStatus_ == SocketStatus::CONNECTED) { // only send a close to an open socket
                 auto self(std::static_pointer_cast<WSocket<isServer, SOCKETTYPE>>(shared_from_this()));
-                auto p(Parent);
-                if (p) {
-                    sendclosemessage<isServer>(p, self, code, msg);
-                }
+                sendclosemessage<isServer>(self, code, msg);
             }
         }
         void canceltimers()
@@ -125,7 +119,7 @@ namespace WS_LITE {
         SocketStatus SocketStatus_ = SocketStatus::CLOSED;
         IOStatus Writing = IOStatus::NOTWRITING;
         OpCode LastOpCode = OpCode::INVALID;
-        std::shared_ptr<WSContext> Parent;
+        std::shared_ptr<ThreadContext> Parent;
         SOCKETTYPE Socket;
         size_t Bytes_PendingFlush = 0;
 
