@@ -69,7 +69,7 @@ namespace WS_LITE {
                     msg.len = sizeof(p);
                     msg.code = OpCode::PING;
                     msg.data = msg.Buffer.get();
-                    SL::WS_LITE::sendImpl<isServer>(socket, msg, CompressionOptions::NO_COMPRESSION);
+                    sendImpl<isServer>(socket, msg, CompressionOptions::NO_COMPRESSION);
                     start_ping<isServer>(socket, secs);
                 }
             });
@@ -199,7 +199,7 @@ namespace WS_LITE {
                 }
                 socket->Bytes_PendingFlush += msg.len;
                 socket->AddMsg(msg, compressmessage);
-                SL::WS_LITE::startwrite<isServer>(socket);
+                startwrite<isServer>(socket);
             }
         });
     }
