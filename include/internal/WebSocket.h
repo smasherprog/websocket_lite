@@ -18,19 +18,19 @@ namespace WS_LITE {
         WSMessage msg;
         CompressionOptions compressmessage;
     };
-    struct ThreadContext;
-    template <bool isServer, class SOCKETTYPE> class WSocket final : public IWSocket {
+    struct WebSocketContext;
+    template <bool isServer, class SOCKETTYPE> class WebSocket final : public IWebSocket {
 
       public:
-        WSocket(const std::shared_ptr<ThreadContext> &s, asio::io_service &ioservice, asio::ssl::context &sslcontext)
+        WebSocket(const std::shared_ptr<WebSocketContext> &s, asio::io_service &ioservice, asio::ssl::context &sslcontext)
             : Parent(s), Socket(ioservice, sslcontext), ping_deadline(ioservice), read_deadline(ioservice), write_deadline(ioservice)
         {
         }
-        WSocket(const std::shared_ptr<ThreadContext> &s, asio::io_service &ioservice)
+        WebSocket(const std::shared_ptr<WebSocketContext> &s, asio::io_service &ioservice)
             : Parent(s), Socket(ioservice), ping_deadline(ioservice), read_deadline(ioservice), write_deadline(ioservice)
         {
         }
-        virtual ~WSocket()
+        virtual ~WebSocket()
         {
             SocketStatus_ = SocketStatus::CLOSED;
             canceltimers();
@@ -89,7 +89,7 @@ namespace WS_LITE {
         virtual void send(const WSMessage &msg, CompressionOptions compressmessage) override
         {
             if (SocketStatus_ == SocketStatus::CONNECTED) { // only send to a conected socket
-                auto self(std::static_pointer_cast<WSocket<isServer, SOCKETTYPE>>(shared_from_this()));
+                auto self(std::static_pointer_cast<WebSocket<isServer, SOCKETTYPE>>(shared_from_this()));
                 sendImpl<isServer>(self, msg, compressmessage);
             }
         }
@@ -97,7 +97,7 @@ namespace WS_LITE {
         virtual void close(unsigned short code, const std::string &msg) override
         {
             if (SocketStatus_ == SocketStatus::CONNECTED) { // only send a close to an open socket
-                auto self(std::static_pointer_cast<WSocket<isServer, SOCKETTYPE>>(shared_from_this()));
+                auto self(std::static_pointer_cast<WebSocket<isServer, SOCKETTYPE>>(shared_from_this()));
                 sendclosemessage<isServer>(self, code, msg);
             }
         }
@@ -118,7 +118,7 @@ namespace WS_LITE {
         SocketStatus SocketStatus_ = SocketStatus::CLOSED;
         SocketIOStatus Writing = SocketIOStatus::NOTWRITING;
         OpCode LastOpCode = OpCode::INVALID;
-        std::shared_ptr<ThreadContext> Parent;
+        std::shared_ptr<WebSocketContext> Parent;
         SOCKETTYPE Socket;
         size_t Bytes_PendingFlush = 0;
 

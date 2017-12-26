@@ -29,14 +29,15 @@ add_library(${PROJECT_NAME}
 	include/internal/HeaderParser.h
 	include/internal/StringHelpers.h
 	include/internal/ThreadContext.h
-	include/internal/WSContext.h
-	include/internal/WSocket.h
+	include/internal/HubContext.h
+	include/internal/WebSocket.h
 	include/internal/SocketIOStatus.h
+	include/internal/WebSocketContext.h
 	include/WS_Lite.h
 	src/Utils.cpp
 	src/ListenerImpl.cpp
 	src/ClientImpl.cpp
-	src/WSContext.cpp
+	src/HubContext.cpp
 )
 
 if(WIN32) 

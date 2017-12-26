@@ -7,16 +7,17 @@
 
 namespace SL {
 namespace WS_LITE {
-    class IWSocket;
-    class WSContext {
+    class IWebSocket;
+    class HubContext {
       public:
-        WSContext(ThreadCount threadcount, asio::ssl::context_base::method m);
-        WSContext(ThreadCount threadcount);
-        ~WSContext();
+        HubContext(ThreadCount threadcount, asio::ssl::context_base::method m);
+        HubContext(ThreadCount threadcount);
+        ~HubContext();
         auto getnextContext() { return ThreadContexts[(m_nextService++ % ThreadContexts.size())]; }
         std::atomic<std::size_t> m_nextService{0};
         std::vector<std::shared_ptr<ThreadContext>> ThreadContexts;
         std::unique_ptr<asio::ip::tcp::acceptor> acceptor;
+        bool TLSEnabled = false;
     };
 
 } // namespace WS_LITE

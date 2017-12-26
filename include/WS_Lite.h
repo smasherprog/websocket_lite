@@ -159,9 +159,9 @@ namespace WS_LITE {
         std::shared_ptr<unsigned char> Buffer;
     };
 
-    class IWSocket : public std::enable_shared_from_this<IWSocket> {
+    class IWebSocket : public std::enable_shared_from_this<IWebSocket> {
       public:
-        virtual ~IWSocket() {}
+        virtual ~IWebSocket() {}
         virtual SocketStatus is_open() const = 0;
         virtual std::string get_address() const = 0;
         virtual unsigned short get_port() const = 0;
@@ -195,19 +195,19 @@ namespace WS_LITE {
 
         // when a connection is fully established.  If onconnect is called, then a matching onDisconnection is guaranteed
         virtual std::shared_ptr<IWSListener_Configuration>
-        onConnection(const std::function<void(const std::shared_ptr<IWSocket> &, const HttpHeader &)> &handle) = 0;
+        onConnection(const std::function<void(const std::shared_ptr<IWebSocket> &, const HttpHeader &)> &handle) = 0;
         // when a message has been received
         virtual std::shared_ptr<IWSListener_Configuration>
-        onMessage(const std::function<void(const std::shared_ptr<IWSocket> &, const WSMessage &)> &handle) = 0;
+        onMessage(const std::function<void(const std::shared_ptr<IWebSocket> &, const WSMessage &)> &handle) = 0;
         // when a socket is closed down for ANY reason. If onconnect is called, then a matching onDisconnection is guaranteed
         virtual std::shared_ptr<IWSListener_Configuration>
-        onDisconnection(const std::function<void(const std::shared_ptr<IWSocket> &, unsigned short, const std::string &)> &handle) = 0;
+        onDisconnection(const std::function<void(const std::shared_ptr<IWebSocket> &, unsigned short, const std::string &)> &handle) = 0;
         // when a ping is received from a client
         virtual std::shared_ptr<IWSListener_Configuration>
-        onPing(const std::function<void(const std::shared_ptr<IWSocket> &, const unsigned char *, size_t)> &handle) = 0;
+        onPing(const std::function<void(const std::shared_ptr<IWebSocket> &, const unsigned char *, size_t)> &handle) = 0;
         // when a pong is received from a client
         virtual std::shared_ptr<IWSListener_Configuration>
-        onPong(const std::function<void(const std::shared_ptr<IWSocket> &, const unsigned char *, size_t)> &handle) = 0;
+        onPong(const std::function<void(const std::shared_ptr<IWebSocket> &, const unsigned char *, size_t)> &handle) = 0;
         // start the process to listen for clients. This is non-blocking and will return immediatly
         virtual std::shared_ptr<IWSHub> listen(bool no_delay = true, bool reuse_address = true) = 0;
     };
@@ -217,19 +217,19 @@ namespace WS_LITE {
         virtual ~IWSClient_Configuration() {}
         // when a connection is fully established.  If onconnect is called, then a matching onDisconnection is guaranteed
         virtual std::shared_ptr<IWSClient_Configuration>
-        onConnection(const std::function<void(const std::shared_ptr<IWSocket> &, const HttpHeader &)> &handle) = 0;
+        onConnection(const std::function<void(const std::shared_ptr<IWebSocket> &, const HttpHeader &)> &handle) = 0;
         // when a message has been received
         virtual std::shared_ptr<IWSClient_Configuration>
-        onMessage(const std::function<void(const std::shared_ptr<IWSocket> &, const WSMessage &)> &handle) = 0;
+        onMessage(const std::function<void(const std::shared_ptr<IWebSocket> &, const WSMessage &)> &handle) = 0;
         // when a socket is closed down for ANY reason. If onconnect is called, then a matching onDisconnection is guaranteed
         virtual std::shared_ptr<IWSClient_Configuration>
-        onDisconnection(const std::function<void(const std::shared_ptr<IWSocket> &, unsigned short, const std::string &)> &handle) = 0;
+        onDisconnection(const std::function<void(const std::shared_ptr<IWebSocket> &, unsigned short, const std::string &)> &handle) = 0;
         // when a ping is received from a client
         virtual std::shared_ptr<IWSClient_Configuration>
-        onPing(const std::function<void(const std::shared_ptr<IWSocket> &, const unsigned char *, size_t)> &handle) = 0;
+        onPing(const std::function<void(const std::shared_ptr<IWebSocket> &, const unsigned char *, size_t)> &handle) = 0;
         // when a pong is received from a client
         virtual std::shared_ptr<IWSClient_Configuration>
-        onPong(const std::function<void(const std::shared_ptr<IWSocket> &, const unsigned char *, size_t)> &handle) = 0;
+        onPong(const std::function<void(const std::shared_ptr<IWebSocket> &, const unsigned char *, size_t)> &handle) = 0;
         // connect to an endpoint. This is non-blocking and will return immediatly. If the library is unable to establish a connection,
         // ondisconnection will be called.
         virtual std::shared_ptr<IWSHub> connect(const std::string &host, PortNumber port, bool no_delay = true, const std::string &endpoint = "/",

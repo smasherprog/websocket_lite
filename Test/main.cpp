@@ -28,11 +28,11 @@ void wssautobahntest()
     auto listener = SL::WS_LITE::CreateContext(SL::WS_LITE::ThreadCount(1))
                         ->NoTLS()
                         ->CreateListener(SL::WS_LITE::PortNumber(3000), SL::WS_LITE::NetworkProtocol::IPV4, SL::WS_LITE::ExtensionOptions::DEFLATE)
-                        ->onConnection([&](const std::shared_ptr<SL::WS_LITE::IWSocket> &socket, const SL::WS_LITE::HttpHeader &header) {
+                        ->onConnection([&](const std::shared_ptr<SL::WS_LITE::IWebSocket> &socket, const SL::WS_LITE::HttpHeader &header) {
                             lastheard = std::chrono::high_resolution_clock::now();
                             SL_WS_LITE_LOG(SL::WS_LITE::Logging_Levels::INFO_log_level, "listener::onConnection");
                         })
-                        ->onMessage([&](const std::shared_ptr<SL::WS_LITE::IWSocket> &socket, const SL::WS_LITE::WSMessage &message) {
+                        ->onMessage([&](const std::shared_ptr<SL::WS_LITE::IWebSocket> &socket, const SL::WS_LITE::WSMessage &message) {
                             lastheard = std::chrono::high_resolution_clock::now();
                             SL::WS_LITE::WSMessage msg;
                             msg.Buffer = std::shared_ptr<unsigned char>(new unsigned char[message.len], [](unsigned char *p) { delete[] p; });
@@ -84,11 +84,11 @@ void wssautobahntest()
                 },
                 SL::WS_LITE::method::tlsv11)
             ->CreateListener(SL::WS_LITE::PortNumber(3001), SL::WS_LITE::NetworkProtocol::IPV4, SL::WS_LITE::ExtensionOptions::DEFLATE)
-            ->onConnection([&](const std::shared_ptr<SL::WS_LITE::IWSocket> &socket, const SL::WS_LITE::HttpHeader &header) {
+            ->onConnection([&](const std::shared_ptr<SL::WS_LITE::IWebSocket> &socket, const SL::WS_LITE::HttpHeader &header) {
                 lastheard = std::chrono::high_resolution_clock::now();
                 SL_WS_LITE_LOG(SL::WS_LITE::Logging_Levels::INFO_log_level, "tlslistener::onConnection");
             })
-            ->onMessage([&](const std::shared_ptr<SL::WS_LITE::IWSocket> &socket, const SL::WS_LITE::WSMessage &message) {
+            ->onMessage([&](const std::shared_ptr<SL::WS_LITE::IWebSocket> &socket, const SL::WS_LITE::WSMessage &message) {
                 lastheard = std::chrono::high_resolution_clock::now();
                 SL::WS_LITE::WSMessage msg;
                 msg.Buffer = std::shared_ptr<unsigned char>(new unsigned char[message.len], [](unsigned char *p) { delete[] p; });
@@ -117,38 +117,39 @@ void generaltest()
     auto lastheard = std::chrono::high_resolution_clock::now();
 
     SL::WS_LITE::PortNumber port(3002);
-    auto listenerctx = SL::WS_LITE::CreateContext(SL::WS_LITE::ThreadCount(1))
-                           ->NoTLS()
-                           ->CreateListener(port)
-                           ->onConnection([&](const std::shared_ptr<SL::WS_LITE::IWSocket> &socket, const SL::WS_LITE::HttpHeader &header) {
-                               lastheard = std::chrono::high_resolution_clock::now();
-                               SL_WS_LITE_LOG(SL::WS_LITE::Logging_Levels::INFO_log_level, "listener::onConnection");
+    auto listenerctx =
+        SL::WS_LITE::CreateContext(SL::WS_LITE::ThreadCount(1))
+            ->NoTLS()
+            ->CreateListener(port)
+            ->onConnection([&](const std::shared_ptr<SL::WS_LITE::IWebSocket> &socket, const SL::WS_LITE::HttpHeader &header) {
+                lastheard = std::chrono::high_resolution_clock::now();
+                SL_WS_LITE_LOG(SL::WS_LITE::Logging_Levels::INFO_log_level, "listener::onConnection");
 
-                           })
-                           ->onMessage([&](const std::shared_ptr<SL::WS_LITE::IWSocket> &socket, const SL::WS_LITE::WSMessage &message) {
-                               lastheard = std::chrono::high_resolution_clock::now();
-                               SL::WS_LITE::WSMessage msg;
-                               msg.Buffer = std::shared_ptr<unsigned char>(new unsigned char[message.len], [](unsigned char *p) { delete[] p; });
-                               msg.len = message.len;
-                               msg.code = message.code;
-                               msg.data = msg.Buffer.get();
-                               memcpy(msg.data, message.data, message.len);
-                               socket->send(msg, SL::WS_LITE::CompressionOptions::NO_COMPRESSION);
-                           })
-                           ->onDisconnection([&](const std::shared_ptr<SL::WS_LITE::IWSocket> &socket, unsigned short code, const std::string &msg) {
-                               lastheard = std::chrono::high_resolution_clock::now();
-                               SL_WS_LITE_LOG(SL::WS_LITE::Logging_Levels::INFO_log_level, "listener::onDisconnection");
-                           })
-                           ->listen();
+            })
+            ->onMessage([&](const std::shared_ptr<SL::WS_LITE::IWebSocket> &socket, const SL::WS_LITE::WSMessage &message) {
+                lastheard = std::chrono::high_resolution_clock::now();
+                SL::WS_LITE::WSMessage msg;
+                msg.Buffer = std::shared_ptr<unsigned char>(new unsigned char[message.len], [](unsigned char *p) { delete[] p; });
+                msg.len = message.len;
+                msg.code = message.code;
+                msg.data = msg.Buffer.get();
+                memcpy(msg.data, message.data, message.len);
+                socket->send(msg, SL::WS_LITE::CompressionOptions::NO_COMPRESSION);
+            })
+            ->onDisconnection([&](const std::shared_ptr<SL::WS_LITE::IWebSocket> &socket, unsigned short code, const std::string &msg) {
+                lastheard = std::chrono::high_resolution_clock::now();
+                SL_WS_LITE_LOG(SL::WS_LITE::Logging_Levels::INFO_log_level, "listener::onDisconnection");
+            })
+            ->listen();
 
     auto clientctx = SL::WS_LITE::CreateContext(SL::WS_LITE::ThreadCount(1))
                          ->NoTLS()
                          ->CreateClient()
-                         ->onConnection([&](const std::shared_ptr<SL::WS_LITE::IWSocket> &socket, const SL::WS_LITE::HttpHeader &header) {
+                         ->onConnection([&](const std::shared_ptr<SL::WS_LITE::IWebSocket> &socket, const SL::WS_LITE::HttpHeader &header) {
                              lastheard = std::chrono::high_resolution_clock::now();
                              SL_WS_LITE_LOG(SL::WS_LITE::Logging_Levels::INFO_log_level, "Client::onConnection");
                          })
-                         ->onDisconnection([&](const std::shared_ptr<SL::WS_LITE::IWSocket> &socket, unsigned short code, const std::string &msg) {
+                         ->onDisconnection([&](const std::shared_ptr<SL::WS_LITE::IWebSocket> &socket, unsigned short code, const std::string &msg) {
                              lastheard = std::chrono::high_resolution_clock::now();
                              SL_WS_LITE_LOG(SL::WS_LITE::Logging_Levels::INFO_log_level, "client::onDisconnection");
                          })
@@ -200,12 +201,12 @@ void generalTLStest()
                 },
                 SL::WS_LITE::method::tlsv11)
             ->CreateListener(port)
-            ->onConnection([&](const std::shared_ptr<SL::WS_LITE::IWSocket> &socket, const SL::WS_LITE::HttpHeader &header) {
+            ->onConnection([&](const std::shared_ptr<SL::WS_LITE::IWebSocket> &socket, const SL::WS_LITE::HttpHeader &header) {
                 lastheard = std::chrono::high_resolution_clock::now();
                 SL_WS_LITE_LOG(SL::WS_LITE::Logging_Levels::INFO_log_level, "listener::onConnection");
 
             })
-            ->onMessage([&](const std::shared_ptr<SL::WS_LITE::IWSocket> &socket, const SL::WS_LITE::WSMessage &message) {
+            ->onMessage([&](const std::shared_ptr<SL::WS_LITE::IWebSocket> &socket, const SL::WS_LITE::WSMessage &message) {
                 lastheard = std::chrono::high_resolution_clock::now();
                 SL::WS_LITE::WSMessage msg;
                 msg.Buffer = std::shared_ptr<unsigned char>(new unsigned char[message.len], [](unsigned char *p) { delete[] p; });
@@ -215,7 +216,7 @@ void generalTLStest()
                 memcpy(msg.data, message.data, message.len);
                 socket->send(msg, SL::WS_LITE::CompressionOptions::NO_COMPRESSION);
             })
-            ->onDisconnection([&](const std::shared_ptr<SL::WS_LITE::IWSocket> &socket, unsigned short code, const std::string &msg) {
+            ->onDisconnection([&](const std::shared_ptr<SL::WS_LITE::IWebSocket> &socket, unsigned short code, const std::string &msg) {
                 lastheard = std::chrono::high_resolution_clock::now();
                 SL_WS_LITE_LOG(SL::WS_LITE::Logging_Levels::INFO_log_level, "listener::onDisconnection");
             })
@@ -244,11 +245,11 @@ void generalTLStest()
                              },
                              SL::WS_LITE::method::tlsv11)
                          ->CreateClient()
-                         ->onConnection([&](const std::shared_ptr<SL::WS_LITE::IWSocket> &socket, const SL::WS_LITE::HttpHeader &header) {
+                         ->onConnection([&](const std::shared_ptr<SL::WS_LITE::IWebSocket> &socket, const SL::WS_LITE::HttpHeader &header) {
                              lastheard = std::chrono::high_resolution_clock::now();
                              SL_WS_LITE_LOG(SL::WS_LITE::Logging_Levels::INFO_log_level, "Client::onConnection");
                          })
-                         ->onDisconnection([&](const std::shared_ptr<SL::WS_LITE::IWSocket> &socket, unsigned short code, const std::string &msg) {
+                         ->onDisconnection([&](const std::shared_ptr<SL::WS_LITE::IWebSocket> &socket, unsigned short code, const std::string &msg) {
                              lastheard = std::chrono::high_resolution_clock::now();
                              SL_WS_LITE_LOG(SL::WS_LITE::Logging_Levels::INFO_log_level, "client::onDisconnection");
                          })
@@ -269,13 +270,12 @@ void multithreadtest()
     auto listenerctx = SL::WS_LITE::CreateContext(SL::WS_LITE::ThreadCount(2))
                            ->NoTLS()
                            ->CreateListener(port)
-                           ->onConnection([&](const std::shared_ptr<SL::WS_LITE::IWSocket> &socket, const SL::WS_LITE::HttpHeader &header) {
+                           ->onConnection([&](const std::shared_ptr<SL::WS_LITE::IWebSocket> &socket, const SL::WS_LITE::HttpHeader &header) {
                                lastheard = std::chrono::high_resolution_clock::now();
                            })
-                           ->onDisconnection([&](const std::shared_ptr<SL::WS_LITE::IWSocket> &socket, unsigned short code, const std::string &msg) {
-                               lastheard = std::chrono::high_resolution_clock::now();
-                           })
-                           ->onMessage([&](const std::shared_ptr<SL::WS_LITE::IWSocket> &socket, const SL::WS_LITE::WSMessage &message) {
+                           ->onDisconnection([&](const std::shared_ptr<SL::WS_LITE::IWebSocket> &socket, unsigned short code,
+                                                 const std::string &msg) { lastheard = std::chrono::high_resolution_clock::now(); })
+                           ->onMessage([&](const std::shared_ptr<SL::WS_LITE::IWebSocket> &socket, const SL::WS_LITE::WSMessage &message) {
                                lastheard = std::chrono::high_resolution_clock::now();
                                SL::WS_LITE::WSMessage msg;
                                msg.Buffer = std::shared_ptr<unsigned char>(new unsigned char[message.len], [](unsigned char *p) { delete[] p; });
@@ -293,7 +293,7 @@ void multithreadtest()
     for (auto i = 0; i < 50; i++) {
         auto c = clientctx->NoTLS()
                      ->CreateClient()
-                     ->onConnection([&lastheard, i](const std::shared_ptr<SL::WS_LITE::IWSocket> &socket, const SL::WS_LITE::HttpHeader &header) {
+                     ->onConnection([&lastheard, i](const std::shared_ptr<SL::WS_LITE::IWebSocket> &socket, const SL::WS_LITE::HttpHeader &header) {
                          lastheard = std::chrono::high_resolution_clock::now();
                          SL::WS_LITE::WSMessage msg;
                          std::string txtmsg = "testing msg";
@@ -305,10 +305,10 @@ void multithreadtest()
                          memcpy(msg.data, txtmsg.data(), txtmsg.size());
                          socket->send(msg, SL::WS_LITE::CompressionOptions::NO_COMPRESSION);
                      })
-                     ->onDisconnection([&](const std::shared_ptr<SL::WS_LITE::IWSocket> &socket, unsigned short code, const std::string &msg) {
+                     ->onDisconnection([&](const std::shared_ptr<SL::WS_LITE::IWebSocket> &socket, unsigned short code, const std::string &msg) {
                          lastheard = std::chrono::high_resolution_clock::now();
                      })
-                     ->onMessage([&](const std::shared_ptr<SL::WS_LITE::IWSocket> &socket, const SL::WS_LITE::WSMessage &message) {
+                     ->onMessage([&](const std::shared_ptr<SL::WS_LITE::IWebSocket> &socket, const SL::WS_LITE::WSMessage &message) {
                          lastheard = std::chrono::high_resolution_clock::now();
                      })
                      ->connect("localhost", port);
@@ -335,13 +335,13 @@ void multithreadthroughputtest()
         SL::WS_LITE::CreateContext(SL::WS_LITE::ThreadCount(2))
             ->NoTLS()
             ->CreateListener(port)
-            ->onConnection([&](const std::shared_ptr<SL::WS_LITE::IWSocket> &socket, const SL::WS_LITE::HttpHeader &header) {
+            ->onConnection([&](const std::shared_ptr<SL::WS_LITE::IWebSocket> &socket, const SL::WS_LITE::HttpHeader &header) {
                 lastheard = std::chrono::high_resolution_clock::now();
             })
-            ->onDisconnection([&](const std::shared_ptr<SL::WS_LITE::IWSocket> &socket, unsigned short code, const std::string &msg) {
+            ->onDisconnection([&](const std::shared_ptr<SL::WS_LITE::IWebSocket> &socket, unsigned short code, const std::string &msg) {
                 lastheard = std::chrono::high_resolution_clock::now();
             })
-            ->onMessage([&](const std::shared_ptr<SL::WS_LITE::IWSocket> &socket, const SL::WS_LITE::WSMessage &message) {
+            ->onMessage([&](const std::shared_ptr<SL::WS_LITE::IWebSocket> &socket, const SL::WS_LITE::WSMessage &message) {
                 lastheard = std::chrono::high_resolution_clock::now();
                 mbsreceived += message.len;
                 if (mbsreceived == bufferesize * clients.capacity()) {
@@ -361,7 +361,7 @@ void multithreadthroughputtest()
         auto c =
             clientctx->NoTLS()
                 ->CreateClient()
-                ->onConnection([&clients, &lastheard, &mbssent, &sendtimer](const std::shared_ptr<SL::WS_LITE::IWSocket> &socket,
+                ->onConnection([&clients, &lastheard, &mbssent, &sendtimer](const std::shared_ptr<SL::WS_LITE::IWebSocket> &socket,
                                                                             const SL::WS_LITE::HttpHeader &header) {
                     lastheard = std::chrono::high_resolution_clock::now();
                     SL::WS_LITE::WSMessage msg;
@@ -380,10 +380,10 @@ void multithreadthroughputtest()
                     msg.data = msg.Buffer.get();
                     socket->send(msg, SL::WS_LITE::CompressionOptions::NO_COMPRESSION);
                 })
-                ->onDisconnection([&](const std::shared_ptr<SL::WS_LITE::IWSocket> &socket, unsigned short code, const std::string &msg) {
+                ->onDisconnection([&](const std::shared_ptr<SL::WS_LITE::IWebSocket> &socket, unsigned short code, const std::string &msg) {
                     lastheard = std::chrono::high_resolution_clock::now();
                 })
-                ->onMessage([&](const std::shared_ptr<SL::WS_LITE::IWSocket> &socket, const SL::WS_LITE::WSMessage &message) {
+                ->onMessage([&](const std::shared_ptr<SL::WS_LITE::IWebSocket> &socket, const SL::WS_LITE::WSMessage &message) {
                     lastheard = std::chrono::high_resolution_clock::now();
                 })
                 ->connect("localhost", port);

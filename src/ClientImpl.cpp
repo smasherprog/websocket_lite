@@ -1,8 +1,8 @@
 #include "Logging.h"
 #include "WS_Lite.h"
 #include "internal/HeaderParser.h"
-#include "internal/WSContext.h"
-#include "internal/WSocket.h"
+#include "internal/HubContext.h"
+#include "internal/WebSocket.h"
 #include "internal/WebSocketProtocol.h"
 #include <algorithm>
 #include <chrono>
@@ -13,7 +13,7 @@ namespace SL {
 namespace WS_LITE {
 
     template <class SOCKETTYPE>
-    void ConnectHandshake(const std::shared_ptr<WSContext> self, SOCKETTYPE &socket, const std::string &host, const std::string &endpoint,
+    void ConnectHandshake(const std::shared_ptr<HubContext> self, SOCKETTYPE &socket, const std::string &host, const std::string &endpoint,
                           const std::unordered_map<std::string, std::string> &extraheaders)
     {
         auto write_buffer(std::make_shared<asio::streambuf>());
@@ -102,12 +102,12 @@ namespace WS_LITE {
                 }
             });
     }
-    void async_handshake(const std::shared_ptr<WSContext> self, std::shared_ptr<WSocket<false, asio::ip::tcp::socket>> socket,
+    void async_handshake(const std::shared_ptr<HubContext> self, std::shared_ptr<WebSocket<false, asio::ip::tcp::socket>> socket,
                          const std::string &host, const std::string &endpoint, const std::unordered_map<std::string, std::string> &extraheaders)
     {
         ConnectHandshake(self, socket, host, endpoint, extraheaders);
     }
-    void async_handshake(const std::shared_ptr<WSContext> self, std::shared_ptr<WSocket<false, asio::ssl::stream<asio::ip::tcp::socket>>> socket,
+    void async_handshake(const std::shared_ptr<HubContext> self, std::shared_ptr<WebSocket<false, asio::ssl::stream<asio::ip::tcp::socket>>> socket,
                          const std::string &host, const std::string &endpoint, const std::unordered_map<std::string, std::string> &extraheaders)
     {
         socket->Socket.async_handshake(asio::ssl::stream_base::client, [socket, self, host, endpoint, extraheaders](const std::error_code &ec) {
@@ -124,7 +124,7 @@ namespace WS_LITE {
         });
     }
     template <typename SOCKETCREATOR>
-    void Connect(const std::shared_ptr<WSContext> self, const std::string &host, PortNumber port, bool no_delay, SOCKETCREATOR &&socketcreator,
+    void Connect(const std::shared_ptr<HubContext> self, const std::string &host, PortNumber port, bool no_delay, SOCKETCREATOR &&socketcreator,
                  const std::string &endpoint, const std::unordered_map<std::string, std::string> &extraheaders)
     {
         auto res = self->getnextContext();
@@ -169,92 +169,94 @@ namespace WS_LITE {
     void WSClient::set_ReadTimeout(std::chrono::seconds seconds)
     {
         for (auto &t : Impl_->ThreadContexts) {
-            t->ReadTimeout = seconds;
+            t->WebSocketContext_->ReadTimeout = seconds;
         }
     }
     std::chrono::seconds WSClient::get_ReadTimeout()
     {
-        return Impl_->ThreadContexts.empty() ? std::chrono::seconds(1) : Impl_->ThreadContexts.front()->ReadTimeout;
+        return Impl_->ThreadContexts.empty() ? std::chrono::seconds(1) : Impl_->ThreadContexts.front()->WebSocketContext_->ReadTimeout;
     }
     void WSClient::set_WriteTimeout(std::chrono::seconds seconds)
     {
         for (auto &t : Impl_->ThreadContexts) {
-            t->WriteTimeout = seconds;
+            t->WebSocketContext_->WriteTimeout = seconds;
         }
     }
     std::chrono::seconds WSClient::get_WriteTimeout()
     {
-        return Impl_->ThreadContexts.empty() ? std::chrono::seconds(1) : Impl_->ThreadContexts.front()->WriteTimeout;
+        return Impl_->ThreadContexts.empty() ? std::chrono::seconds(1) : Impl_->ThreadContexts.front()->WebSocketContext_->WriteTimeout;
     }
     void WSClient::set_MaxPayload(size_t bytes)
     {
         for (auto &t : Impl_->ThreadContexts) {
-            t->MaxPayload = bytes;
+            t->WebSocketContext_->MaxPayload = bytes;
         }
     }
-    size_t WSClient::get_MaxPayload() { return Impl_->ThreadContexts.empty() ? 1024 * 1024 * 20 : Impl_->ThreadContexts.front()->MaxPayload; }
+    size_t WSClient::get_MaxPayload()
+    {
+        return Impl_->ThreadContexts.empty() ? 1024 * 1024 * 20 : Impl_->ThreadContexts.front()->WebSocketContext_->MaxPayload;
+    }
 
     std::shared_ptr<IWSClient_Configuration>
-    WSClient_Configuration::onConnection(const std::function<void(const std::shared_ptr<IWSocket> &, const HttpHeader &)> &handle)
+    WSClient_Configuration::onConnection(const std::function<void(const std::shared_ptr<IWebSocket> &, const HttpHeader &)> &handle)
     {
         for (auto &t : Impl_->ThreadContexts) {
-            assert(!t->onConnection);
-            t->onConnection = handle;
+            assert(!t->WebSocketContext_->onConnection);
+            t->WebSocketContext_->onConnection = handle;
         }
         return std::make_shared<WSClient_Configuration>(Impl_);
     }
     std::shared_ptr<IWSClient_Configuration>
-    WSClient_Configuration::onMessage(const std::function<void(const std::shared_ptr<IWSocket> &, const WSMessage &)> &handle)
+    WSClient_Configuration::onMessage(const std::function<void(const std::shared_ptr<IWebSocket> &, const WSMessage &)> &handle)
     {
         for (auto &t : Impl_->ThreadContexts) {
-            assert(!t->onMessage);
-            t->onMessage = handle;
+            assert(!t->WebSocketContext_->onMessage);
+            t->WebSocketContext_->onMessage = handle;
         }
         return std::make_shared<WSClient_Configuration>(Impl_);
     }
-    std::shared_ptr<IWSClient_Configuration>
-    WSClient_Configuration::onDisconnection(const std::function<void(const std::shared_ptr<IWSocket> &, unsigned short, const std::string &)> &handle)
-    {
-
-        for (auto &t : Impl_->ThreadContexts) {
-            assert(!t->onDisconnection);
-            t->onDisconnection = handle;
-        }
-        return std::make_shared<WSClient_Configuration>(Impl_);
-    }
-    std::shared_ptr<IWSClient_Configuration>
-    WSClient_Configuration::onPing(const std::function<void(const std::shared_ptr<IWSocket> &, const unsigned char *, size_t)> &handle)
-    {
-        for (auto &t : Impl_->ThreadContexts) {
-            assert(!t->onPing);
-            t->onPing = handle;
-        }
-        return std::make_shared<WSClient_Configuration>(Impl_);
-    }
-    std::shared_ptr<IWSClient_Configuration>
-    WSClient_Configuration::onPong(const std::function<void(const std::shared_ptr<IWSocket> &, const unsigned char *, size_t)> &handle)
+    std::shared_ptr<IWSClient_Configuration> WSClient_Configuration::onDisconnection(
+        const std::function<void(const std::shared_ptr<IWebSocket> &, unsigned short, const std::string &)> &handle)
     {
 
         for (auto &t : Impl_->ThreadContexts) {
-            assert(!t->onPong);
-            t->onPong = handle;
+            assert(!t->WebSocketContext_->onDisconnection);
+            t->WebSocketContext_->onDisconnection = handle;
+        }
+        return std::make_shared<WSClient_Configuration>(Impl_);
+    }
+    std::shared_ptr<IWSClient_Configuration>
+    WSClient_Configuration::onPing(const std::function<void(const std::shared_ptr<IWebSocket> &, const unsigned char *, size_t)> &handle)
+    {
+        for (auto &t : Impl_->ThreadContexts) {
+            assert(!t->WebSocketContext_->onPing);
+            t->WebSocketContext_->onPing = handle;
+        }
+        return std::make_shared<WSClient_Configuration>(Impl_);
+    }
+    std::shared_ptr<IWSClient_Configuration>
+    WSClient_Configuration::onPong(const std::function<void(const std::shared_ptr<IWebSocket> &, const unsigned char *, size_t)> &handle)
+    {
+
+        for (auto &t : Impl_->ThreadContexts) {
+            assert(!t->WebSocketContext_->onPong);
+            t->WebSocketContext_->onPong = handle;
         }
         return std::make_shared<WSClient_Configuration>(Impl_);
     }
     std::shared_ptr<IWSHub> WSClient_Configuration::connect(const std::string &host, PortNumber port, bool no_delay, const std::string &endpoint,
                                                             const std::unordered_map<std::string, std::string> &extraheaders)
     {
-        auto tlsenabled = Impl_->ThreadContexts.empty() ? false : Impl_->ThreadContexts.front()->TLSEnabled;
-
-        if (tlsenabled) {
+        if (Impl_->TLSEnabled) {
             auto createsocket = [](const std::shared_ptr<ThreadContext> &res) {
-                return std::make_shared<WSocket<false, asio::ssl::stream<asio::ip::tcp::socket>>>(res, res->io_service, res->context);
+                return std::make_shared<WebSocket<false, asio::ssl::stream<asio::ip::tcp::socket>>>(res->WebSocketContext_, res->io_service,
+                                                                                                    res->context);
             };
             Connect(Impl_, host, port, no_delay, createsocket, endpoint, extraheaders);
         }
         else {
             auto createsocket = [](const std::shared_ptr<ThreadContext> &res) {
-                return std::make_shared<WSocket<false, asio::ip::tcp::socket>>(res, res->io_service);
+                return std::make_shared<WebSocket<false, asio::ip::tcp::socket>>(res->WebSocketContext_, res->io_service);
             };
             Connect(Impl_, host, port, no_delay, createsocket, endpoint, extraheaders);
         }

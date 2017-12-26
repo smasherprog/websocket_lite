@@ -530,10 +530,10 @@ namespace WS_LITE {
     }
 
     class WSClient final : public IWSHub {
-        std::shared_ptr<WSContext> Impl_;
+        std::shared_ptr<HubContext> Impl_;
 
       public:
-        WSClient(const std::shared_ptr<WSContext> &c) : Impl_(c) {}
+        WSClient(const std::shared_ptr<HubContext> &c) : Impl_(c) {}
         virtual ~WSClient() {}
         virtual void set_MaxPayload(size_t bytes) override;
         virtual size_t get_MaxPayload() override;
@@ -543,10 +543,10 @@ namespace WS_LITE {
         virtual std::chrono::seconds get_WriteTimeout() override;
     };
     class WSListener final : public IWSHub {
-        std::shared_ptr<WSContext> Impl_;
+        std::shared_ptr<HubContext> Impl_;
 
       public:
-        WSListener(const std::shared_ptr<WSContext> &impl) : Impl_(impl) {}
+        WSListener(const std::shared_ptr<HubContext> &impl) : Impl_(impl) {}
         virtual ~WSListener() {}
         void set_MaxPayload(size_t bytes) override;
         virtual size_t get_MaxPayload() override;
@@ -557,40 +557,40 @@ namespace WS_LITE {
     };
 
     class WSListener_Configuration final : public IWSListener_Configuration {
-        std::shared_ptr<WSContext> Impl_;
+        std::shared_ptr<HubContext> Impl_;
 
       public:
         virtual ~WSListener_Configuration() {}
-        WSListener_Configuration(const std::shared_ptr<WSContext> &impl) : Impl_(impl) {}
+        WSListener_Configuration(const std::shared_ptr<HubContext> &impl) : Impl_(impl) {}
         virtual std::shared_ptr<IWSListener_Configuration>
-        onConnection(const std::function<void(const std::shared_ptr<IWSocket> &, const HttpHeader &)> &handle) override;
+        onConnection(const std::function<void(const std::shared_ptr<IWebSocket> &, const HttpHeader &)> &handle) override;
         virtual std::shared_ptr<IWSListener_Configuration>
-        onMessage(const std::function<void(const std::shared_ptr<IWSocket> &, const WSMessage &)> &handle) override;
+        onMessage(const std::function<void(const std::shared_ptr<IWebSocket> &, const WSMessage &)> &handle) override;
         virtual std::shared_ptr<IWSListener_Configuration>
-        onDisconnection(const std::function<void(const std::shared_ptr<IWSocket> &, unsigned short, const std::string &)> &handle) override;
+        onDisconnection(const std::function<void(const std::shared_ptr<IWebSocket> &, unsigned short, const std::string &)> &handle) override;
         virtual std::shared_ptr<IWSListener_Configuration>
-        onPing(const std::function<void(const std::shared_ptr<IWSocket> &, const unsigned char *, size_t)> &handle) override;
+        onPing(const std::function<void(const std::shared_ptr<IWebSocket> &, const unsigned char *, size_t)> &handle) override;
         virtual std::shared_ptr<IWSListener_Configuration>
-        onPong(const std::function<void(const std::shared_ptr<IWSocket> &, const unsigned char *, size_t)> &handle) override;
+        onPong(const std::function<void(const std::shared_ptr<IWebSocket> &, const unsigned char *, size_t)> &handle) override;
         virtual std::shared_ptr<IWSHub> listen(bool no_delay, bool reuse_address) override;
     };
 
     class WSClient_Configuration final : public IWSClient_Configuration {
-        std::shared_ptr<WSContext> Impl_;
+        std::shared_ptr<HubContext> Impl_;
 
       public:
-        WSClient_Configuration(const std::shared_ptr<WSContext> &impl) : Impl_(impl) {}
+        WSClient_Configuration(const std::shared_ptr<HubContext> &impl) : Impl_(impl) {}
         virtual ~WSClient_Configuration() {}
         virtual std::shared_ptr<IWSClient_Configuration>
-        onConnection(const std::function<void(const std::shared_ptr<IWSocket> &, const HttpHeader &)> &handle) override;
+        onConnection(const std::function<void(const std::shared_ptr<IWebSocket> &, const HttpHeader &)> &handle) override;
         virtual std::shared_ptr<IWSClient_Configuration>
-        onMessage(const std::function<void(const std::shared_ptr<IWSocket> &, const WSMessage &)> &handle) override;
+        onMessage(const std::function<void(const std::shared_ptr<IWebSocket> &, const WSMessage &)> &handle) override;
         virtual std::shared_ptr<IWSClient_Configuration>
-        onDisconnection(const std::function<void(const std::shared_ptr<IWSocket> &, unsigned short, const std::string &)> &handle) override;
+        onDisconnection(const std::function<void(const std::shared_ptr<IWebSocket> &, unsigned short, const std::string &)> &handle) override;
         virtual std::shared_ptr<IWSClient_Configuration>
-        onPing(const std::function<void(const std::shared_ptr<IWSocket> &, const unsigned char *, size_t)> &handle) override;
+        onPing(const std::function<void(const std::shared_ptr<IWebSocket> &, const unsigned char *, size_t)> &handle) override;
         virtual std::shared_ptr<IWSClient_Configuration>
-        onPong(const std::function<void(const std::shared_ptr<IWSocket> &, const unsigned char *, size_t)> &handle) override;
+        onPong(const std::function<void(const std::shared_ptr<IWebSocket> &, const unsigned char *, size_t)> &handle) override;
 
         virtual std::shared_ptr<IWSHub> connect(const std::string &host, PortNumber port, bool no_delay, const std::string &endpoint,
                                                 const std::unordered_map<std::string, std::string> &extraheaders) override;
