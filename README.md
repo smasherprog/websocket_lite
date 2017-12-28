@@ -2,8 +2,7 @@
 
 <p>Linux/Mac <img src="https://travis-ci.org/smasherprog/websocket_lite.svg?branch=master"/><p>
 <p>Windows <img src="https://ci.appveyor.com/api/projects/status/kqa94n7p8se05vi9/branch/master?svg=true"/><p>
-<p>Websocket <a href="https://tools.ietf.org/html/rfc6455">rfc6455</a> Compliant. Working on rfc 7692 -- which supports compression<p>
-<p>This library is intended to be a fully compliant websocket implementation <a href="http://htmlpreview.github.io/?https://github.com/smasherprog/Projects_Setup/blob/master/websocket_lite/index.html">Autobahn complete </a> (minus rfc 7692--in progress), but with a few design goals:
+<p>This library is a fully compliant websocket implementation! <a href="http://htmlpreview.github.io/?https://github.com/smasherprog/Projects_Setup/blob/master/websocket_lite/index.html">Autobahn complete </a>, but with a few design goals:
 
 <ul>
 <li>
