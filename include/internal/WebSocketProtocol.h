@@ -264,7 +264,8 @@ namespace WS_LITE {
         }
     }
 
-    template <bool isServer, class SOCKETTYPE> inline void ProcessMessage(const SOCKETTYPE &socket, const std::shared_ptr<asio::streambuf> &extradata)
+    template <bool isServer, class SOCKETTYPE>
+    inline void ProcessMessage(const SOCKETTYPE &socket, size_t previoussize, const std::shared_ptr<asio::streambuf> &extradata)
     {
 
         auto opcode = static_cast<OpCode>(getOpCode(socket->ReceiveHeader));
@@ -275,6 +276,8 @@ namespace WS_LITE {
                     return sendclosemessage<isServer>(socket, 1002, "First Non Fin Frame must be binary or text");
                 }
                 socket->LastOpCode = opcode;
+                socket->FrameCompressed =
+                    socket->ExtensionOption == ExtensionOptions::DEFLATE && getrsv1(socket->ReceiveHeader); // set the compressed flag
             }
             else if (opcode != OpCode::CONTINUATION) {
                 return sendclosemessage<isServer>(socket, 1002, "Continuation Received without a previous frame");
@@ -282,28 +285,29 @@ namespace WS_LITE {
             return ReadHeaderNext<isServer>(socket, extradata);
         }
         else {
-
             if (socket->LastOpCode != OpCode::INVALID && opcode != OpCode::CONTINUATION) {
                 return sendclosemessage<isServer>(socket, 1002, "Continuation Received without a previous frame");
             }
             else if (socket->LastOpCode == OpCode::INVALID && opcode == OpCode::CONTINUATION) {
                 return sendclosemessage<isServer>(socket, 1002, "Continuation Received without a previous frame");
             }
-            else if (socket->LastOpCode == OpCode::TEXT || opcode == OpCode::TEXT) {
-                if (!isValidUtf8(socket->ReceiveBuffer, socket->ReceiveBufferSize)) {
+            auto unpacked =
+                WSMessage{socket->ReceiveBuffer, socket->ReceiveBufferSize, socket->LastOpCode != OpCode::INVALID ? socket->LastOpCode : opcode};
+            // this could be compressed.... lets check it out
+            if (socket->FrameCompressed || getrsv1(socket->ReceiveHeader)) { // is this the last of the messages? Decompress!!!
+                auto[buffer, buffer_length] = socket->Parent->inflate(socket->ReceiveBuffer, socket->ReceiveBufferSize);
+                unpacked = WSMessage{buffer, buffer_length, socket->LastOpCode != OpCode::INVALID ? socket->LastOpCode : opcode};
+            }
+            if (socket->LastOpCode == OpCode::TEXT || opcode == OpCode::TEXT) {
+                if (!isValidUtf8(unpacked.data, unpacked.len)) {
                     return sendclosemessage<isServer>(socket, 1007, "Frame not valid utf8");
                 }
             }
             if (socket->Parent->onMessage) {
-                if (getrsv1(socket->ReceiveHeader) && socket->ExtensionOption == ExtensionOptions::DEFLATE) {
-                }
-
-                auto unpacked =
-                    WSMessage{socket->ReceiveBuffer, socket->ReceiveBufferSize, socket->LastOpCode != OpCode::INVALID ? socket->LastOpCode : opcode};
                 socket->Parent->onMessage(socket, unpacked);
             }
+            ReadHeaderStart<isServer>(socket, extradata);
         }
-        ReadHeaderStart<isServer>(socket, extradata);
     }
 
     template <bool isServer, class SOCKETTYPE>
@@ -453,14 +457,13 @@ namespace WS_LITE {
                 auto bytestoread = size;
                 auto dataconsumed = ReadFromExtraData(socket->ReceiveBuffer + socket->ReceiveBufferSize - size, bytestoread, extradata);
                 bytestoread -= dataconsumed;
-
                 asio::async_read(socket->Socket, asio::buffer(socket->ReceiveBuffer + socket->ReceiveBufferSize - size + dataconsumed, bytestoread),
                                  [size, extradata, socket](const std::error_code &ec, size_t) {
                                      if (!ec) {
                                          auto buffer = socket->ReceiveBuffer + socket->ReceiveBufferSize - size;
                                          UnMaskMessage(size, buffer, isServer);
                                          socket->ReceiveBufferSize -= AdditionalBodyBytesToRead(isServer);
-                                         return ProcessMessage<isServer>(socket, extradata);
+                                         return ProcessMessage<isServer>(socket, size - AdditionalBodyBytesToRead(isServer), extradata);
                                      }
                                      else {
                                          return sendclosemessage<isServer>(socket, 1002, "ReadBody Error " + ec.message());
@@ -468,7 +471,7 @@ namespace WS_LITE {
                                  });
             }
             else {
-                return ProcessMessage<isServer>(socket, extradata);
+                return ProcessMessage<isServer>(socket, 0, extradata);
             }
         }
         else {
@@ -486,6 +489,7 @@ namespace WS_LITE {
         asio::async_read(
             socket->Socket, asio::buffer(socket->ReceiveHeader + dataconsumed, bytestoread), [socket, extradata](const std::error_code &ec, size_t) {
                 if (!ec) {
+
                     size_t bytestoread = getpayloadLength1(socket->ReceiveHeader);
                     switch (bytestoread) {
                     case 126:
@@ -526,6 +530,7 @@ namespace WS_LITE {
         socket->ReceiveBuffer = nullptr;
         socket->ReceiveBufferSize = 0;
         socket->LastOpCode = OpCode::INVALID;
+        socket->FrameCompressed = false;
         ReadHeaderNext<isServer>(socket, extradata);
     }
 

@@ -235,7 +235,7 @@ namespace WS_LITE {
         shastr += ws_magic_string;
         auto sha1 = SHA1(shastr);
 
-        std::string str = "HTTP/1.1 101 Web Socket Protocol Handshake\r\n";
+        std::string str = "HTTP/1.1 101 Switching Protocols\r\n";
         str += "Upgrade:websocket\r\n";
         str += "Connection:Upgrade\r\n";
         str += "Sec-WebSocket-Accept:" + Base64encode(sha1) + "\r\n";
@@ -247,8 +247,15 @@ namespace WS_LITE {
         auto header_it =
             std::find_if(std::begin(header.Values), std::end(header.Values), [](HeaderKeyValue k) { return k.Key == "Sec-WebSocket-Extensions"; });
         if (header_it != header.Values.end()) {
-            if (header_it->Value.find("permessage-deflate") != header_it->Value.npos) {
-                return std::make_tuple(std::string("Sec-WebSocket-Extensions:permessage-deflate\r\n"), ExtensionOptions::DEFLATE);
+            if (auto founddeflate = header_it->Value.find("permessage-deflate"); founddeflate != header_it->Value.npos) {
+                if (auto foundclienttakeover = header_it->Value.find("client_no_context_takeover", founddeflate);
+                    foundclienttakeover != header_it->Value.npos) {
+                    return std::make_tuple(std::string("Sec-WebSocket-Extensions:permessage-deflate; client_no_context_takeover\r\n"),
+                                           ExtensionOptions::DEFLATE);
+                }
+                else {
+                    return std::make_tuple(std::string("Sec-WebSocket-Extensions:permessage-deflate\r\n"), ExtensionOptions::DEFLATE);
+                }
             }
         }
         return std::make_tuple(std::string(), ExtensionOptions::NO_OPTIONS);

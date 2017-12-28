@@ -33,7 +33,7 @@ namespace WS_LITE {
         struct ThreadCountTag {
         };
     } // namespace INTERNAL
-
+    // VDELETE is needed because some libraries like to defeine DELETE in the global namespace which causes errors
     enum class HttpVerbs { UNDEFINED, POST, GET, PUT, PATCH, VDELETE };
     enum class HttpVersions { UNDEFINED, HTTP1_0, HTTP1_1, HTTP2_0 };
 

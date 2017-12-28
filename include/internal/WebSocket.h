@@ -118,6 +118,7 @@ namespace WS_LITE {
         SocketStatus SocketStatus_ = SocketStatus::CLOSED;
         SocketIOStatus Writing = SocketIOStatus::NOTWRITING;
         OpCode LastOpCode = OpCode::INVALID;
+        bool FrameCompressed = false;
         std::shared_ptr<WebSocketContext> Parent;
         SOCKETTYPE Socket;
         size_t Bytes_PendingFlush = 0;

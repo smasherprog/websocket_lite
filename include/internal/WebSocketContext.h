@@ -15,7 +15,7 @@ namespace WS_LITE {
 
         WebSocketContext() : inflationBuffer(std::make_unique<char[]>(LARGE_BUFFER_SIZE)) { inflateInit2(&inflationStream, -MAX_WBITS); }
         ~WebSocketContext() { inflateEnd(&inflationStream); }
-        auto inflate(char *data, size_t data_len)
+        auto inflate(unsigned char *data, size_t data_len)
         {
             dynamicInflationBuffer.clear();
             inflationStream.next_in = (Bytef *)data;
@@ -40,8 +40,7 @@ namespace WS_LITE {
                 size_t o = 0;
                 return std::make_tuple(p, o);
             }
-
-            if (dynamicInflationBuffer.length()) {
+            if (!dynamicInflationBuffer.empty()) {
                 dynamicInflationBuffer.append(inflationBuffer.get(), LARGE_BUFFER_SIZE - inflationStream.avail_out);
                 return std::make_tuple((unsigned char *)dynamicInflationBuffer.data(), dynamicInflationBuffer.length());
             }
