@@ -263,7 +263,17 @@ namespace WS_LITE {
             }
         }
     }
-
+    template <bool isServer, class SOCKETTYPE> inline void ProcessMessageFin(const SOCKETTYPE &socket, const WSMessage &unpacked, OpCode opcode)
+    {
+        if (socket->LastOpCode == OpCode::TEXT || opcode == OpCode::TEXT) {
+            if (!isValidUtf8(unpacked.data, unpacked.len)) {
+                return sendclosemessage<isServer>(socket, 1007, "Frame not valid utf8");
+            }
+        }
+        if (socket->Parent->onMessage) {
+            socket->Parent->onMessage(socket, unpacked);
+        }
+    }
     template <bool isServer, class SOCKETTYPE> inline void ProcessMessage(const SOCKETTYPE &socket, const std::shared_ptr<asio::streambuf> &extradata)
     {
 
@@ -290,20 +300,19 @@ namespace WS_LITE {
             else if (socket->LastOpCode == OpCode::INVALID && opcode == OpCode::CONTINUATION) {
                 return sendclosemessage<isServer>(socket, 1002, "Continuation Received without a previous frame");
             }
-            auto unpacked =
-                WSMessage{socket->ReceiveBuffer, socket->ReceiveBufferSize, socket->LastOpCode != OpCode::INVALID ? socket->LastOpCode : opcode};
+
             // this could be compressed.... lets check it out
             if (socket->FrameCompressed || getrsv1(socket->ReceiveHeader)) { // is this the last of the messages? Decompress!!!
-                auto[buffer, buffer_length] = socket->Parent->inflate(socket->ReceiveBuffer, socket->ReceiveBufferSize);
-                unpacked = WSMessage{buffer, buffer_length, socket->LastOpCode != OpCode::INVALID ? socket->LastOpCode : opcode};
+                socket->Parent->beginInflate();
+                auto[buffer, buffer_length] = socket->Parent->Inflate(socket->ReceiveBuffer, socket->ReceiveBufferSize);
+                auto unpacked = WSMessage{buffer, buffer_length, socket->LastOpCode != OpCode::INVALID ? socket->LastOpCode : opcode};
+                ProcessMessageFin<isServer>(socket, unpacked, opcode);
+                socket->Parent->endInflate();
             }
-            if (socket->LastOpCode == OpCode::TEXT || opcode == OpCode::TEXT) {
-                if (!isValidUtf8(unpacked.data, unpacked.len)) {
-                    return sendclosemessage<isServer>(socket, 1007, "Frame not valid utf8");
-                }
-            }
-            if (socket->Parent->onMessage) {
-                socket->Parent->onMessage(socket, unpacked);
+            else {
+                auto unpacked =
+                    WSMessage{socket->ReceiveBuffer, socket->ReceiveBufferSize, socket->LastOpCode != OpCode::INVALID ? socket->LastOpCode : opcode};
+                ProcessMessageFin<isServer>(socket, unpacked, opcode);
             }
             ReadHeaderStart<isServer>(socket, extradata);
         }

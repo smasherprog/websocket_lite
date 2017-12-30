@@ -18,7 +18,7 @@ namespace WS_LITE {
         WSMessage msg;
         CompressionOptions compressmessage;
     };
-    struct WebSocketContext;
+    class WebSocketContext;
     template <bool isServer, class SOCKETTYPE> class WebSocket final : public IWebSocket {
 
       public:

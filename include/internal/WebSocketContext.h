@@ -8,50 +8,79 @@
 
 namespace SL {
 namespace WS_LITE {
-    const size_t LARGE_BUFFER_SIZE = 300 * 1024;
+    const size_t LARGE_BUFFER_SIZE = 4 * 1024 * 1024; // 4 MB temp buffer
     class IWebSocket;
     struct HttpHeader;
     struct WSMessage;
-    struct WebSocketContext {
-
-        WebSocketContext() : inflationBuffer(std::make_unique<char[]>(LARGE_BUFFER_SIZE)) { inflateInit2(&inflationStream, -MAX_WBITS); }
-        ~WebSocketContext() { inflateEnd(&inflationStream); }
-        auto inflate(unsigned char *data, size_t data_len)
+    class WebSocketContext {
+        unsigned char *InflateBuffer = nullptr;
+        size_t InflateBufferSize = 0;
+        std::unique_ptr<unsigned char[]> TempInflateBuffer;
+        z_stream InflationStream = {};
+        auto returnemptyinflate()
         {
-            dynamicInflationBuffer.clear();
-            inflationStream.next_in = (Bytef *)data;
-            inflationStream.avail_in = data_len;
+            unsigned char *p = nullptr;
+            size_t o = 0;
+            return std::make_tuple(p, o);
+        }
+
+      public:
+        WebSocketContext()
+        {
+            TempInflateBuffer = std::make_unique<unsigned char[]>(MaxPayload);
+            inflateInit2(&InflationStream, -MAX_WBITS);
+        }
+        ~WebSocketContext() { inflateEnd(&InflationStream); }
+        auto beginInflate()
+        {
+            InflateBufferSize = 0;
+            free(InflateBuffer);
+            InflateBuffer = nullptr;
+        }
+        auto Inflate(unsigned char *data, size_t data_len)
+        {
+            InflationStream.next_in = (Bytef *)data;
+            InflationStream.avail_in = data_len;
 
             int err;
             do {
-                inflationStream.next_out = (Bytef *)inflationBuffer.get();
-                inflationStream.avail_out = LARGE_BUFFER_SIZE;
-                err = ::inflate(&inflationStream, Z_FINISH);
-                if (!inflationStream.avail_in) {
+                InflationStream.next_out = (Bytef *)TempInflateBuffer.get();
+                InflationStream.avail_out = LARGE_BUFFER_SIZE;
+                err = ::inflate(&InflationStream, Z_FINISH);
+                if (!InflationStream.avail_in) {
                     break;
                 }
+                auto growsize = LARGE_BUFFER_SIZE - InflationStream.avail_out;
+                InflateBufferSize += growsize;
+                auto beforesize = InflateBufferSize;
+                InflateBuffer = static_cast<unsigned char *>(realloc(InflateBuffer, InflateBufferSize));
+                if (!InflateBuffer) {
+                    SL_WS_LITE_LOG(Logging_Levels::ERROR_log_level, "INFLATE MEMORY ALLOCATION ERROR!!! Tried to realloc " << InflateBufferSize);
+                    return returnemptyinflate();
+                }
+                memcpy(InflateBuffer + beforesize, TempInflateBuffer.get(), growsize);
+            } while (err == Z_BUF_ERROR && InflateBufferSize <= MaxPayload);
 
-                dynamicInflationBuffer.append(inflationBuffer.get(), LARGE_BUFFER_SIZE - inflationStream.avail_out);
-            } while (err == Z_BUF_ERROR && dynamicInflationBuffer.length() <= MaxPayload);
+            inflateReset(&InflationStream);
 
-            inflateReset(&inflationStream);
-
-            if ((err != Z_BUF_ERROR && err != Z_OK) || dynamicInflationBuffer.length() > MaxPayload) {
-                unsigned char *p = nullptr;
-                size_t o = 0;
-                return std::make_tuple(p, o);
+            if ((err != Z_BUF_ERROR && err != Z_OK) || InflateBufferSize > MaxPayload) {
+                return returnemptyinflate();
             }
-            if (!dynamicInflationBuffer.empty()) {
-                dynamicInflationBuffer.append(inflationBuffer.get(), LARGE_BUFFER_SIZE - inflationStream.avail_out);
-                return std::make_tuple((unsigned char *)dynamicInflationBuffer.data(), dynamicInflationBuffer.length());
+            if (InflateBufferSize > 0) {
+                auto growsize = LARGE_BUFFER_SIZE - InflationStream.avail_out;
+                InflateBufferSize += growsize;
+                auto beforesize = InflateBufferSize;
+                InflateBuffer = static_cast<unsigned char *>(realloc(InflateBuffer, InflateBufferSize));
+                if (!InflateBuffer) {
+                    SL_WS_LITE_LOG(Logging_Levels::ERROR_log_level, "INFLATE MEMORY ALLOCATION ERROR!!! Tried to realloc " << InflateBufferSize);
+                    return returnemptyinflate();
+                }
+                memcpy(InflateBuffer + beforesize, TempInflateBuffer.get(), growsize);
+                return std::make_tuple(InflateBuffer, InflateBufferSize);
             }
-
-            return std::make_tuple((unsigned char *)inflationBuffer.get(), LARGE_BUFFER_SIZE - (size_t)inflationStream.avail_out);
+            return std::make_tuple(TempInflateBuffer.get(), LARGE_BUFFER_SIZE - (size_t)InflationStream.avail_out);
         }
-        std::string dynamicInflationBuffer;
-        std::unique_ptr<char[]> inflationBuffer;
-        z_stream inflationStream = {};
-
+        auto endInflate() { beginInflate(); }
         std::function<void(const std::shared_ptr<IWebSocket> &, const HttpHeader &)> onConnection;
         std::function<void(const std::shared_ptr<IWebSocket> &, const WSMessage &)> onMessage;
         std::function<void(const std::shared_ptr<IWebSocket> &, unsigned short, const std::string &)> onDisconnection;

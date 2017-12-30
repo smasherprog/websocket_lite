@@ -2,11 +2,10 @@
 #include <chrono>
 #include <functional>
 #include <memory>
-#include <string.h>
 #include <string>
 #include <system_error>
 #include <unordered_map>
-#include <vector>
+
 typedef struct x509_store_ctx_st X509_STORE_CTX;
 
 #if defined(WINDOWS) || defined(WIN32)
@@ -853,7 +852,6 @@ namespace WS_LITE {
          */
         virtual std::error_code set_password_callback(const std::function<std::string(std::size_t, password_purpose)> &callback,
                                                       std::error_code &ec) = 0;
-
-    }; // namespace WS_LITE
+    };
 } // namespace WS_LITE
 } // namespace SL
