@@ -8,7 +8,7 @@
 #include <zlib.h>
 namespace SL {
 namespace WS_LITE {
-    const size_t LARGE_BUFFER_SIZE = 4 * 1024 * 1024; // 4 MB temp buffer
+    const size_t LARGE_BUFFER_SIZE = 1024 * 1024; // 1 MB temp buffer
     class IWebSocket;
     struct HttpHeader;
     struct WSMessage;
@@ -27,10 +27,14 @@ namespace WS_LITE {
       public:
         WebSocketContext()
         {
-            TempInflateBuffer = std::make_unique<unsigned char[]>(MaxPayload);
+            TempInflateBuffer = std::make_unique<unsigned char[]>(LARGE_BUFFER_SIZE);
             inflateInit2(&InflationStream, -MAX_WBITS);
         }
-        ~WebSocketContext() { inflateEnd(&InflationStream); }
+        ~WebSocketContext()
+        {
+            inflateEnd(&InflationStream);
+            free(InflateBuffer);
+        }
         auto beginInflate()
         {
             InflateBufferSize = 0;
