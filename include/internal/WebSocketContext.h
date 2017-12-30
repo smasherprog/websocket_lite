@@ -4,8 +4,8 @@
 #include <chrono>
 #include <functional>
 #include <memory>
+#include <string.h>
 #include <zlib.h>
-
 namespace SL {
 namespace WS_LITE {
     const size_t LARGE_BUFFER_SIZE = 4 * 1024 * 1024; // 4 MB temp buffer
