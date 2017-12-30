@@ -5,6 +5,7 @@
 #include <string>
 #include <system_error>
 #include <unordered_map>
+#include <vector>
 
 typedef struct x509_store_ctx_st X509_STORE_CTX;
 
