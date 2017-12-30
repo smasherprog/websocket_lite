@@ -264,8 +264,7 @@ namespace WS_LITE {
         }
     }
 
-    template <bool isServer, class SOCKETTYPE>
-    inline void ProcessMessage(const SOCKETTYPE &socket, size_t previoussize, const std::shared_ptr<asio::streambuf> &extradata)
+    template <bool isServer, class SOCKETTYPE> inline void ProcessMessage(const SOCKETTYPE &socket, const std::shared_ptr<asio::streambuf> &extradata)
     {
 
         auto opcode = static_cast<OpCode>(getOpCode(socket->ReceiveHeader));
@@ -463,7 +462,7 @@ namespace WS_LITE {
                                          auto buffer = socket->ReceiveBuffer + socket->ReceiveBufferSize - size;
                                          UnMaskMessage(size, buffer, isServer);
                                          socket->ReceiveBufferSize -= AdditionalBodyBytesToRead(isServer);
-                                         return ProcessMessage<isServer>(socket, size - AdditionalBodyBytesToRead(isServer), extradata);
+                                         return ProcessMessage<isServer>(socket, extradata);
                                      }
                                      else {
                                          return sendclosemessage<isServer>(socket, 1002, "ReadBody Error " + ec.message());
@@ -471,7 +470,7 @@ namespace WS_LITE {
                                  });
             }
             else {
-                return ProcessMessage<isServer>(socket, 0, extradata);
+                return ProcessMessage<isServer>(socket, extradata);
             }
         }
         else {

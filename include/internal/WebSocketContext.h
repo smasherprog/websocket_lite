@@ -1,4 +1,5 @@
 #pragma once
+#include "Logging.h"
 #include "WS_Lite.h"
 #include <chrono>
 #include <functional>
